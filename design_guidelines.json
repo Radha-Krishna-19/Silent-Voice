@@ -1,0 +1,175 @@
+{
+  "typography": {
+    "fonts": {
+      "heading": "'Fraunces', serif",
+      "body": "'Inter', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
+    },
+    "scale": {
+      "h1": "text-5xl md:text-6xl lg:text-7xl font-light tracking-tight leading-none text-[#F2ECE0]",
+      "h2": "text-4xl md:text-5xl font-light tracking-tight leading-tight text-[#F2ECE0]",
+      "h3": "text-2xl md:text-3xl font-normal leading-snug text-[#F2ECE0]",
+      "body_large": "text-lg md:text-xl font-normal leading-relaxed text-[#F2ECE0]/90",
+      "body": "text-base font-normal leading-relaxed text-[#F2ECE0]/80",
+      "body_small": "text-sm font-normal leading-relaxed text-[#F2ECE0]/60",
+      "micro_caps": "text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-[#C97B4A]"
+    }
+  },
+  "colors": {
+    "background": {
+      "base": "#0B0B0D",
+      "glass": "rgba(11, 11, 13, 0.65)",
+      "panel": "rgba(242, 236, 224, 0.03)"
+    },
+    "text": {
+      "primary": "#F2ECE0",
+      "secondary": "rgba(242, 236, 224, 0.7)",
+      "muted": "rgba(242, 236, 224, 0.4)",
+      "inverse": "#0B0B0D"
+    },
+    "accent": {
+      "cyan": "#6EE7F2",
+      "cyan_glow": "rgba(110, 231, 242, 0.4)",
+      "copper": "#C97B4A",
+      "copper_glow": "rgba(201, 123, 74, 0.4)"
+    },
+    "border": {
+      "subtle": "rgba(242, 236, 224, 0.1)",
+      "active": "#C97B4A",
+      "focus": "#6EE7F2"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "sidebar": "backdrop-blur-2xl bg-[#0B0B0D]/70 border-r border-[#F2ECE0]/10",
+      "card": "backdrop-blur-xl bg-[#F2ECE0]/[0.02] border border-[#F2ECE0]/10 hover:bg-[#F2ECE0]/[0.04] transition-colors duration-300 ease-in-out",
+      "overlay": "backdrop-blur-md bg-[#0B0B0D]/80"
+    },
+    "textures": {
+      "grain": "Use an absolute positioned div covering the screen with `pointer-events-none opacity-20 mix-blend-overlay` and the film grain image asset. This is critical for the dark-editorial aesthetic."
+    },
+    "glows": {
+      "landmark_cyan": "drop-shadow-[0_0_8px_rgba(110,231,242,0.6)]",
+      "text_copper": "text-shadow-[0_0_12px_rgba(201,123,74,0.4)]"
+    }
+  },
+  "grids_and_layouts": {
+    "app_shell": "h-screen w-full flex overflow-hidden bg-[#0B0B0D] text-[#F2ECE0]",
+    "main_content": "flex-1 relative overflow-y-auto",
+    "bento_grid": "grid grid-cols-1 md:grid-cols-12 gap-6 p-6 md:p-12",
+    "spacing": {
+      "section_padding": "py-24 md:py-32 px-6 md:px-12 lg:px-24",
+      "element_gap": "gap-6 md:gap-8"
+    }
+  },
+  "motion": {
+    "rules": {
+      "duration": "150ms to 300ms",
+      "easing": "ease-[cubic-bezier(0.25,0.1,0.25,1)] (Strictly NO bouncy/spring easing)",
+      "parallax": "FORBIDDEN",
+      "particles": "FORBIDDEN"
+    },
+    "signatures": {
+      "caption_assembly": "Character-by-character reveal using Framer Motion stagger (`staggerChildren: 0.02`). Characters fade from opacity 0 to 1 strictly (no Y-axis translation to maintain cinematic solidity).",
+      "waveform": "Subtle vertical scaling of 3-5 vertical bars to simulate TTS playback. Use framer-motion with `repeat: Infinity` and `repeatType: mirror`.",
+      "landmark_overlay": "SVG skeleton drawing paths between joints. Circular nodes pulse softly with `#6EE7F2` glow.",
+      "gloss_reordering": "Smooth horizontal layout animation using Framer Motion's `layoutId` or `layout` prop on flex chips as English translates into ISL sequence."
+    }
+  },
+  "accessibility": {
+    "prefers_reduced_motion": "All animations MUST be conditionally disabled using Framer Motion's `useReducedMotion()`. Swap complex staggers for simple opacity fades.",
+    "contrast": "Ensure all text against `#0B0B0D` or image overlays meets 4.5:1 WCAG AA. Use gradients behind text overlaying images.",
+    "keyboard_nav": "Visible focus rings on all interactive elements: `focus-visible:ring-2 focus-visible:ring-[#6EE7F2] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0B0D] focus:outline-none`."
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#C97B4A] text-[#0B0B0D] font-semibold px-8 py-3 rounded-sm hover:bg-[#b06a3d] transition-colors duration-300 flex items-center justify-center gap-2",
+      "secondary": "bg-transparent border border-[#F2ECE0]/20 text-[#F2ECE0] hover:border-[#F2ECE0]/50 hover:bg-[#F2ECE0]/5 px-8 py-3 rounded-sm transition-colors duration-300",
+      "ghost": "text-[#F2ECE0]/70 hover:text-[#F2ECE0] hover:bg-[#F2ECE0]/5 px-4 py-2 rounded-sm transition-colors duration-300"
+    },
+    "confidence_chip": {
+      "wrapper": "flex flex-col gap-2 items-start",
+      "high": "bg-[#C97B4A] text-[#0B0B0D] px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-sm shadow-[0_0_12px_rgba(201,123,74,0.3)]",
+      "medium": "border border-[#6EE7F2] text-[#6EE7F2] bg-[#6EE7F2]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-sm",
+      "low": "border border-[#F2ECE0]/30 text-[#F2ECE0]/60 bg-[#0B0B0D]/50 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-sm",
+      "correction_chips_container": "flex gap-2 flex-wrap mt-1",
+      "correction_chip": "border border-[#F2ECE0]/20 text-[#F2ECE0]/60 px-2 py-1 text-[10px] uppercase tracking-wider rounded-sm cursor-pointer hover:border-[#6EE7F2] hover:text-[#6EE7F2] transition-colors"
+    },
+    "privacy_badge": {
+      "style": "inline-flex items-center gap-2 px-3 py-1.5 backdrop-blur-md bg-[#0B0B0D]/60 border border-[#F2ECE0]/10 rounded-full",
+      "text": "text-[10px] uppercase tracking-widest text-[#F2ECE0]/80",
+      "icon": "w-3 h-3 text-[#6EE7F2]"
+    }
+  },
+  "screens": {
+    "Landing": {
+      "layout": "Full-bleed hero taking 100vh. Navigation overlays transparently at the top.",
+      "hero": "Cinematic hands background image with heavy vignette (`bg-gradient-to-t from-[#0B0B0D] via-[#0B0B0D]/60 to-transparent`).",
+      "headline": "Fraunces H1 'Every gesture, heard.' stacked in a sophisticated editorial style. Copper CTA below.",
+      "features": "Bento grid below hero containing 3 feature cards highlighting live translation, practice mode, and privacy."
+    },
+    "Live Translation": {
+      "layout": "Desktop-first. Left 70% is webcam view, right 30% is a glassmorphic sidebar.",
+      "webcam_feed": "Cinematic dark placeholder for user feed. Overlaid with SVG dots and lines (fake landmark tracking).",
+      "captions": "Absolute positioned at bottom of the video feed. Large Fraunces or Inter text assembling character-by-character.",
+      "confidence": "Chip appearing just above the caption block.",
+      "sidebar": "Domain switcher at top (Everyday / Medical / Classroom) styled as a sleek segmented control. Running transcript auto-scrolling below.",
+      "controls": "Floating control bar at bottom center of video (Pause, Mute TTS, Clear) using ghost buttons with icons."
+    },
+    "Reverse Mode": {
+      "layout": "Centered editorial layout. Large text/mic input area.",
+      "gloss_visualization": "A dedicated row showing English words breaking down and animating into ISL gloss chips.",
+      "sign_player": "16:9 cinematic video player container. Segmented progress bar at bottom showing distinct sign boundaries. Upcoming thumbnail previews layered on the right side."
+    },
+    "Practice Mode": {
+      "layout": "Split screen. Left side: Reference Clip. Right side: User Webcam.",
+      "score_card": "Floating centered UI bridging the two screens. Massive Fraunces percentage text with copper accent ring or glow.",
+      "feedback": "Bullet list of improvements below score (e.g., 'Wrist angle slightly off').",
+      "upcoming_strip": "Horizontal scrolling ticker at the bottom showing the upcoming sequence of signs."
+    },
+    "Transcript & Settings": {
+      "transcript": "Minimal list view. Expandable rows for full transcripts and export controls (.txt/.srt) in copper accent.",
+      "settings": "Form layout with generous spacing. Toggle switches for motion/privacy, clean dropdowns for voice and domains."
+    },
+    "Auth Shell": {
+      "layout": "Centered floating card `max-w-md` on the textured base background.",
+      "style": "Minimal input fields (border-b only or very subtle rounded-sm borders). Editorial typography for 'Sign In'. Non-functional but visually complete."
+    }
+  },
+  "media": {
+    "images": {
+      "hero_hands": {
+        "url": "https://images.unsplash.com/photo-1600358280808-a426a378047a",
+        "description": "Cinematic dark photo of a person gesturing to the camera. Used for landing page hero."
+      },
+      "webcam_user": {
+        "url": "https://images.unsplash.com/photo-1555963153-11ff60182d08",
+        "description": "Silhouette of person using computer in the dark. Used as the fake webcam feed background."
+      },
+      "texture_grain": {
+        "url": "https://images.pexels.com/photos/18599094/pexels-photo-18599094.jpeg",
+        "description": "Grainy texture to overlay on the #0B0B0D background with low opacity and mix-blend-overlay."
+      }
+    },
+    "icons": {
+      "library": "lucide-react",
+      "instructions": "Use lucide-react with `strokeWidth={1.5}` for a more refined, elegant look."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Install and use `framer-motion` for all core UI animations (caption assembly, gloss reordering). Check for reduced motion globally.",
+    "Use standard HTML/Tailwind for the main app shell, leveraging flexbox and CSS Grid. Do not rely heavily on pre-built generic UI component libraries if they clash with the custom aesthetic.",
+    "For the animated landmark overlay, create a custom SVG layer with pulsing `<circle>` and `<line>` elements to simulate MediaPipe hand tracking output.",
+    "The application is desktop-first, tailored for Chrome/Edge. Ensure hover states and keyboard navigation are highly polished.",
+    "Ensure backgrounds never use pure transparent when text sits on top of moving content. Use `#0B0B0D`/60 with backdrop-blur.",
+    "Ensure all interactive components and key states have descriptive `data-testid` attributes."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic outputs. Avoid this: make the UI look like a high-end, cinematic editorial app, not a standard SaaS template.",
+    "Do NOT apply universal transitions like `transition: all`. Specify transition properties (e.g., `transition-colors`, `transition-transform`) to prevent breaking framer-motion.",
+    "Generous Spacing Philosophy: Use 2-3x more spacing than feels normal. `p-8` to `p-12` inside major panels.",
+    "No emojis anywhere in the UI. Use sleek Lucide icons.",
+    "Ensure color contrast strictly meets WCAG AA criteria.",
+    "Include `data-testid` on all buttons, inputs, links, and important text fields."
+  ]
+}

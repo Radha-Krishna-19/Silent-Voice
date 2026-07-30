@@ -1,0 +1,93 @@
+# Curated ~90-class whitelist covering the Everyday + Medical + Classroom
+# domain packs. Copy this file to your training machine and pass it to
+# preprocess.py with `--classes classes_locked.txt` to shrink the raw-video
+# download from ~120 GB to ~30 GB (and permanent .npy footprint to ~150 MB).
+#
+# Labels below are lowercase snake-case (matching what preprocess.py emits).
+# Feel free to add/remove entries — this is just the recommended subset.
+
+# --- Everyday ---
+hello
+good_morning
+goodbye
+thank_you
+please
+yes
+no
+sorry
+name
+i
+you
+love
+family
+mother
+father
+friend
+food
+water
+tea
+time
+today
+yesterday
+tomorrow
+how
+what
+where
+why
+who
+
+# --- Emergency / Medical ---
+help
+pain
+doctor
+ambulance
+hospital
+medicine
+hurt
+emergency
+fever
+cough
+headache
+tablet
+sick
+tired
+sleep
+
+# --- Classroom ---
+teacher
+student
+question
+answer
+book
+read
+write
+study
+homework
+class
+listen
+understand
+repeat
+please_repeat
+i_understand
+
+# --- Common verbs & modifiers ---
+come
+go
+give
+take
+have
+need
+want
+like
+know
+see
+hear
+speak
+call
+
+# --- Numbers (small set — full alphabet fingerspelling handled separately) ---
+one
+two
+three
+four
+five
