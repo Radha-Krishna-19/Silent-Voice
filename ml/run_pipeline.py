@@ -38,8 +38,14 @@ def sh(cmd: list[str]) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--videos", default="data/include", help="Root of the labelled video tree")
-    ap.add_argument("--classes", default="scripts/classes_isl20.txt")
-    ap.add_argument("--max-per-class", type=int, default=10)
+    ap.add_argument("--classes", default="scripts/classes_isl20.txt",
+                    help='Whitelist file, or "all" to use every class in the archive')
+    ap.add_argument("--max-per-class", type=int, default=10,
+                    help="0 = no cap (use every clip of every class)")
+    ap.add_argument("--min-per-class", type=int, default=6,
+                    help="Drop classes with fewer clips than this. Below ~6 a "
+                         "stratified 70/15/15 split cannot give the class a "
+                         "member in every split and sklearn raises.")
     ap.add_argument("--sample-frames", type=int, default=40)
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--epochs", type=int, default=60)
@@ -56,10 +62,13 @@ def main() -> None:
         cmd = [py, "scripts/preprocess.py",
                "--videos", args.videos,
                "--out", "data/processed/include",
-               "--classes", args.classes,
-               "--max-per-class", str(args.max_per_class),
                "--sample-frames", str(args.sample_frames),
+               "--min-per-class", str(args.min_per_class),
                "--workers", str(args.workers)]
+        if args.classes.lower() not in ("all", "none", ""):
+            cmd += ["--classes", args.classes]
+        if args.max_per_class:
+            cmd += ["--max-per-class", str(args.max_per_class)]
         if args.delete_after:
             cmd.append("--delete-after")
         sh(cmd)

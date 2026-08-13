@@ -189,31 +189,75 @@ This runs, in order:
 **Expect 10–30 minutes per model** on a laptop CPU for 20 classes. You'll see
 per-epoch output like `epoch 007  loss 1.8423  val_acc 0.6250  (9.4s)`.
 
-### Training on more of the dataset
+### Training on the FULL dataset (all classes, all clips)
 
-The 160 tensors are only **3.7%** of what's available — the full archive has
-**4,284 videos across 262 sign classes**. To use more, re-run extraction:
+The 160 tensors above are only **3.7%** of what's available. The full archive is
+**4,284 clips across 263 classes**, averaging 16 clips per class (range 4–27).
+
+One command does everything — extraction, both models, evaluation, report:
 
 ```bash
 cd ml
-python scripts/preprocess.py \
+python run_pipeline.py \
     --videos "../archive (3)" \
-    --out data/processed/include \
-    --max-per-class 8 \
+    --classes all \
+    --max-per-class 0 \
+    --min-per-class 6 \
     --sample-frames 32 \
-    --workers 4
+    --workers 4 \
+    --epochs 60 \
+    --batch 32
 ```
 
-Dropping `--classes` uses all 262 classes (~2,100 clips at 8 each, roughly
-30–60 min with 4 workers). Then run the training command above again.
+What the flags mean:
 
-> **Recommendation:** train on the existing 20 classes first to confirm the whole
-> pipeline works, *then* scale up. Debugging a 4-hour run is painful; debugging a
-> 15-minute one isn't.
+| Flag | Why |
+|---|---|
+| `--classes all` | disables the ISL-20 whitelist — use every class |
+| `--max-per-class 0` | no per-class cap — use every clip |
+| `--min-per-class 6` | **required.** Drops classes with too few clips (see below) |
+| `--workers 4` | parallel extraction. Set to your CPU core count |
+| `--batch 32` | larger batch than the 20-class run; there's far more data now |
+
+> **Why `--min-per-class 6` matters.** Two classes (`nice`, `thin`) have only 4
+> clips. A stratified 70/15/15 split can't give those a member in every split, and
+> `sklearn.train_test_split` raises `ValueError: The least populated class has
+> only 1 member`. This flag drops them before any compute is spent, leaving
+> **261 classes / 4,276 clips**. Without it the run dies *after* an hour of
+> extraction.
+
+### How long it takes
+
+| Stage | CPU (4 workers) | Notes |
+|---|---|---|
+| Extraction | **45–90 min** | ~1–2 s per clip. Resumable — safe to Ctrl+C and rerun |
+| BiLSTM training | **1.5–2.5 hrs** | ~27× more data per epoch than the 20-class run |
+| CNN training | **40–60 min** | convolutions parallelise; much faster than recurrence |
+| Evaluation | ~2 min | |
+
+Budget roughly **4–5 hours total on CPU**, so start it before bed. Early stopping
+(patience 20) often ends it sooner.
+
+**On a GPU this is ~20 min per model.** If you have access to Google Colab's free
+T4, upload `ml/` plus the extracted tensors (not the 54 GB of video — extract
+locally first, then upload the ~250 MB of `.npy` files) and run the same command
+with `--skip-preprocess`.
+
+Extraction is **resumable**: already-written tensors are skipped, so if it's
+interrupted just rerun the identical command.
+
+### Set your expectations for 261 classes
+
+The 20-class run should score high. 261 classes is a genuinely harder problem —
+published baselines on full INCLUDE land around **60–70%** top-1. If you see
+~65% do not assume something is broken; that is competitive. Watch **top-3
+accuracy** and **macro F1** too, since classes with only 6 clips get a single
+test sample each and their individual scores will be very noisy.
 
 > **Disk space:** add `--delete-after` and each source video is deleted the moment
 > its tensor is written, taking the project from 54 GB to a few hundred MB.
-> **This is irreversible** — only use it on classes you're certain about.
+> **This is irreversible** — only use it once you're sure you won't need to
+> re-extract with different settings.
 
 ---
 

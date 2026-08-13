@@ -67,7 +67,7 @@ sitting in `ml/data/processed/include/`, so skip straight to training:
 
 ```bash
 cd ml
-python run_pipeline.py --skip-preprocess --epochs 60 --batch 16
+python run_pipeline.py --skip-preprocess --epochs 60 --batch 16   # 20-class quick run
 ```
 
 This trains BiLSTM, then CNN, then runs `evaluate.py` and `make_report.py`.

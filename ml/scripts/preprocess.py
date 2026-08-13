@@ -225,6 +225,11 @@ def main() -> None:
     ap.add_argument("--out", required=True, help="Where to write .npy tensors")
     ap.add_argument("--classes", type=str, default=None,
                     help="Path to a .txt of whitelisted class names, one per line (# = comment)")
+    ap.add_argument("--min-per-class", type=int, default=0,
+                    help="Skip classes with fewer than N clips in the archive. A "
+                         "stratified 70/15/15 split needs >=2 members in the "
+                         "val/test remainder, so classes with <6 clips make "
+                         "sklearn's train_test_split raise.")
     ap.add_argument("--max-per-class", type=int, default=None,
                     help="Cap videos processed per class. Balances the set and cuts runtime.")
     ap.add_argument("--sample-frames", type=int, default=40,
@@ -257,11 +262,30 @@ def main() -> None:
         raise SystemExit(f"No videos found under {root}")
     print(f"-> found {len(videos)} videos under {root}")
 
+    # ---- drop under-populated classes before anything else.
+    # Done here rather than at train time so we never spend MediaPipe compute on
+    # clips that cannot survive the split.
+    rare: set[str] = set()
+    if args.min_per_class:
+        totals: dict[str, int] = {}
+        for v in videos:
+            lab = infer_label(v)
+            if whitelist is not None and lab not in whitelist:
+                continue
+            totals[lab] = totals.get(lab, 0) + 1
+        rare = {l for l, c in totals.items() if c < args.min_per_class}
+        if rare:
+            print(f"-> dropping {len(rare)} class(es) with < {args.min_per_class} clips: "
+                  f"{', '.join(sorted(rare)[:8])}{' …' if len(rare) > 8 else ''}")
+
     # ---- build the work list (label balancing happens here, before any decode)
     jobs, label_counts, skipped = [], {}, 0
     for v in videos:
         label = infer_label(v)
         if whitelist is not None and label not in whitelist:
+            skipped += 1
+            continue
+        if label in rare:
             skipped += 1
             continue
         idx = label_counts.get(label, 0)
