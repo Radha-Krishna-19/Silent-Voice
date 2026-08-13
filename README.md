@@ -62,12 +62,15 @@ silent_voice/
 
 | Need | Version | Check with |
 |---|---|---|
-| Python | 3.10 or 3.11 | `python --version` |
+| Python | 3.10, 3.11 or 3.12 | `python --version` |
 | Node.js | 18+ | `node --version` |
 | Yarn or npm | any | `yarn --version` |
 | Webcam | any | for the Live page |
 
-> **Python 3.12+ will not work** — `mediapipe` 0.10.x has no wheel for it.
+> **Python 3.13 will not work.** `mediapipe` ships compiled extensions, so it
+> needs a prebuilt wheel matching your exact Python version, and 0.10.14 (the
+> last release that still contains the `Holistic` model this project uses) has
+> no `cp313` build. 3.10, 3.11 and 3.12 are all fine. Verified against PyPI.
 
 ---
 
@@ -310,7 +313,7 @@ predictions** instead of mock ones.
 
 | Problem | Fix |
 |---|---|
-| `ModuleNotFoundError: No module named 'mediapipe'` | `pip install -r ml/requirements-training.txt`. Requires Python ≤ 3.11. |
+| `ModuleNotFoundError: No module named 'mediapipe'` | `pip install -r ml/requirements-training.txt`. Requires Python ≤ 3.12. |
 | `Couldn't build proto file into descriptor pool` | Corrupted mediapipe install. `pip install --force-reinstall --no-deps mediapipe==0.10.14` |
 | Frontend: `Unknown keyword formatMinimum` or `ajv` errors | Known CRA 5 issue. `rm -rf frontend/node_modules && cd frontend && yarn install` |
 | `/research` says "Backend unreachable" | Terminal 1 isn't running. Start `python server.py`. |
