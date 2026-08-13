@@ -1,0 +1,43 @@
+# ISL-20 — the exact intersection of two things:
+#   1. the 262 classes physically present in the INCLUDE archive on disk, and
+#   2. the Silent Voice app vocabulary in classes_locked.txt
+#
+# 20 classes x ~16-24 takes each = ~320-480 clips. This is the recommended
+# starting set: small enough to preprocess and train on a laptop CPU in about
+# an hour, but every word is one the demo actually needs.
+#
+# Verified against the archive with:
+#   find "archive (3)" -mindepth 3 -maxdepth 3 -type d | sed 's|.*/||' \
+#     | sed 's/^[0-9]*\. //' | tr 'A-Z ' 'a-z_' | sort -u
+#
+# --- Greetings / social ---
+hello
+good_morning
+thank_you
+
+# --- Pronouns ---
+i
+you
+
+# --- People ---
+family
+father
+mother
+friend
+student
+teacher
+doctor
+
+# --- Medical ---
+hospital
+medicine
+sick
+
+# --- Days and time ---
+time
+today
+tomorrow
+yesterday
+
+# --- Objects ---
+book

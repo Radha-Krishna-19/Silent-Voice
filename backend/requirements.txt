@@ -1,0 +1,10 @@
+# Demo server dependencies.
+# mediapipe must stay <1.0 — 1.0.0 removed mediapipe.solutions (Holistic).
+mediapipe==0.10.14
+
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+numpy>=1.26,<3
+opencv-python>=4.9
+torch>=2.2.0

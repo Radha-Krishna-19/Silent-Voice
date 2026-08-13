@@ -1,9 +1,14 @@
 # Training-only dependencies. NOT installed in the web-app pod.
+#
+# IMPORTANT: mediapipe must stay below 1.0.0. Version 1.0.0 removed
+# `mediapipe.solutions` entirely (including Holistic), which preprocess.py needs.
+# 0.10.14 is the last release with a working Holistic graph on Python 3.10-3.12.
+mediapipe==0.10.14
+
 torch>=2.2.0
-numpy>=1.26
-mediapipe>=0.10.14
+numpy>=1.26,<3
 opencv-python>=4.9
 tqdm>=4.66
 scikit-learn>=1.4
-tensorboard>=2.16
 matplotlib>=3.8
+tensorboard>=2.16

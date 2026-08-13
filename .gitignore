@@ -84,3 +84,47 @@ memory/test_credentials.md
 
 # Mobile development
 android-sdk/
+
+# ML — raw dataset, generated tensors, checkpoints, run logs.
+# None of this belongs in git; regenerate it with ml/run_pipeline.py.
+archive*/
+ml/data/include/*
+ml/data/custom/*
+ml/data/processed/*
+!ml/data/**/.gitkeep
+ml/models/*.pt
+ml/models/*.json
+ml/logs/*
+!ml/logs/.gitkeep
+backend/models/*.pt
+backend/models/*.json
+*.MOV
+*.mov
+*.mp4
+*.npy
+*.npy.tmp
+
+# ---- added during cleanup -------------------------------------------------
+# Derived landmark tensors — regenerate with ml/scripts/preprocess.py
+ml/data/processed/*.npy
+ml/data/processed/**/*.npy
+ml/data/processed/**/label_index.json
+ml/data/processed/**/norm_stats.json
+
+# Trained checkpoints and training artefacts
+ml/models/*.pt
+backend/models/*.pt
+ml/logs/*.json
+ml/logs/*.png
+ml/logs/*.md
+ml/logs/*.html
+
+# Emergent platform scaffolding — not part of the product
+.emergent/
+.ruff_cache/
+__pycache__/
+*.pyc
+
+# QA scratch
+.qa/
+.qa2/
