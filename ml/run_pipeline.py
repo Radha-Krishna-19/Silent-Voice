@@ -53,6 +53,10 @@ def main() -> None:
     ap.add_argument("--models", nargs="+", default=["bilstm", "cnn"],
                     choices=["bilstm", "cnn", "transformer"])
     ap.add_argument("--skip-preprocess", action="store_true")
+    ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--no-augment", action="store_true",
+                    help="Passed through to every trainer. With ~11 clips per class the "
+                         "default augmentation prevents the models from fitting at all.")
     ap.add_argument("--delete-after", action="store_true")
     args = ap.parse_args()
 
@@ -81,7 +85,13 @@ def main() -> None:
                 "--workers", str(args.workers)])
 
     for m in args.models:
-        sh([py, f"scripts/train_{m}.py", "--epochs", str(args.epochs), "--batch", str(args.batch)])
+        cmd = [py, f"scripts/train_{m}.py",
+               "--epochs", str(args.epochs),
+               "--batch", str(args.batch),
+               "--lr", str(args.lr)]
+        if args.no_augment:
+            cmd.append("--no-augment")
+        sh(cmd)
 
     sh([py, "scripts/evaluate.py"])
     sh([py, "scripts/make_report.py"])
