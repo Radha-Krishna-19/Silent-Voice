@@ -37,14 +37,34 @@ PRETTY = {"bilstm": "BiLSTM", "cnn": "1D-CNN (baseline)", "transformer": "Transf
 
 
 def plot_confusion(cm: np.ndarray, labels: list[str], arch: str, out: Path) -> None:
+    """Row-normalised confusion matrix.
+
+    The figure size must be CAPPED. Scaling linearly with the class count is
+    fine for 20 classes but at 261 it asks for a 110x99 inch canvas, which at
+    dpi 140 is ~15000x14000 px and raises _ArrayMemoryError inside matplotlib's
+    resampling. Beyond ~60 classes the per-class tick labels are unreadable
+    anyway, so they are dropped and the matrix is shown as a heat map.
+    """
     n = len(labels)
-    fig, ax = plt.subplots(figsize=(max(6, n * 0.42), max(5, n * 0.38)), dpi=140)
-    im = ax.imshow(cm, cmap="magma", vmin=0, vmax=1)
-    ax.set_xticks(range(n), labels, rotation=90, fontsize=7)
-    ax.set_yticks(range(n), labels, fontsize=7)
+    side = min(22.0, max(6.0, n * 0.42))
+    dpi = 140 if n <= 60 else 100
+    fig, ax = plt.subplots(figsize=(side, side * 0.92), dpi=dpi)
+    im = ax.imshow(cm, cmap="magma", vmin=0, vmax=1, interpolation="nearest")
+
+    if n <= 60:
+        ax.set_xticks(range(n), labels, rotation=90, fontsize=7)
+        ax.set_yticks(range(n), labels, fontsize=7)
+    else:
+        step = max(1, n // 30)
+        idx = list(range(0, n, step))
+        ax.set_xticks(idx, [labels[i] for i in idx], rotation=90, fontsize=6)
+        ax.set_yticks(idx, [labels[i] for i in idx], fontsize=6)
+
     ax.set_xlabel("predicted")
     ax.set_ylabel("true")
-    ax.set_title(f"{PRETTY.get(arch, arch)} — row-normalised confusion")
+    diag = float(np.trace(cm) / max(n, 1))
+    ax.set_title(f"{PRETTY.get(arch, arch)} — row-normalised confusion "
+                 f"({n} classes, mean diagonal {diag:.2f})")
     fig.colorbar(im, ax=ax, fraction=0.046)
     fig.tight_layout()
     fig.savefig(out)
