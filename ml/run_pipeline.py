@@ -35,6 +35,26 @@ def sh(cmd: list[str]) -> None:
     print(f"\n[done in {time.time() - t0:.0f}s]", flush=True)
 
 
+def stage_models(models: list[str]) -> list[str]:
+    """Copy checkpoints + label map + norm stats into backend/models/.
+
+    Called before evaluation as well as after, so a crash in evaluate.py or
+    make_report.py cannot leave the server without the weights that training
+    just spent an hour producing.
+    """
+    dest = HERE.parent / "backend" / "models"
+    dest.mkdir(parents=True, exist_ok=True)
+    staged = []
+    for f in ["label_map.json", "preproc_stats.json"] + [f"{m}.pt" for m in models]:
+        src = HERE / "models" / f
+        if src.exists():
+            shutil.copy2(src, dest / f)
+            staged.append(f)
+    if staged:
+        print(f"-> staged into backend/models/: {', '.join(staged)}", flush=True)
+    return staged
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--videos", default="data/include", help="Root of the labelled video tree")
@@ -93,18 +113,15 @@ def main() -> None:
             cmd.append("--no-augment")
         sh(cmd)
 
+    # Stage checkpoints BEFORE evaluation. Training is the expensive step; if
+    # evaluation or reporting then fails, the trained models are already where
+    # the server expects them and the run is not wasted.
+    stage_models(args.models)
+
     sh([py, "scripts/evaluate.py"])
     sh([py, "scripts/make_report.py"])
 
-    # Stage the artifacts the demo server needs, so there is one less manual step.
-    dest = HERE.parent / "backend" / "models"
-    dest.mkdir(parents=True, exist_ok=True)
-    staged = []
-    for f in ["label_map.json", "preproc_stats.json"] + [f"{m}.pt" for m in args.models]:
-        src = HERE / "models" / f
-        if src.exists():
-            shutil.copy2(src, dest / f)
-            staged.append(f)
+    staged = stage_models(args.models)
 
     print("\n" + "=" * 62)
     print("pipeline complete")
