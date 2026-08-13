@@ -1,7 +1,9 @@
 """Model loader + predictor.
 
-If `backend/models/bilstm.pt` and/or `backend/models/transformer.pt` exist,
-they are loaded on FastAPI boot and used for real inference.
+Any of `backend/models/{bilstm,cnn,transformer}.pt` that exist are loaded on
+FastAPI boot and used for real inference. The set is driven by ARCHS below, not
+hardcoded at each call site, so adding a teammate's architecture is a one-word
+change here plus an entry in ml/scripts/models.py build().
 
 Otherwise, a mock predictor is used so the whole app remains usable.
 The web UI never breaks when models are absent.
@@ -23,7 +25,12 @@ MOCK_VOCAB = [
     "MY NAME IS", "HOW ARE YOU", "I LOVE YOU",
 ]
 
-_state = {"bilstm": None, "transformer": None, "labels": None}
+# Architectures the server can serve. Must match ml/scripts/models.py build().
+ARCHS = ("bilstm", "cnn", "transformer")
+DEFAULT_ARCH = "bilstm"
+
+_state: dict = {a: None for a in ARCHS}
+_state["labels"] = None
 
 
 def load_models() -> None:
@@ -51,7 +58,7 @@ def load_models() -> None:
         from models import build  # type: ignore
         import torch
 
-        for name in ("bilstm", "transformer"):
+        for name in ARCHS:
             ckpt = MODELS_DIR / f"{name}.pt"
             if not ckpt.exists():
                 logger.info("· %s.pt not found — skipping", name)
@@ -66,8 +73,12 @@ def load_models() -> None:
         logger.warning("model load failed → mock predictor active: %s", exc)
 
 
-def predict(landmarks, model_name: str = "transformer") -> dict:
+def predict(landmarks, model_name: str = DEFAULT_ARCH) -> dict:
     t0 = time.perf_counter()
+    # Fall back to any loaded model rather than silently going mock just
+    # because the caller asked for an architecture that was not trained.
+    if _state.get(model_name) is None:
+        model_name = next((a for a in ARCHS if _state.get(a) is not None), model_name)
     model = _state.get(model_name)
 
     if model is not None and landmarks:
@@ -113,10 +124,15 @@ def predict(landmarks, model_name: str = "transformer") -> dict:
 
 
 def status() -> dict:
-    return {
-        "bilstm_loaded": _state["bilstm"] is not None,
-        "transformer_loaded": _state["transformer"] is not None,
+    st = {f"{a}_loaded": _state[a] is not None for a in ARCHS}
+    st.update({
+        # `models` is the authoritative list of servable architectures. The
+        # per-arch *_loaded flags are kept for backwards compatibility, but
+        # callers should prefer this — deriving the list by string-matching
+        # "_loaded" also picked up labels_loaded and reported it as a model.
+        "models": [a for a in ARCHS if _state[a] is not None],
         "labels_loaded": _state["labels"] is not None,
         "num_labels": len(_state["labels"]) if _state["labels"] else 0,
         "models_dir": str(MODELS_DIR),
-    }
+    })
+    return st

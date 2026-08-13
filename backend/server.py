@@ -69,7 +69,7 @@ def holistic():
 def _startup() -> None:
     inference.load_models()
     st = inference.status()
-    loaded = [k[:-7] for k, v in st.items() if k.endswith("_loaded") and v]
+    loaded = st.get("models") or []   # not string-matching "_loaded" — that caught labels_loaded
     print("\n" + "=" * 60)
     print("  Silent Voice")
     print(f"  models loaded : {loaded or 'none'}")
