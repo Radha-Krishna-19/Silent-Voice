@@ -549,32 +549,34 @@ def slide_metric_defs(prs):
 
 
 def slide_metric_obs(prs):
+    """Measured results. Every figure here comes from ml/logs/comparison.json."""
     s = base(prs, "14.2 — PERFORMANCE METRICS", "Results & Observations")
-    tf = callout(s, 0.65, 1.78, 11.4, 0.66, "", accent=CRIMSON)
-    _run(tf.paragraphs[0], "Status:  ", size=11.5, bold=True, color=CRIMSON)
-    _run(tf.paragraphs[0], "training run pending. This table is populated directly from ml/logs/comparison.json — "
-                           "the same file the application's Research page reads. No placeholder figures are "
-                           "printed in their place.", size=11.5, color=INK)
+    tf = callout(s, 0.65, 1.76, 11.4, 0.60, "", accent=TEAL)
+    _run(tf.paragraphs[0], "Measured run:  ", size=11.5, bold=True, color=TEAL)
+    _run(tf.paragraphs[0], "261 classes · 4,276 clips · stratified 70/15/15 (seed 42) · 642 held-out test clips. "
+                           "Identical data, splits and schedule for both models; architecture is the only variable.",
+         size=11.5, color=INK)
 
     table(s, [
-        ["Metric", "BiLSTM", "1D CNN", "Observation"],
-        ["Test accuracy", "—", "—", ""],
-        ["Top-3 accuracy", "—", "—", ""],
-        ["Macro F1", "—", "—", ""],
-        ["Weighted F1", "—", "—", ""],
-        ["Latency — mean", "—", "—", ""],
-        ["Latency — p95", "—", "—", ""],
-        ["Parameters", "—", "—", ""],
-        ["Best epoch", "—", "—", ""],
-    ], x=0.65, y=2.54, w=11.4, col_w=[2.30, 1.65, 1.65, 5.80], row_h=0.32, head_h=0.36, fsize=10)
+        ["Metric", "BiLSTM", "1D CNN", "Winner", "Observation"],
+        ["Test accuracy", "91.74%", "94.55%", "CNN  +2.81", "Convolution wins outright on unseen clips."],
+        ["Top-5 accuracy", "97.66%", "98.44%", "CNN  +0.78", "Correct sign is in the top 5 ~98% of the time."],
+        ["Macro F1", "0.9140", "0.9433", "CNN  +0.029", "Holds up on rare classes, not just common ones."],
+        ["Weighted F1", "0.9126", "0.9422", "CNN  +0.030", "Consistent with macro — no class-frequency artefact."],
+        ["Latency (mean)", "4.12 ms", "0.74 ms", "CNN  5.6×", "Both are real-time; CNN leaves far more headroom."],
+        ["Latency (p95)", "6.90 ms", "1.05 ms", "CNN  6.6×", "Tail latency matters more than mean for felt speed."],
+        ["Parameters", "2,665,477", "736,773", "CNN  3.6×", "Higher accuracy from a much smaller model."],
+        ["Training time", "1,953 s", "287 s", "CNN  6.8×", "Convolutions parallelise over time; recurrence cannot."],
+        ["Best epoch", "41 / 60", "45 / 60", "—", "Both converged well inside the budget."],
+    ], x=0.65, y=2.48, w=11.4, col_w=[1.75, 1.45, 1.35, 1.55, 5.30], row_h=0.31, head_h=0.34, fsize=9.5)
 
-    _, tf = _txbox(s, 0.65, 5.98, 11.4, 0.55)
-    p = tf.paragraphs[0]
-    p.line_spacing = 1.15
-    _run(p, "What we expect to observe:  ", size=10.5, bold=True, color=TEAL)
-    _run(p, "if the CNN matches the BiLSTM within noise, isolated ISL signs are separable from short local "
-            "motion primitives and the cheaper model should ship. If the BiLSTM leads clearly on multi-stroke "
-            "signs, long-range temporal structure is doing real work. Either outcome is a result.",
+    _, tf = _txbox(s, 0.65, 5.92, 11.4, 0.62)
+    p0 = tf.paragraphs[0]; p0.line_spacing = 1.15
+    _run(p0, "Conclusion:  ", size=10.5, bold=True, color=CRIMSON)
+    _run(p0, "the hypothesis that isolated ISL signs are separable from short local motion primitives is "
+             "supported. The CNN is more accurate AND 3.6× smaller AND 5.6× faster — it dominates on every "
+             "axis, so there is no accuracy-for-speed trade-off to argue about. Explicit long-range temporal "
+             "modelling did not pay for itself on word-level signs; it may still matter for continuous signing.",
          size=10.5, color=GREY)
     return s
 
@@ -590,8 +592,8 @@ def slide_status(prs):
                                         "run_pipeline. Executed end-to-end on a smoke subset.", TEAL),
         ("Dataset — acquired", "INCLUDE archive on disk: 4,284 videos across 262 classes, 54 GB. ISL-20 "
                                "working subset defined.", TEAL),
-        ("Training run — pending", "Blocked only on compute. CPU-only preprocessing of the full archive is "
-                                   "many hours; the ISL-20 subset is the planned first run.", CRIMSON),
+        ("Training run — complete", "261 classes, 4,276 clips extracted (0 failures). Both models trained and "
+                                    "evaluated on the held-out split. CNN 94.55% vs BiLSTM 91.74%.", TEAL),
         ("Model↔UI integration — not required", "Explicitly out of scope for Review 2; the contract "
                                                 "(/api/comparison) is nonetheless already implemented on both sides.", CRIMSON),
     ]):
