@@ -62,7 +62,8 @@ def make_splits(paths: list[Path], label_list: list[str]):
     return train_p, val_p, test_p
 
 
-def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str, patience: int = 20):
+def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str,
+        patience: int = 20, augment: bool = True):
     set_seed()
     MODEL_DIR.mkdir(exist_ok=True)
     LOG_DIR.mkdir(exist_ok=True)
@@ -85,7 +86,9 @@ def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str, pati
         )
 
     workers = 0 if device.type == "cpu" else 2
-    train_dl = DataLoader(_ds(train_p, aug=True), batch_size=batch, shuffle=True,
+    if not augment:
+        print('-> augmentation DISABLED')
+    train_dl = DataLoader(_ds(train_p, aug=augment), batch_size=batch, shuffle=True,
                           num_workers=workers, drop_last=len(train_p) > batch)
     val_dl = DataLoader(_ds(val_p, aug=False), batch_size=batch, shuffle=False, num_workers=workers)
 
@@ -179,5 +182,9 @@ def cli(default_name: str, out_name: str):
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--patience", type=int, default=20)
+    ap.add_argument("--no-augment", action="store_true",
+                    help="Disable jitter/frame-drop/shift/mirror. With few clips per "
+                         "class the augmentation can stop the model fitting at all.")
     args = ap.parse_args()
-    run(default_name, args.epochs, args.batch, args.lr, out_name, args.patience)
+    run(default_name, args.epochs, args.batch, args.lr, out_name, args.patience,
+        augment=not args.no_augment)
