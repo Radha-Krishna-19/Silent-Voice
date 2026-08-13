@@ -82,11 +82,17 @@ export default function Research() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {MODEL_COMPARISON.map((m, i) => {
+              // Key names must match what ml/scripts/evaluate.py actually writes
+              // into comparison.json: test_acc, macro_f1, latency_ms_mean, params,
+              // test_top5_acc. Earlier guesses (val_acc, latency_ms) matched nothing
+              // and silently rendered em-dashes on top of perfectly good results.
               const rec = comparison.models?.[m.id];
-              const acc = metric(rec, "val_acc", "valAcc", "accuracy");
-              const lat = metric(rec, "latency_ms", "latencyMs");
+              const acc = metric(rec, "test_acc", "val_acc_best", "accuracy");
+              const lat = metric(rec, "latency_ms_mean", "latency_ms", "latencyMs");
               const par = metric(rec, "params", "num_params");
               const f1 = metric(rec, "macro_f1", "f1");
+              const topk = metric(rec, "test_top5_acc", "test_top3_acc");
+              const p95 = metric(rec, "latency_ms_p95");
 
               return (
               <motion.div
@@ -119,25 +125,38 @@ export default function Research() {
                   <p className="text-sm text-cream/70 leading-relaxed">{m.hypothesis}</p>
                 </div>
 
-                <div className="grid grid-cols-4 gap-3 mb-8 pb-6 border-b border-cream/10">
+                <div className="grid grid-cols-3 gap-3 mb-4">
                   <Stat
                     value={acc === null ? null : `${(acc * 100).toFixed(1)}%`}
                     tone="text-copper"
-                    label="Val acc."
+                    label="Test acc."
                   />
                   <Stat
-                    value={f1 === null ? null : (f1 * 100).toFixed(1)}
+                    value={topk === null ? null : `${(topk * 100).toFixed(1)}%`}
+                    tone="text-cream"
+                    label="Top-5"
+                  />
+                  <Stat
+                    value={f1 === null ? null : f1.toFixed(3)}
                     tone="text-cream"
                     label="Macro F1"
                   />
+                </div>
+                <div className="grid grid-cols-3 gap-3 mb-8 pb-6 border-b border-cream/10">
                   <Stat
-                    value={lat === null ? null : Math.round(lat)}
+                    value={lat === null ? null : lat.toFixed(2)}
                     suffix="ms"
                     tone="text-cyan"
                     label="Latency"
                   />
                   <Stat
-                    value={par === null ? null : `${(par / 1e6).toFixed(1)}M`}
+                    value={p95 === null ? null : p95.toFixed(2)}
+                    suffix="ms"
+                    tone="text-cyan"
+                    label="p95"
+                  />
+                  <Stat
+                    value={par === null ? null : `${(par / 1e6).toFixed(2)}M`}
                     tone="text-cream"
                     label="Weights"
                   />

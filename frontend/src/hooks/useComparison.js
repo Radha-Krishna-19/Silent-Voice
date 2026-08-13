@@ -53,10 +53,12 @@ export default function useComparison() {
           histories: data.histories ?? {},
           confusion: data.confusion ?? {},
           error: null,
+          // evaluate.py writes n_classes / n_test at the top level.
           meta: {
             trainedAt: data.trained_at ?? data.trainedAt ?? null,
-            numClasses: data.num_classes ?? data.numClasses ?? null,
-            numSamples: data.num_samples ?? data.numSamples ?? null,
+            numClasses: data.n_classes ?? data.num_classes ?? data.numClasses ?? null,
+            numTest: data.n_test ?? data.num_test ?? null,
+            labels: data.labels ?? null,
             split: data.split ?? null,
           },
         });
