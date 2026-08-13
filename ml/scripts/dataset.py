@@ -50,13 +50,24 @@ class LandmarkDataset(Dataset):
         augment: bool = False,
         mean: np.ndarray | None = None,
         std: np.ndarray | None = None,
+        paths: list[Path] | None = None,
     ) -> None:
-        roots = [Path(r) for r in roots]
-        self.paths: list[Path] = []
-        for r in roots:
-            self.paths.extend(sorted(r.glob("*.npy")))
+        # Two ways to build the set:
+        #   roots=[dir, ...]  -> glob every .npy underneath (used by verify_setup)
+        #   paths=[file, ...] -> an explicit, already-split file list
+        # The split-aware callers (_train.py, evaluate.py) need the second form:
+        # they compute a stratified train/val/test split first and must hand the
+        # exact member files in, not a directory that would re-glob all of them.
+        if paths is not None:
+            self.paths = [Path(p) for p in paths]
+        else:
+            self.paths = []
+            for r in [Path(x) for x in roots]:
+                self.paths.extend(sorted(r.glob("*.npy")))
         if not self.paths:
-            raise FileNotFoundError(f"No .npy tensors found under {roots}")
+            raise FileNotFoundError(
+                f"No .npy tensors found (roots={list(roots)}, paths={'None' if paths is None else len(paths)})"
+            )
 
         labels = [p.stem.split("__")[0] for p in self.paths]
         if label_list is None:

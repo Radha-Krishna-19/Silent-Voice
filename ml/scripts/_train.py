@@ -80,10 +80,9 @@ def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str, pati
     save_stats(mean, std, MODEL_DIR / "preproc_stats.json")
 
     def _ds(paths: list[Path], aug: bool) -> LandmarkDataset:
-        d = LandmarkDataset([], label_list=label_list, augment=aug, mean=mean, std=std)
-        d.paths = paths
-        d.y = np.array([label_list.index(p.stem.split("__")[0]) for p in paths], dtype=np.int64)
-        return d
+        return LandmarkDataset(
+            [], label_list=label_list, augment=aug, mean=mean, std=std, paths=paths
+        )
 
     workers = 0 if device.type == "cpu" else 2
     train_dl = DataLoader(_ds(train_p, aug=True), batch_size=batch, shuffle=True,

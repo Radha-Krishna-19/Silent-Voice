@@ -62,9 +62,9 @@ def main() -> None:
     all_paths = collect_paths()
     _, _, test_p = make_splits(all_paths, label_list)
 
-    ds = LandmarkDataset([], label_list=label_list, augment=False, mean=mean, std=std)
-    ds.paths = test_p
-    ds.y = np.array([label_list.index(p.stem.split("__")[0]) for p in test_p], dtype=np.int64)
+    ds = LandmarkDataset(
+        [], label_list=label_list, augment=False, mean=mean, std=std, paths=test_p
+    )
     dl = DataLoader(ds, batch_size=1, shuffle=False)
     print(f"-> test set: {len(test_p)} clips across {len(label_list)} classes")
 
