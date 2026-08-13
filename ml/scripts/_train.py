@@ -135,8 +135,12 @@ def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str, pati
             "lr": sched.get_last_lr()[0],
             "seconds": epoch_s,
         })
+        # flush=True so progress is visible in real time even when stdout is a
+        # pipe (e.g. piped into Tee-Object to keep a log). Without it Python
+        # block-buffers and the run looks frozen for minutes at a time.
         print(f"epoch {epoch:03d}  loss {train_loss/max(seen,1):.4f}  "
-              f"val_loss {val_loss/max(total,1):.4f}  val_acc {val_acc:.4f}  ({epoch_s:.1f}s)")
+              f"val_loss {val_loss/max(total,1):.4f}  val_acc {val_acc:.4f}  ({epoch_s:.1f}s)",
+              flush=True)
 
         if val_acc > best_val:
             best_val, best_epoch = val_acc, epoch

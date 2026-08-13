@@ -194,11 +194,25 @@ per-epoch output like `epoch 007  loss 1.8423  val_acc 0.6250  (9.4s)`.
 The 160 tensors above are only **3.7%** of what's available. The full archive is
 **4,284 clips across 263 classes**, averaging 16 clips per class (range 4–27).
 
-One command does everything — extraction, both models, evaluation, report:
+One command does everything — extraction, both models, evaluation, report.
+
+> **Windows / PowerShell users:** run it as ONE line. The `\` line-continuation
+> below is Unix shell syntax; PowerShell treats `\` as a literal character and
+> the command silently breaks apart. PowerShell's continuation character is a
+> backtick (`` ` ``), but a single line is safer.
+
+**PowerShell (one line — copy the whole thing):**
+
+```powershell
+cd ml
+python -u run_pipeline.py --videos "../archive (3)" --classes all --max-per-class 0 --min-per-class 6 --sample-frames 32 --workers 4 --epochs 60 --batch 32
+```
+
+**macOS / Linux:**
 
 ```bash
 cd ml
-python run_pipeline.py \
+python -u run_pipeline.py \
     --videos "../archive (3)" \
     --classes all \
     --max-per-class 0 \
