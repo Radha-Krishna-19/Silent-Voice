@@ -319,7 +319,99 @@ predictions** instead of mock ones.
 
 ---
 
-## 9. Honest status
+## 9. Handover notes — what changed and why
+
+If you are picking this project up from someone else, this section explains the
+state you're inheriting. Four things were broken or missing; all four are fixed.
+
+### The frontend source was in the wrong place
+
+The React app was generated on the Emergent platform. When it was copied down,
+`src/` landed at the **repository root** instead of inside `frontend/`, and four
+build files never came across at all: `package.json`, `tailwind.config.js`,
+`postcss.config.js`, `public/index.html`.
+
+The result: `frontend/` looked like it existed (it even had `node_modules/`) but
+could not build. Those four files were reconstructed — `package.json` from the
+import statements across all 76 source files, `tailwind.config.js` from
+`design_guidelines.json` and the custom CSS classes. **The app now compiles**
+(200 kB gzipped, verified). There was also a duplicate stale copy of the source
+at the root; it has been deleted so there is only one source of truth.
+
+### The preprocessing script silently produced nothing
+
+This is the important one. `ml/scripts/preprocess.py` wrote each tensor to a
+temp file and then renamed it into place:
+
+```python
+tmp = out_file.with_suffix(".npy.tmp")
+np.save(tmp, tensor)          # <-- the bug
+os.replace(tmp, out_file)
+```
+
+`numpy.save()` **appends `.npy`** unless the filename already ends in it. So
+`hello__0000.npy.tmp` was actually written to disk as
+`hello__0000.npy.tmp.npy`, and every single `os.replace()` then raised
+`FileNotFoundError`.
+
+Because the error was caught per-clip, the script printed a summary that looked
+like a success while writing **zero** usable tensors. Anyone running it would
+have concluded the dataset or MediaPipe was broken. Fixed by writing through an
+open file handle, which suppresses the extension rewriting.
+
+### The full dataset could not be used
+
+`run_pipeline.py` always passed `--classes scripts/classes_isl20.txt`, hard-
+capping every run at 20 classes with no flag to turn it off. It now accepts
+`--classes all` and `--max-per-class 0`.
+
+Separately, two classes in the archive (`nice`, `thin`) have only 4 clips each.
+A stratified 70/15/15 split cannot give a 4-member class a sample in every
+split, so `sklearn.train_test_split` raises — **after** an hour of extraction
+had already run. A new `--min-per-class` flag (default 6) filters those out
+before any compute is spent.
+
+### Numbers were being displayed that nobody had measured
+
+The `/research` page showed *"BiLSTM 87% / 42 ms, Transformer 91% / 58 ms"*
+labelled as *"current val-set results on the INCLUDE-derived split."* No
+training had ever been run. Those figures were invented, and they compared the
+wrong pair of models — this project's deliverable is **BiLSTM vs 1D CNN**, and
+`train_cnn.py` had existed in the repo the whole time.
+
+The page now fetches `GET /api/comparison` at runtime and renders em-dashes plus
+a `NOT TRAINED` badge when no results exist. There is deliberately **no fallback
+to placeholder metrics anywhere in the code path.**
+
+The same class of error was corrected in the slide deck (five factual fixes,
+including `258` features where the code produces `225`, and a claim that the
+split is by signer when it is stratified by class).
+
+### Also done
+
+- `/live` now does **real** webcam inference — `getUserMedia` → canvas → JPEG →
+  `POST /api/frame` at 12 fps, with in-flight frame dropping so captions cannot
+  lag behind the signer. The cyan skeleton is genuine MediaPipe output. There's
+  a BiLSTM/CNN toggle that switches architecture per request.
+- Fixed a visible bug where `/live` showed two disagreeing clocks
+  (`Session · 00:00` next to `03:42 ELAPSED`).
+- 160 landmark tensors extracted and verified (20 classes × 8 clips, 0 failures).
+- Repo cleaned: removed the stale duplicate source tree, a workspace file
+  pointing at a dead server, an empty lockfile, and build caches.
+  `.gitignore` now excludes derived tensors and checkpoints — they're
+  regenerable and would bloat the repo.
+
+### What to do first
+
+1. Follow sections 3 and 4 to get the site running. It works immediately —
+   the backend runs in `MOCK MODE` without any trained model.
+2. Run training (section 5). Start with the 20-class quick run to confirm the
+   pipeline works end to end before committing to the 4–5 hour full run.
+3. Reload `/research`. The numbers appear by themselves.
+
+---
+
+## 10. Honest status
 
 **Working and real:**
 
