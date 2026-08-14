@@ -525,26 +525,77 @@ def slide_tuning(prs):
 
 
 def slide_metric_defs(prs):
-    s = base(prs, "14.1 — PERFORMANCE METRICS", "Metrics: Definitions")
+    """Formal definitions. Requirement: performance parameters WITH formulas."""
+    s = base(prs, "14.1 — PERFORMANCE METRICS", "Metrics: Formal Definitions")
+
+    # --- confusion-matrix basis -------------------------------------------
+    _, tf = _txbox(s, 0.65, 1.70, 5.35, 0.24)
+    _run(tf.paragraphs[0], "BASIS — PER-CLASS CONFUSION COUNTS", size=9, bold=True, color=CRIMSON, spc=1.5)
+    _rect(s, 0.65, 1.96, 5.35, 1.16, fill=TINT, line=LINE)
+    _, tf = _txbox(s, 0.90, 2.08, 4.90, 0.96)
+    for i, (sym, txt) in enumerate([
+        ("TP", "predicted class c, and truly class c"),
+        ("FP", "predicted class c, but actually another class"),
+        ("FN", "truly class c, but predicted as another"),
+        ("TN", "neither predicted nor truly class c"),
+    ]):
+        para = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        para.line_spacing = 1.18
+        _run(para, f"{sym}  ", size=10.5, bold=True, color=CRIMSON, font="Consolas")
+        _run(para, txt, size=10, color=GREY)
+
+    _, tf = _txbox(s, 6.20, 1.70, 5.85, 0.24)
+    _run(tf.paragraphs[0], "NOTATION", size=9, bold=True, color=TEAL, spc=1.5)
+    _rect(s, 6.20, 1.96, 5.85, 1.16, fill=TINT, line=LINE)
+    _, tf = _txbox(s, 6.45, 2.08, 5.40, 0.96)
+    for i, (sym, txt) in enumerate([
+        ("N", "number of classes  =  261"),
+        ("n", "number of test samples  =  642"),
+        ("c", "index over classes,  c = 1 … N"),
+        ("1[·]", "indicator: 1 if the condition holds, else 0"),
+    ]):
+        para = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        para.line_spacing = 1.18
+        _run(para, f"{sym}  ", size=10.5, bold=True, color=TEAL, font="Consolas")
+        _run(para, txt, size=10, color=GREY)
+
+    # --- the formulas ------------------------------------------------------
+    _, tf = _txbox(s, 0.65, 3.26, 11.4, 0.24)
+    _run(tf.paragraphs[0], "METRICS REPORTED", size=9, bold=True, color=CRIMSON, spc=1.5)
+
     table(s, [
-        ["Metric", "Definition", "Why it is reported here"],
-        ["Test accuracy", "Correct predictions ÷ total predictions on the held-out test split.",
-         "Headline number, but misleading alone when class counts are uneven."],
-        ["Macro F1", "Unweighted mean of per-class F1 = 2PR / (P + R).",
-         "Treats a rare sign as equally important as a common one — the honest score for an imbalanced vocabulary."],
-        ["Weighted F1", "Per-class F1 averaged in proportion to class support.",
-         "Reflects performance a user experiences if signs occur at their natural frequency."],
-        ["Top-k accuracy", "Fraction of samples whose true label falls in the k highest-probability classes.",
-         "Directly models the correction-chip UX: the user is offered the top candidates, not just one."],
-        ["Per-class F1", "F1 computed separately for every sign label.",
-         "Surfaces which specific signs fail — the actionable diagnostic."],
-        ["Confusion matrix", "Row-normalised matrix of true label against predicted label.",
-         "Shows whether errors are random or concentrated between visually similar signs."],
-        ["Latency (mean, p95)", "Wall-clock time for one forward pass, after warm-up.",
-         "Real-time viability. p95 matters more than the mean for perceived responsiveness."],
-        ["Parameter count", "Trainable parameters in the model.",
-         "Accuracy per parameter is the fair way to compare models of different sizes."],
-    ], x=0.55, y=1.80, w=12.2, col_w=[1.85, 4.75, 5.60], row_h=0.53, head_h=0.36, fsize=9.5)
+        ["Metric", "Formula", "What it captures / why reported"],
+        ["Accuracy",
+         "(TP + TN) / (TP + TN + FP + FN)",
+         "Overall correctness. Misleading alone when class support is uneven."],
+        ["Precision  (P\u1D9C)",
+         "TP\u1D9C / (TP\u1D9C + FP\u1D9C)",
+         "Of everything called class c, how much really was c."],
+        ["Recall  (R\u1D9C)",
+         "TP\u1D9C / (TP\u1D9C + FN\u1D9C)",
+         "Of all true c, how much the model actually found."],
+        ["F1  (per class)",
+         "2 \u00b7 P\u1D9C \u00b7 R\u1D9C / (P\u1D9C + R\u1D9C)",
+         "Harmonic mean — punishes a model that trades one for the other."],
+        ["Macro F1",
+         "(1/N) \u00b7 \u03a3\u1D9C F1\u1D9C",
+         "Unweighted class mean: a rare sign counts as much as a common one."],
+        ["Weighted F1",
+         "\u03a3\u1D9C (support\u1D9C / n) \u00b7 F1\u1D9C",
+         "Weighted by class frequency — what a typical user experiences."],
+        ["Top-k accuracy",
+         "(1/n) \u00b7 \u03a3\u1d62 1[ y\u1d62 \u2208 top-k( p\u1d62 ) ]",
+         "Models the correction-chip UX: k candidates are offered, not one."],
+        ["Confusion  C\u1D62\u2C7C",
+         "C\u1D62\u2C7C / \u03a3\u2C7C C\u1D62\u2C7C   (row-normalised)",
+         "Whether errors are random or concentrated on similar signs."],
+        ["Latency (mean, p95)",
+         "mean / 95th percentile of one forward pass",
+         "Real-time viability. p95 governs perceived responsiveness."],
+    ], x=0.65, y=3.52, w=11.4, col_w=[2.15, 3.95, 5.30], row_h=0.28, head_h=0.32, fsize=9.5)
+
+    note(s, "Computed by ml/scripts/evaluate.py using sklearn classification_report, "
+            "top_k_accuracy_score and confusion_matrix on the 642-clip held-out test split.", y=6.34, size=9)
     return s
 
 
