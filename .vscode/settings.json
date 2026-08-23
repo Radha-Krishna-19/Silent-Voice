@@ -1,0 +1,26 @@
+{
+  // Pin the interpreter to the nndl virtualenv. Without this VS Code
+  // auto-discovers .venv (a leftover) and every new terminal activates the
+  // wrong environment, which fails with ModuleNotFoundError on torch/fastapi.
+  "python.defaultInterpreterPath": "${workspaceFolder}\\nndl\\Scripts\\python.exe",
+  "python.terminal.activateEnvironment": true,
+
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.cwd": "${workspaceFolder}",
+
+  // Keep the tree readable — these are huge and never edited by hand.
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.ruff_cache": true,
+    "nndl": true,
+    ".venv": true
+  },
+  "search.exclude": {
+    "frontend/node_modules": true,
+    "ml/data/processed": true,
+    "nndl": true,
+    ".venv": true
+  },
+
+  "files.eol": "\n"
+}

@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1 · Backend (FastAPI :8000)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\nndl\\Scripts\\python.exe",
+      "args": ["server.py"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "isBackground": true,
+      "presentation": { "group": "silentvoice", "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "2 · Frontend (React :3000)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["start"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "presentation": { "group": "silentvoice", "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    },
+    {
+      "label": "▶ Run Silent Voice (both)",
+      "dependsOn": ["1 · Backend (FastAPI :8000)", "2 · Frontend (React :3000)"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Retrain (BiLSTM + CNN)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\nndl\\Scripts\\python.exe",
+      "args": ["-u", "run_pipeline.py", "--skip-preprocess", "--epochs", "60",
+               "--batch", "32", "--lr", "3e-3", "--no-augment"],
+      "options": { "cwd": "${workspaceFolder}/ml" },
+      "presentation": { "panel": "dedicated", "reveal": "always" },
+      "problemMatcher": []
+    }
+  ]
+}
