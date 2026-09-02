@@ -56,7 +56,15 @@ export default function Live() {
   }, [demoIdx, demo, paused]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    // Element.scrollTo is missing in some environments (jsdom, older WebViews);
+    // fall back to assigning scrollTop so the panel still follows new entries.
+    const el = scrollRef.current;
+    if (!el) return;
+    if (typeof el.scrollTo === "function") {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    } else {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [transcript.length]);
 
   const rows = demo ? RECENT_TRANSCRIPT : transcript;

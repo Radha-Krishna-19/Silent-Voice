@@ -129,3 +129,6 @@ __pycache__/
 # QA scratch
 .qa/
 .qa2/
+
+# Reverse-translation animation bank — regenerate with ml/scripts/build_sign_bank.py
+backend/models/sign_bank.json

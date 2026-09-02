@@ -27,6 +27,10 @@ export default function Settings() {
     <div className="min-h-screen bg-ink text-cream" data-testid="settings-page">
       <Nav />
       <main className="pt-28 pb-16 px-6 md:px-12 lg:px-24 max-w-[1100px] mx-auto">
+        <div className="mb-6 rounded-sm border border-cream/15 px-4 py-3 text-xs text-cream/55">
+          Preferences are held in memory for this session only and are <span className="text-cream/80">not persisted</span> — there is no user account system yet.
+        </div>
+
         <div className="mb-10">
           <div className="micro-caps mb-2">Preferences</div>
           <h1 className="font-display text-4xl md:text-5xl tracking-tight">Settings</h1>

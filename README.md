@@ -1,498 +1,440 @@
 # Silent Voice
 
-**Real-time Indian Sign Language ↔ English translator.** A signer stands in front
-of any laptop webcam; the browser turns their signing into captions and speech.
+**Bidirectional Indian Sign Language ↔ English translator that runs in a browser.**
 
-This README assumes you have never seen this project before. Read it top to
-bottom and you will have the app running in about 15 minutes.
+A deaf signer signs at a webcam and gets English captions. A hearing person
+types or speaks English and watches it signed back. Both directions work today;
+both have real limits, and this README states them plainly.
 
 ---
 
-## 1. What this project actually is
+## Contents
 
-Two things live in this repository:
+1. [What actually works](#1-what-actually-works)
+2. [The core idea: landmarks, not pixels](#2-the-core-idea-landmarks-not-pixels)
+3. [Results](#3-results)
+4. [How reverse translation works](#4-how-reverse-translation-works)
+5. [Real-world limitations](#5-real-world-limitations)
+6. [Setup and running](#6-setup-and-running)
+7. [Training from scratch](#7-training-from-scratch)
+8. [Repository layout](#8-repository-layout)
+9. [API reference](#9-api-reference)
+10. [Troubleshooting](#10-troubleshooting)
+11. [Bugs found and fixed](#11-bugs-found-and-fixed)
 
-1. **A web application** — React frontend + FastAPI backend. It captures webcam
-   frames, extracts hand/body skeleton coordinates, classifies them into sign
-   labels, and shows the result as a caption.
-2. **A deep-learning case study** — training two different neural network
-   architectures (**BiLSTM** and **1D CNN**) on the same data and comparing them
-   fairly. This is the academic deliverable.
+---
 
-### The core idea: landmarks, not pixels
+## 1. What actually works
 
-The model never sees video. Every clip is converted into a small array of
-**skeleton coordinates**:
+| Page | Status | What it does |
+|---|---|---|
+| `/live` | **Real** | Webcam → MediaPipe → BiLSTM/CNN → predicted sign. Model switchable per request. |
+| `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
+| `/reverse` | **Real** | English → ISL gloss → replays actual recorded signer skeletons. 261-word vocabulary. |
+| `/` `/about` | Static | Landing and explanation pages. |
+| `/practice` | **Demo data** | Coaching UI is built; scoring is not implemented. Labelled in the UI. |
+| `/transcripts` | **Demo data** | Session history UI is built; persistence is not implemented. Labelled in the UI. |
+| `/settings` | Partial | Controls work in-session; nothing is persisted (no accounts). Labelled in the UI. |
+| `/auth` | Shell | Form renders, no authentication backend. |
+
+Nothing is silently fake. Every mocked surface says so on screen.
+
+---
+
+## 2. The core idea: landmarks, not pixels
+
+The models never see video. Each clip becomes a small array of skeleton
+coordinates:
 
 ```
-one video clip  →  a (60, 225) array of numbers
+one video clip  →  a (60, 225) array
                     │    └── 225 features per frame
                     │        21 left-hand points  × (x,y,z) = 63
                     │        21 right-hand points × (x,y,z) = 63
                     │        33 body pose points  × (x,y,z) = 99
-                    └── 60 time steps (every clip resampled to exactly 60 frames)
+                    └── 60 time steps
 ```
 
-That is ~54 KB per clip instead of ~12 MB of video. Skin tone, clothing,
-lighting and background all disappear, so the model cannot cheat by memorising
-backgrounds — it has to learn the actual gesture.
+~54 KB per clip instead of ~12 MB of video. Skin tone, clothing, lighting and
+background all vanish, so the model cannot cheat on backgrounds — and the same
+property makes the data privacy-preserving: **raw video is never stored or
+transmitted after preprocessing.**
 
-### Repository layout
-
-```
-silent_voice/
-├── frontend/          React web app (the product UI)      ← what users see
-│   ├── src/pages/     9 screens: Live, Reverse, Practice, Research, …
-│   └── src/hooks/     useLiveCapture (webcam), useComparison (metrics)
-├── backend/           FastAPI server
-│   ├── server.py      API + runs MediaPipe + serves predictions
-│   ├── inference.py   loads the trained .pt checkpoints
-│   └── static/        a simple fallback UI (no build step needed)
-├── ml/                the deep-learning case study         ← the DL deliverable
-│   ├── scripts/       preprocess, dataset, models, training, evaluation
-│   ├── data/          landmark tensors land here
-│   └── logs/          results land here
-├── archive (3)/       the INCLUDE dataset (54 GB, gitignored)
-└── memory/            PRD and project notes
-```
+MediaPipe runs **server-side in Python**, not in the browser. That is deliberate:
+landmark extraction then uses byte-for-byte the same code as training
+(`ml/scripts/preprocess.py`), eliminating train/serve skew. A JavaScript
+reimplementation would be a second thing to keep in sync and a second thing to
+get subtly wrong.
 
 ---
 
-## 2. Prerequisites
+## 3. Results
 
-| Need | Version | Check with |
+Trained on the **full INCLUDE corpus**: 261 classes, 4,276 clips, stratified
+70/15/15 split at seed 42, evaluated on 642 held-out clips.
+
+| Metric | BiLSTM | **1D CNN** |
 |---|---|---|
-| Python | 3.10, 3.11 or 3.12 | `python --version` |
-| Node.js | 18+ | `node --version` |
-| Yarn or npm | any | `yarn --version` |
-| Webcam | any | for the Live page |
+| Test accuracy | 91.74% | **94.55%** |
+| Top-5 accuracy | 97.66% | **98.44%** |
+| Macro F1 | 0.9140 | **0.9433** |
+| Weighted F1 | 0.9126 | **0.9422** |
+| Latency (mean / p95) | 4.12 / 6.90 ms | **0.74 / 1.05 ms** |
+| Parameters | 2,665,477 | **736,773** |
+| Training time (CPU) | 1,953 s | **287 s** |
 
-> **Python 3.13 will not work.** `mediapipe` ships compiled extensions, so it
-> needs a prebuilt wheel matching your exact Python version, and 0.10.14 (the
-> last release that still contains the `Holistic` model this project uses) has
-> no `cp313` build. 3.10, 3.11 and 3.12 are all fine. Verified against PyPI.
+**The CNN wins on every axis** — more accurate *and* 3.6× smaller *and* 5.6×
+faster. There is no accuracy-for-speed trade-off to argue about.
 
----
+The interpretation: isolated ISL signs are separable from short local motion
+primitives, so explicit long-range temporal modelling does not pay for itself
+here. That may change for continuous signing, where context spans many signs.
 
-## 3. Install (one time, ~10 minutes)
+**Baseline check.** Logistic regression on time-pooled features of the same
+tensors reaches 82% across all 261 classes. Both deep models clear it
+comfortably, so they are earning their complexity rather than riding separable
+features.
 
-Open a terminal in the project folder.
-
-```bash
-# --- frontend ---
-cd frontend
-yarn install                    # or: npm install --legacy-peer-deps
-cd ..
-
-# --- backend ---
-cd backend
-pip install -r requirements.txt
-cd ..
-
-# --- training ---
-cd ml
-pip install -r requirements-training.txt
-cd ..
-```
-
-**If `torch` fails or is very slow**, install it separately (CPU build, ~200 MB):
-
-```bash
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-```
-
-**Sanity check** — this verifies every dependency, all three model
-architectures, and one real MediaPipe extraction. Takes ~30 seconds:
-
-```bash
-cd ml
-python scripts/verify_setup.py --videos "../archive (3)"
-```
+Regenerate everything with `cd ml && python scripts/evaluate.py`.
 
 ---
 
-## 4. Open the product website
+## 4. How reverse translation works
 
-### The easy way — two scripts
+English → ISL is usually the hard half, and the usual answers are expensive:
+a 3D avatar needs rigging and motion capture; a video clip library needs a
+studio and a signer for every word.
 
-From the project folder in any PowerShell terminal (VS Code's or Windows'):
+**This project needed neither, because the training data already contains the
+answer.** Every `(60, 225)` tensor is a recording of a real person performing
+one sign. Put those coordinates back into image space and you can replay them.
+
+### Reconstructing image-space coordinates
+
+`preprocess.py` stores hands wrist-relative and shoulder-scaled, and pose in raw
+normalised image coordinates. Inverting that (MediaPipe Pose indices):
+
+```
+shoulder_width = |pose[11].xy − pose[12].xy|
+left_hand_abs  = pose[15].xy + left_hand_rel.xy  × shoulder_width
+right_hand_abs = pose[16].xy + right_hand_rel.xy × shoulder_width
+```
+
+### The pipeline
+
+```
+English text
+   ↓  backend/gloss.py     drop articles/copula, SOV reorder, time-first,
+   ↓                       question-word-last, synonym + morphology mapping
+ISL gloss  [TODAY, HELLO, HOW_ARE_YOU]
+   ↓  backend/models/sign_bank.json     261 words × 20 frames of real skeleton
+   ↓
+frontend/src/components/SignPlayer.jsx  canvas playback at 12 fps
+```
+
+Example: `"Where is the doctor?"` → `DOCTOR WHERE` — copula and article dropped,
+question word moved to the end, which is correct ISL ordering.
+
+### Choosing what to play
+
+For each word, `ml/scripts/build_sign_bank.py`:
+
+1. **Gates on hand coverage** — prefers takes where MediaPipe actually saw the
+   hands (all 261 chosen takes are ≥77%, mean 92%). A take that is typical of
+   the class but has hands missing half the time makes a useless animation.
+2. **Picks the medoid** of the qualifying takes — the recording closest to the
+   class average. Unlike averaging several takes, this is a real performance
+   rather than a blur of several.
+3. **Detects the loop period.** Clips shorter than 60 sampled frames were
+   *loop-padded* during preprocessing, so most tensors contain the sign
+   performed roughly twice. Playing all 60 frames shows it twice with a dead
+   stretch between.
+4. **Trims to the active window** using wrist speed and elevation from the pose
+   landmarks — cutting the rest periods at the start and end.
+
+The result is one clean performance per word, and forward and reverse
+translation share a single source of truth: what you see signed back is exactly
+what the recogniser believes that sign to be.
+
+### Why not a 3D avatar?
+
+Considered and rejected. A rigged 3D hand model needs joint rotations, but
+MediaPipe gives 3D *positions* — converting requires inverse kinematics per
+finger, and errors there produce anatomically wrong hands, which for a sign
+language is not a cosmetic problem but a mistranslation. Skeleton playback is
+honest: it shows exactly the data that exists, with no interpolation inventing
+detail the source never had.
+
+---
+
+## 5. Real-world limitations
+
+Stated plainly, because a system that oversells itself is worse than one that
+doesn't.
+
+### Vocabulary
+
+**261 isolated words.** No sentences, no fingerspelling. INCLUDE is a
+word-level corpus, so signs for `WATER`, `NEED`, `HELP` may simply not exist —
+the app reports unknown words instead of guessing. Fingerspelling would require
+ISL manual-alphabet recordings the dataset does not contain, and ISL uses a
+**two-handed** alphabet, so ASL fingerspelling assets cannot be substituted.
+
+### Grammar
+
+`gloss.py` is a **rule engine, not a translation model**. It encodes documented
+structural differences (no articles/copula, SOV, time-first, question-final) but
+does not handle non-manual markers (facial expression, head tilt, mouthing),
+classifiers, spatial agreement, or directional verbs — all of which carry real
+grammatical meaning in ISL. Output is understandable but stilted, like a
+phrasebook.
+
+### Recognition
+
+- **Isolated signs only.** The model classifies one sign per 60-frame window.
+  Continuous signing needs segmentation — knowing where one sign ends — which
+  is a substantially harder problem and is not implemented.
+- **94.55% on a curated test set is not 94.55% in a clinic.** INCLUDE was filmed
+  with plain backgrounds, even lighting and cooperative signers. Real webcams
+  bring motion blur, backlight, partial occlusion and clipped framing.
+- **Signer variance is untested.** The split is stratified by *class*, not by
+  *signer*, so the same person can appear in train and test. A signer-disjoint
+  split would be a harder and more honest evaluation, and accuracy would drop.
+- **Class imbalance:** 8 to 27 clips per class. Rare classes have ~1 test sample,
+  so their individual F1 scores are very noisy — this is why macro F1 is
+  reported alongside accuracy.
+
+### Playback quality
+
+Source clips were filmed wide: the signer occupies ~18% of frame width. The
+player auto-fits and scales stroke weights to compensate, but hand detail is
+limited by what MediaPipe recovered from a small figure — roughly 8% of frames
+have no hand detected at all and are skipped rather than faked.
+
+### Deployment
+
+Runs on `localhost` only. No authentication, no HTTPS, no rate limiting, no
+persistence. `/practice` and `/transcripts` are UI shells. This is a working
+prototype, not a product.
+
+---
+
+## 6. Setup and running
+
+### Prerequisites
+
+| Need | Version |
+|---|---|
+| Python | 3.10, 3.11 or 3.12 |
+| Node.js | 18+ |
+| Webcam | for `/live` only |
+
+> **Python 3.13 does not work.** `mediapipe` ships compiled extensions and 0.10.14 —
+> the last release containing the `Holistic` model — has no `cp313` wheel.
+
+### The easy way
 
 ```powershell
-.\setup.ps1     # ONCE per machine — creates the nndl venv, installs everything
-.\start.ps1     # every time — opens backend + frontend in two windows
+.\setup.ps1     # once per machine: creates the nndl venv, installs everything, verifies
+.\start.ps1     # every time: opens backend + frontend in two windows
 ```
 
 Then open **<http://localhost:3000>**.
 
-`setup.ps1` checks your Python version, creates the venv, installs Python and
-Node packages, and verifies that torch / mediapipe / cv2 / fastapi all import.
-It is safe to re-run — it skips whatever already exists.
+Both scripts call `nndl\Scripts\python.exe` directly, so **you never need to
+activate the virtualenv**. If PowerShell blocks them:
+`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
 
-> **You never need to "activate" the virtualenv for these.** Both scripts invoke
-> `nndl\Scripts\python.exe` directly, which is exactly what activation does,
-> minus the chance of forgetting. If PowerShell blocks the scripts, run
-> `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first.
+### Manually
 
-### The manual way
-
-If you run commands yourself, the venv **must** be active — the prompt has to
-show `(nndl)`. Without it you get `ModuleNotFoundError: No module named 'cv2'`
-(or `torch`, or `fastapi`), because the packages live in `nndl`, not in the
-system Python.
+The venv **must** be active — the prompt must show `(nndl)`. Without it you get
+`ModuleNotFoundError: No module named 'cv2'`, which looks like a missing package
+but is only the wrong Python.
 
 ```powershell
-.\nndl\Scripts\Activate.ps1     # prompt becomes (nndl)
-cd backend
-python server.py
+.\nndl\Scripts\Activate.ps1
+cd backend; python server.py            # → http://localhost:8000
 ```
 
-…and in a second terminal (Node — no venv needed):
-
 ```powershell
-cd frontend
-npm start
+cd frontend; npm start                  # → http://localhost:3000   (Node; no venv needed)
 ```
 
 ### In VS Code
 
-`File → Open Folder` → the `silent_voice` folder. `.vscode/settings.json` pins
-the interpreter to `nndl`, so new VS Code terminals activate it automatically.
-Press **Ctrl+Shift+B** to start both servers as a task.
+`File → Open Folder` → this folder. `.vscode/settings.json` pins the interpreter
+to `nndl`, so terminals activate automatically. **Ctrl+Shift+B** starts both servers.
 
-### Manual, step by step
+### Confirming it works
 
-You need **two terminals running at the same time**. Leave both open.
-
-### Terminal 1 — the backend
-
-```bash
-cd backend
-python server.py
-```
-
-You should see:
+Backend startup should print:
 
 ```
-============================================================
-  Silent Voice
-  models loaded : []            <- empty until you train
-  classes       : 0
-  !! MOCK MODE — no checkpoints in backend/models/.
-  ->  http://localhost:8000
-============================================================
+  models loaded : ['bilstm', 'cnn']
+  classes       : 261
 ```
 
-`MOCK MODE` is **normal and expected** before training. The server still runs and
-the whole site still works — predictions are just placeholders until step 5.
-
-Confirm it's alive: open <http://localhost:8000/api/status> — you should get JSON.
-
-### Terminal 2 — the frontend
-
-```bash
-cd frontend
-yarn start
-```
-
-A browser opens at **<http://localhost:3000>**. That is the product website.
-
-> If it doesn't open automatically, go to <http://localhost:3000> yourself.
-> The frontend already knows to talk to port 8000 — that's set in `frontend/.env`.
-
-### What to click
-
-| Page | URL | What it does |
-|---|---|---|
-| **Home** | `/` | Landing page |
-| **Live** | `/live` | **The main feature.** Click the camera icon, allow webcam access. The cyan skeleton overlay is *real* MediaPipe output tracking your hands. Toggle BiLSTM / CNN to switch model. |
-| **Research** | `/research` | BiLSTM vs CNN comparison. Shows `NOT TRAINED` with em-dashes until step 5, then real numbers. |
-| Reverse | `/reverse` | English → sign playback. **Design preview only** — uses placeholder data. |
-| Practice | `/practice` | Learner coaching mode. **Design preview only.** |
-| Transcripts | `/transcripts` | Session history. **Design preview only.** |
-| Settings / About | `/settings`, `/about` | Static pages |
-
-**There is a second, simpler UI** at <http://localhost:8000> — plain HTML/JS
-served directly by FastAPI, no build step. Useful if Node isn't available or the
-React dev server misbehaves. Same backend, fewer features.
+`MOCK MODE` instead means `backend/models/` has no checkpoints — the app still
+runs, with placeholder predictions.
 
 ---
 
-## 5. Train the models (the DL deliverable)
+## 7. Training from scratch
 
-### The data is already preprocessed
-
-`ml/data/processed/include/` already contains **160 landmark tensors** —
-20 sign classes × 8 clips each, extracted and verified. So you can go straight
-to training:
-
-```bash
-cd ml
-python run_pipeline.py --skip-preprocess --epochs 60 --batch 16
-```
-
-This runs, in order:
-
-1. `train_bilstm.py` → `ml/models/bilstm.pt`
-2. `train_cnn.py` → `ml/models/cnn.pt`
-3. `evaluate.py` → test metrics for both, on the held-out split
-4. `make_report.py` → an HTML report
-
-**Expect 10–30 minutes per model** on a laptop CPU for 20 classes. You'll see
-per-epoch output like `epoch 007  loss 1.8423  val_acc 0.6250  (9.4s)`.
-
-### Training on the FULL dataset (all classes, all clips)
-
-The 160 tensors above are only **3.7%** of what's available. The full archive is
-**4,284 clips across 263 classes**, averaging 16 clips per class (range 4–27).
-
-One command does everything — extraction, both models, evaluation, report.
-
-> **Windows / PowerShell users:** run it as ONE line. The `\` line-continuation
-> below is Unix shell syntax; PowerShell treats `\` as a literal character and
-> the command silently breaks apart. PowerShell's continuation character is a
-> backtick (`` ` ``), but a single line is safer.
-
-**PowerShell (one line — copy the whole thing):**
+The dataset (`archive (3)`, the full INCLUDE corpus, 54 GB) is **not** in this
+repo. Get it from [Zenodo](https://zenodo.org/record/4010759) and place it
+beside `ml/`.
 
 ```powershell
 cd ml
-python -u run_pipeline.py --videos "../archive (3)" --classes all --max-per-class 0 --min-per-class 6 --sample-frames 32 --workers 4 --epochs 60 --batch 32
+python -u run_pipeline.py --videos "../archive (3)" --classes all --max-per-class 0 `
+    --min-per-class 6 --sample-frames 32 --workers 4 --epochs 60 --batch 32 `
+    --lr 3e-3 --no-augment
 ```
 
-**macOS / Linux:**
-
-```bash
-cd ml
-python -u run_pipeline.py \
-    --videos "../archive (3)" \
-    --classes all \
-    --max-per-class 0 \
-    --min-per-class 6 \
-    --sample-frames 32 \
-    --workers 4 \
-    --epochs 60 \
-    --batch 32
-```
-
-What the flags mean:
-
-| Flag | Why |
+| Flag | Why it matters |
 |---|---|
-| `--classes all` | disables the ISL-20 whitelist — use every class |
-| `--max-per-class 0` | no per-class cap — use every clip |
-| `--min-per-class 6` | **required.** Drops classes with too few clips (see below) |
-| `--workers 4` | parallel extraction. Set to your CPU core count |
-| `--batch 32` | larger batch than the 20-class run; there's far more data now |
+| `--min-per-class 6` | **Required.** Two classes have 4 clips; a stratified 70/15/15 split cannot give them a member in every fold and sklearn raises — *after* an hour of extraction. |
+| `--no-augment` | **Required for these results.** See below. |
+| `--lr 3e-3` | Default 1e-3 converges much more slowly here. |
 
-> **Why `--min-per-class 6` matters.** Two classes (`nice`, `thin`) have only 4
-> clips. A stratified 70/15/15 split can't give those a member in every split, and
-> `sklearn.train_test_split` raises `ValueError: The least populated class has
-> only 1 member`. This flag drops them before any compute is spent, leaving
-> **261 classes / 4,276 clips**. Without it the run dies *after* an hour of
-> extraction.
+Runtime on CPU: ~90 min extraction, ~33 min BiLSTM, ~5 min CNN.
 
-### How long it takes
+> ### The augmentation finding
+>
+> With augmentation on (jitter + 10% frame drop + ±4 temporal shift + 50%
+> mirror), the BiLSTM sat at **0.94% validation accuracy after 16 epochs** —
+> chance is 0.38%. With `--no-augment` it reached **58.97% in 5 epochs**.
+>
+> With ~11 clips per class, augmentation destroyed more signal than it added.
+> Regularisation tuned for large datasets can actively prevent learning on small
+> ones. Both models use the identical setting, so the comparison stays fair.
 
-| Stage | CPU (4 workers) | Notes |
+Already have tensors? Skip extraction: `python run_pipeline.py --skip-preprocess ...`
+
+After training, rebuild the reverse-translation bank:
+
+```powershell
+python scripts/build_sign_bank.py
+```
+
+### Adding your own recordings
+
+`_train.py` reads from **both** `data/processed/include` and
+`data/processed/custom` and merges them automatically. Organise clips one folder
+per sign (folder name = label), then:
+
+```powershell
+python -u scripts/preprocess.py --videos data/custom_videos --out data/processed/custom --sample-frames 32 --workers 4
+```
+
+Aim for ≥6 clips per sign from more than one signer. Multi-sign phrases are the
+biggest gap in INCLUDE, so recording those adds the most value.
+
+---
+
+## 8. Repository layout
+
+```
+silent_voice/
+├── setup.ps1 / start.ps1     one-time setup · start both servers
+├── frontend/                 React app (CRA + craco + Tailwind)
+│   └── src/
+│       ├── pages/            9 routes
+│       ├── components/       SignPlayer (reverse playback), LandmarkOverlay, …
+│       ├── hooks/            useLiveCapture (webcam), useComparison (metrics)
+│       └── lib/api.js        every function maps to a real endpoint
+├── backend/
+│   ├── server.py             FastAPI: frame, status, comparison, text-to-sign
+│   ├── inference.py          loads bilstm/cnn/transformer checkpoints
+│   ├── gloss.py              English → ISL gloss rules
+│   ├── models/               .pt checkpoints + sign_bank.json  (gitignored)
+│   └── static/               plain-JS fallback UI, no build step
+├── ml/
+│   ├── run_pipeline.py       preprocess → train → evaluate → report
+│   └── scripts/
+│       ├── preprocess.py     video → (60,225) landmark tensors
+│       ├── models.py         BiLSTM, 1D CNN, Transformer
+│       ├── _train.py         shared training loop (identical for all archs)
+│       ├── evaluate.py       test metrics + confusion matrices
+│       └── build_sign_bank.py   tensors → playable animations
+├── CLASSES.md                the 261 words, with clip counts
+└── memory/PRD.md             original product requirements
+```
+
+Derived artefacts (tensors, checkpoints, `sign_bank.json`, logs) are gitignored —
+they are regenerable and would bloat the repo. **Back up `ml/data/processed/`
+(~234 MB) separately**; it represents ~90 minutes of extraction and is the one
+thing that cannot be trivially recreated without the 54 GB source.
+
+---
+
+## 9. API reference
+
+Base URL `http://localhost:8000`.
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| Extraction | **45–90 min** | ~1–2 s per clip. Resumable — safe to Ctrl+C and rerun |
-| BiLSTM training | **1.5–2.5 hrs** | ~27× more data per epoch than the 20-class run |
-| CNN training | **40–60 min** | convolutions parallelise; much faster than recurrence |
-| Evaluation | ~2 min | |
+| `POST` | `/api/frame` | One webcam frame → landmarks + prediction. Body: `{image, record, mode, model}` |
+| `POST` | `/api/reset` | Clear the server-side landmark buffer |
+| `GET` | `/api/status` | Loaded models, class count, vocabulary |
+| `GET` | `/api/comparison` | Measured metrics from `ml/logs/comparison.json` |
+| `POST` | `/api/text-to-sign` | English → gloss **+ animation frames** |
+| `POST` | `/api/text-to-gloss` | English → gloss only (no frames) |
+| `GET` | `/api/vocabulary` | The 261 signable words |
 
-Budget roughly **4–5 hours total on CPU**, so start it before bed. Early stopping
-(patience 20) often ends it sooner.
-
-**On a GPU this is ~20 min per model.** If you have access to Google Colab's free
-T4, upload `ml/` plus the extracted tensors (not the 54 GB of video — extract
-locally first, then upload the ~250 MB of `.npy` files) and run the same command
-with `--skip-preprocess`.
-
-Extraction is **resumable**: already-written tensors are skipped, so if it's
-interrupted just rerun the identical command.
-
-### Set your expectations for 261 classes
-
-The 20-class run should score high. 261 classes is a genuinely harder problem —
-published baselines on full INCLUDE land around **60–70%** top-1. If you see
-~65% do not assume something is broken; that is competitive. Watch **top-3
-accuracy** and **macro F1** too, since classes with only 6 clips get a single
-test sample each and their individual scores will be very noisy.
-
-> **Disk space:** add `--delete-after` and each source video is deleted the moment
-> its tensor is written, taking the project from 54 GB to a few hundred MB.
-> **This is irreversible** — only use it once you're sure you won't need to
-> re-extract with different settings.
+`/api/comparison` reads from disk on **every** request, so retraining updates the
+website with no rebuild and no restart.
 
 ---
 
-## 6. See the results
+## 10. Troubleshooting
 
-Training writes everything into `ml/logs/`:
-
-| File | What it is |
+| Problem | Cause and fix |
 |---|---|
-| `comparison.json` | the metrics — **this is the file the website reads** |
-| `comparison.md` | a table you can paste into a report |
-| `bilstm_history.json`, `cnn_history.json` | per-epoch training curves |
-| `confusion_bilstm.png`, `confusion_cnn.png` | confusion matrices |
-
-Now **reload <http://localhost:3000/research>**. The em-dashes become real
-numbers automatically — no rebuild, no redeploy, no editing. The backend reads
-`comparison.json` off disk on every request.
-
-The checkpoints are also copied into `backend/models/`, so restart the backend
-(`Ctrl+C`, then `python server.py` again) and the Live page will make **real
-predictions** instead of mock ones.
-
-### What the metrics mean
-
-| Metric | Meaning |
-|---|---|
-| **Test accuracy** | % correct on data the model never saw during training |
-| **Macro F1** | average per-class F1 — treats a rare sign as importantly as a common one |
-| **Top-3 accuracy** | % where the correct answer was in the model's top 3 guesses |
-| **Latency** | milliseconds for one prediction — decides if it's usable in real time |
-| **Parameters** | model size; accuracy *per parameter* is the fair comparison |
+| `ModuleNotFoundError: cv2` / `torch` / `fastapi` | Virtualenv not active. Check the prompt shows `(nndl)`, or use `.\start.ps1`. |
+| `No module named 'mediapipe'` | Needs Python ≤ 3.12. Check `python --version`. |
+| `Couldn't build proto file into descriptor pool` | Corrupt mediapipe install: `pip install --force-reinstall --no-deps mediapipe==0.10.14` |
+| Backend says `MOCK MODE` | No checkpoints in `backend/models/`. Train, or copy from `ml/models/`. |
+| `/research` says "Backend unreachable" | Backend isn't running. |
+| `/reverse` shows nothing | `backend/models/sign_bank.json` missing → `cd ml && python scripts/build_sign_bank.py` |
+| Frontend `ajv` / `formatMinimum` errors | Known CRA 5 hoisting issue. `rm -rf frontend/node_modules` and reinstall. |
+| `yarn: not recognized` | Use `npm install --legacy-peer-deps` and `npm start`. |
+| Training stuck at ~0.4% accuracy | Augmentation is on. Add `--no-augment`. |
 
 ---
 
-## 7. Troubleshooting
+## 11. Bugs found and fixed
 
-| Problem | Fix |
-|---|---|
-| `ModuleNotFoundError: No module named 'mediapipe'` | `pip install -r ml/requirements-training.txt`. Requires Python ≤ 3.12. |
-| `Couldn't build proto file into descriptor pool` | Corrupted mediapipe install. `pip install --force-reinstall --no-deps mediapipe==0.10.14` |
-| Frontend: `Unknown keyword formatMinimum` or `ajv` errors | Known CRA 5 issue. `rm -rf frontend/node_modules && cd frontend && yarn install` |
-| `/research` says "Backend unreachable" | Terminal 1 isn't running. Start `python server.py`. |
-| Live page shows no skeleton | Check the browser allowed camera access, and that Terminal 1 is running. |
-| Backend says `MOCK MODE` | Normal before training. Do step 5. |
-| Port already in use | Backend: edit the port in `server.py`. Frontend: `set PORT=3001 && yarn start` |
+Recorded because each one was invisible until the pipeline was run end to end,
+and each would silently mislead.
 
----
-
-## 8. Documentation
-
-| File | Read it for |
-|---|---|
-| `RUN.md` | condensed command reference |
-| `DEMO.md` | presentation runbook — run order, rehearsal, likely questions |
-| `ml/README.md` | how the pipeline works, model design, comparison methodology |
-| `ml/ROADMAP.md` | target vocabulary, path to continuous ISL, English→ISL design |
-| `memory/PRD.md` | original product requirements |
-| `Silent_Voice_Case_Study_v3_Review2.pptx` | the case study presentation |
-
----
-
-## 9. Handover notes — what changed and why
-
-If you are picking this project up from someone else, this section explains the
-state you're inheriting. Four things were broken or missing; all four are fixed.
-
-### The frontend source was in the wrong place
-
-The React app was generated on the Emergent platform. When it was copied down,
-`src/` landed at the **repository root** instead of inside `frontend/`, and four
-build files never came across at all: `package.json`, `tailwind.config.js`,
-`postcss.config.js`, `public/index.html`.
-
-The result: `frontend/` looked like it existed (it even had `node_modules/`) but
-could not build. Those four files were reconstructed — `package.json` from the
-import statements across all 76 source files, `tailwind.config.js` from
-`design_guidelines.json` and the custom CSS classes. **The app now compiles**
-(200 kB gzipped, verified). There was also a duplicate stale copy of the source
-at the root; it has been deleted so there is only one source of truth.
-
-### The preprocessing script silently produced nothing
-
-This is the important one. `ml/scripts/preprocess.py` wrote each tensor to a
-temp file and then renamed it into place:
-
-```python
-tmp = out_file.with_suffix(".npy.tmp")
-np.save(tmp, tensor)          # <-- the bug
-os.replace(tmp, out_file)
-```
-
-`numpy.save()` **appends `.npy`** unless the filename already ends in it. So
-`hello__0000.npy.tmp` was actually written to disk as
-`hello__0000.npy.tmp.npy`, and every single `os.replace()` then raised
-`FileNotFoundError`.
-
-Because the error was caught per-clip, the script printed a summary that looked
-like a success while writing **zero** usable tensors. Anyone running it would
-have concluded the dataset or MediaPipe was broken. Fixed by writing through an
-open file handle, which suppresses the extension rewriting.
-
-### The full dataset could not be used
-
-`run_pipeline.py` always passed `--classes scripts/classes_isl20.txt`, hard-
-capping every run at 20 classes with no flag to turn it off. It now accepts
-`--classes all` and `--max-per-class 0`.
-
-Separately, two classes in the archive (`nice`, `thin`) have only 4 clips each.
-A stratified 70/15/15 split cannot give a 4-member class a sample in every
-split, so `sklearn.train_test_split` raises — **after** an hour of extraction
-had already run. A new `--min-per-class` flag (default 6) filters those out
-before any compute is spent.
-
-### Numbers were being displayed that nobody had measured
-
-The `/research` page showed *"BiLSTM 87% / 42 ms, Transformer 91% / 58 ms"*
-labelled as *"current val-set results on the INCLUDE-derived split."* No
-training had ever been run. Those figures were invented, and they compared the
-wrong pair of models — this project's deliverable is **BiLSTM vs 1D CNN**, and
-`train_cnn.py` had existed in the repo the whole time.
-
-The page now fetches `GET /api/comparison` at runtime and renders em-dashes plus
-a `NOT TRAINED` badge when no results exist. There is deliberately **no fallback
-to placeholder metrics anywhere in the code path.**
-
-The same class of error was corrected in the slide deck (five factual fixes,
-including `258` features where the code produces `225`, and a claim that the
-split is by signer when it is stratified by class).
-
-### Also done
-
-- `/live` now does **real** webcam inference — `getUserMedia` → canvas → JPEG →
-  `POST /api/frame` at 12 fps, with in-flight frame dropping so captions cannot
-  lag behind the signer. The cyan skeleton is genuine MediaPipe output. There's
-  a BiLSTM/CNN toggle that switches architecture per request.
-- Fixed a visible bug where `/live` showed two disagreeing clocks
-  (`Session · 00:00` next to `03:42 ELAPSED`).
-- 160 landmark tensors extracted and verified (20 classes × 8 clips, 0 failures).
-- Repo cleaned: removed the stale duplicate source tree, a workspace file
-  pointing at a dead server, an empty lockfile, and build caches.
-  `.gitignore` now excludes derived tensors and checkpoints — they're
-  regenerable and would bloat the repo.
-
-### What to do first
-
-1. Follow sections 3 and 4 to get the site running. It works immediately —
-   the backend runs in `MOCK MODE` without any trained model.
-2. Run training (section 5). Start with the 20-class quick run to confirm the
-   pipeline works end to end before committing to the 4–5 hour full run.
-3. Reload `/research`. The numbers appear by themselves.
+1. **`preprocess.py` wrote zero usable tensors while reporting success.** It
+   saved to `<name>.npy.tmp`, but `numpy.save()` appends `.npy` unless the name
+   already ends in it — so the file landed as `<name>.npy.tmp.npy` and every
+   atomic rename raised `FileNotFoundError`, caught per-clip and summarised as
+   success.
+2. **Training and evaluation could never run.** Both built
+   `LandmarkDataset([])` with empty roots intending to inject paths afterwards,
+   but the constructor raises on an empty glob first. `verify_setup.py` passed
+   real directories, so the pre-flight check never exercised the broken path.
+3. **`evaluate.py` crashed on 261 classes.** Figure size scaled linearly with
+   class count, requesting a ~15000×14000 px canvas.
+4. **Checkpoints were stranded on failure.** `run_pipeline.py` staged weights to
+   `backend/models/` as its *last* step, so a crash in reporting discarded a
+   successful 37-minute training run.
+5. **The CNN was never served.** `inference.py` iterated a hardcoded
+   `("bilstm", "transformer")`, so `cnn.pt` was ignored — the best model could
+   not be loaded, and `predict()` defaulted to an architecture this project
+   never trains.
+6. **`/research` showed invented metrics.** "87% / 91%" was displayed as
+   "current val-set results" before any training had run, comparing the wrong
+   pair of models.
+7. **The Research page then couldn't read the real ones.** The hook looked for
+   `val_acc` and `latency_ms`; `evaluate.py` writes `test_acc` and
+   `latency_ms_mean`.
+8. **Six frontend API functions called endpoints that did not exist.** Removed.
 
 ---
 
-## 10. Honest status
-
-**Working and real:**
-
-- Frontend builds clean and runs (9 pages)
-- Backend serves live MediaPipe landmark extraction and inference
-- Live page does genuine webcam → skeleton → prediction
-- Research page reads real metrics, and shows nothing when there are none
-- Full ML pipeline: preprocess → train → evaluate → report
-- 160 landmark tensors extracted and verified
-
-**Not done yet:**
-
-- No trained checkpoints committed — you run training (step 5)
-- Reverse, Practice and Transcripts pages use placeholder data
-- Only 20 of 262 available sign classes have been preprocessed
-
-**A principle worth keeping:** no accuracy figure appears anywhere in this
-project — website or slide deck — unless it came from a real evaluation run.
-Where numbers don't exist yet, the UI shows em-dashes and says so.
+*Course: 23CSE461 — Neural Networks and Deep Learning · Dataset: INCLUDE (IIT Bombay, ACM MM 2020)*

@@ -26,7 +26,8 @@ export default function Practice() {
               <span className="italic text-copper">{lesson.title}</span> · {lesson.domain}
             </h1>
           </div>
-          <PrivacyBadge />
+          <span className="text-[10px] uppercase tracking-widest text-copper border border-copper/40 px-2 py-0.5 rounded-sm">Demo data</span>
+            <PrivacyBadge />
         </div>
 
         {/* Lesson selector */}

@@ -11,6 +11,11 @@ export default function Transcripts() {
     <div className="min-h-screen bg-ink text-cream" data-testid="transcripts-page">
       <Nav />
       <main className="pt-28 pb-16 px-6 md:px-12 lg:px-24 max-w-[1200px] mx-auto">
+        <div className="mb-6 rounded-sm border border-copper/40 bg-copper/[0.06] px-4 py-3 text-xs text-cream/70">
+          <span className="text-copper uppercase tracking-widest text-[10px] mr-2">Demo data</span>
+          Session persistence is not implemented. These entries are illustrative; nothing is stored.
+        </div>
+
         <div className="flex items-end justify-between mb-10">
           <div>
             <div className="micro-caps mb-2">Session history</div>

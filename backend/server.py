@@ -44,6 +44,7 @@ import mediapipe as mp  # noqa: E402
 from preprocess import T, _lm_arr, _normalize  # noqa: E402
 
 import inference  # noqa: E402
+import gloss  # noqa: E402
 
 app = FastAPI(title="Silent Voice", version="1.0")
 app.add_middleware(
@@ -241,6 +242,36 @@ def comparison():
     data["histories"] = histories
     data["confusion"] = confusion
     return data
+
+
+# --------------------------------------------------------------------------- #
+# Reverse translation: English -> ISL gloss -> playable skeleton animation.
+#
+# The animations are replayed from the SAME landmark tensors the recogniser was
+# trained on, so the app shows exactly what the model understands a sign to be.
+# No avatar, no motion capture, no video files.
+# --------------------------------------------------------------------------- #
+class TextIn(BaseModel):
+    text: str
+
+
+@app.post("/api/text-to-sign")
+def text_to_sign(body: TextIn):
+    """Full payload: gloss ordering plus the frames needed to render it."""
+    return gloss.build_sequence(body.text)
+
+
+@app.post("/api/text-to-gloss")
+def text_to_gloss(body: TextIn):
+    """Gloss only — no animation frames. Cheap, for previewing word order."""
+    return gloss.text_to_gloss(body.text)
+
+
+@app.get("/api/vocabulary")
+def vocabulary():
+    """Every word the system can actually sign back."""
+    v = gloss.vocabulary()
+    return {"count": len(v), "words": v}
 
 
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
