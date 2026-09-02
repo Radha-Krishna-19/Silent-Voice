@@ -113,6 +113,54 @@ python scripts/verify_setup.py --videos "../archive (3)"
 
 ## 4. Open the product website
 
+### The easy way — two scripts
+
+From the project folder in any PowerShell terminal (VS Code's or Windows'):
+
+```powershell
+.\setup.ps1     # ONCE per machine — creates the nndl venv, installs everything
+.\start.ps1     # every time — opens backend + frontend in two windows
+```
+
+Then open **<http://localhost:3000>**.
+
+`setup.ps1` checks your Python version, creates the venv, installs Python and
+Node packages, and verifies that torch / mediapipe / cv2 / fastapi all import.
+It is safe to re-run — it skips whatever already exists.
+
+> **You never need to "activate" the virtualenv for these.** Both scripts invoke
+> `nndl\Scripts\python.exe` directly, which is exactly what activation does,
+> minus the chance of forgetting. If PowerShell blocks the scripts, run
+> `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first.
+
+### The manual way
+
+If you run commands yourself, the venv **must** be active — the prompt has to
+show `(nndl)`. Without it you get `ModuleNotFoundError: No module named 'cv2'`
+(or `torch`, or `fastapi`), because the packages live in `nndl`, not in the
+system Python.
+
+```powershell
+.\nndl\Scripts\Activate.ps1     # prompt becomes (nndl)
+cd backend
+python server.py
+```
+
+…and in a second terminal (Node — no venv needed):
+
+```powershell
+cd frontend
+npm start
+```
+
+### In VS Code
+
+`File → Open Folder` → the `silent_voice` folder. `.vscode/settings.json` pins
+the interpreter to `nndl`, so new VS Code terminals activate it automatically.
+Press **Ctrl+Shift+B** to start both servers as a task.
+
+### Manual, step by step
+
 You need **two terminals running at the same time**. Leave both open.
 
 ### Terminal 1 — the backend
