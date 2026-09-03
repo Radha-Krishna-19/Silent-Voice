@@ -1,155 +1,122 @@
-// Rich mock data for Silent Voice UI phase.
+/**
+ * Demo content for surfaces that are not yet wired to real data.
+ *
+ * RULE: every sign shown here must exist in the trained vocabulary.
+ *
+ * The previous version of this file advertised capabilities the system does not
+ * have — PAIN, HELP, AMBULANCE, WATER, and sentences like "I need water,
+ * please" / "My name is Aarav". None of those words are classes in the dataset;
+ * 17 of the 26 words the Practice page displayed had never been seen by the
+ * model. Showing them implied a working sentence-level translator over a
+ * medical vocabulary, when what exists is a 261-class isolated-word classifier.
+ *
+ * Everything below is drawn from lib/vocabulary.js, which is generated from
+ * backend/models/label_map.json by ml/scripts/export_ui_vocab.py.
+ */
+import { DOMAIN_PACKS as PACKS, pretty } from "./vocabulary";
 
-export const DOMAIN_PACKS = [
-  { id: "everyday", name: "Everyday", count: 84, description: "Greetings, family, food, time, common phrases." },
-  { id: "medical", name: "Medical", count: 41, description: "Emergency, symptoms, medicine, hospital vocabulary." },
-  { id: "classroom", name: "Classroom", count: 62, description: "Lessons, subjects, teacher-student interaction." },
-];
+export const DOMAIN_PACKS = PACKS;
+
+/**
+ * Illustrative live output. Single words, because the model classifies one
+ * isolated sign per 60-frame window — it does not produce sentences.
+ */
+export const LIVE_CAPTION_QUEUE = ["HELLO", "TEACHER", "BOOK", "THANK YOU"];
 
 export const RECENT_TRANSCRIPT = [
-  { id: "t1", ts: "00:00:04", text: "Hello.", confidence: 0.94 },
-  { id: "t2", ts: "00:00:09", text: "My name is Aarav.", confidence: 0.88 },
-  { id: "t3", ts: "00:00:15", text: "How are you today?", confidence: 0.76 },
-  { id: "t4", ts: "00:00:22", text: "I need water, please.", confidence: 0.68, corrections: ["I need help", "I need medicine"] },
-  { id: "t5", ts: "00:00:29", text: "Thank you.", confidence: 0.97 },
+  { id: "t1", ts: "00:04", text: "HELLO", confidence: 0.96 },
+  { id: "t2", ts: "00:09", text: "TEACHER", confidence: 0.91 },
+  { id: "t3", ts: "00:15", text: "BOOK", confidence: 0.74, corrections: ["PAPER", "PAGE"] },
+  { id: "t4", ts: "00:22", text: "THANK YOU", confidence: 0.98 },
 ];
 
-export const LIVE_CAPTION_QUEUE = [
-  "Hello.",
-  "My name is Aarav.",
-  "How are you today?",
-  "I need water, please.",
-  "Thank you.",
-];
+/**
+ * Practice lessons, built from real topic packs. Words are guaranteed to exist
+ * in the vocabulary because the packs are generated from the label map.
+ */
+export const PRACTICE_LESSONS = PACKS.slice(0, 3).map((p) => ({
+  id: p.id,
+  name: p.name,
+  words: p.words.slice(0, 6).map(pretty),
+  total: p.count,
+}));
 
+/** Sessions shown on /transcripts. Labelled as demo data in the UI. */
 export const SESSIONS = [
   {
-    id: "s-2402-14",
-    title: "Clinic intake with Dr. Menon",
-    domain: "Medical",
-    date: "Feb 14, 2026",
-    duration: "6m 42s",
-    signs: 38,
-    avgConfidence: 0.82,
+    id: "demo-1",
+    title: "Vocabulary check — greetings",
+    domain: "Greetings & social",
+    date: "demo",
+    duration: "1m 12s",
+    signs: 4,
+    avgConfidence: 0.9,
     entries: [
-      { ts: "00:00:03", text: "Hello, doctor.", conf: 0.96 },
-      { ts: "00:00:12", text: "I have pain in my chest.", conf: 0.79 },
-      { ts: "00:00:24", text: "Since two days.", conf: 0.71 },
-      { ts: "00:00:36", text: "I took the medicine yesterday.", conf: 0.85 },
-      { ts: "00:00:51", text: "Thank you.", conf: 0.97 },
+      { ts: "00:04", text: "HELLO", conf: 0.96 },
+      { ts: "00:19", text: "GOOD MORNING", conf: 0.88 },
+      { ts: "00:41", text: "THANK YOU", conf: 0.98 },
+      { ts: "01:02", text: "GOOD", conf: 0.79 },
     ],
   },
   {
-    id: "s-2402-11",
-    title: "Classroom Q&A — Physics",
-    domain: "Classroom",
-    date: "Feb 11, 2026",
-    duration: "12m 08s",
-    signs: 74,
-    avgConfidence: 0.88,
+    id: "demo-2",
+    title: "Vocabulary check — people",
+    domain: "People & family",
+    date: "demo",
+    duration: "0m 48s",
+    signs: 3,
+    avgConfidence: 0.86,
     entries: [
-      { ts: "00:00:05", text: "Please repeat the question.", conf: 0.91 },
-      { ts: "00:00:19", text: "I understand now.", conf: 0.94 },
-      { ts: "00:00:31", text: "The answer is nine.", conf: 0.83 },
-    ],
-  },
-  {
-    id: "s-2402-08",
-    title: "Family video call",
-    domain: "Everyday",
-    date: "Feb 08, 2026",
-    duration: "18m 21s",
-    signs: 112,
-    avgConfidence: 0.91,
-    entries: [
-      { ts: "00:00:02", text: "Hello, mother.", conf: 0.98 },
-      { ts: "00:00:15", text: "I love you.", conf: 0.99 },
-      { ts: "00:00:28", text: "Please send the photos.", conf: 0.86 },
-    ],
-  },
-  {
-    id: "s-2402-03",
-    title: "Practice — Alphabet drill",
-    domain: "Everyday",
-    date: "Feb 03, 2026",
-    duration: "4m 55s",
-    signs: 26,
-    avgConfidence: 0.79,
-    entries: [
-      { ts: "00:00:01", text: "A. B. C. D.", conf: 0.82 },
-      { ts: "00:00:20", text: "E. F. G. H.", conf: 0.76 },
+      { ts: "00:03", text: "MOTHER", conf: 0.92 },
+      { ts: "00:21", text: "FRIEND", conf: 0.84 },
+      { ts: "00:39", text: "TEACHER", conf: 0.82 },
     ],
   },
 ];
 
-export const REVERSE_EXAMPLES = [
-  { english: "I need help please", gloss: ["HELP", "NEED", "PLEASE"] },
-  { english: "How are you today", gloss: ["TODAY", "YOU", "HOW"] },
-  { english: "My name is Priya", gloss: ["MY", "NAME", "P-R-I-Y-A"] },
-  { english: "Where is the hospital", gloss: ["HOSPITAL", "WHERE"] },
-];
-
-export const SIGN_CLIPS = [
-  { id: "c-help", label: "HELP", duration: 1.2, videoUrl: null, posterUrl: null, source: "INCLUDE" },
-  { id: "c-need", label: "NEED", duration: 1.0, videoUrl: null, posterUrl: null, source: "INCLUDE" },
-  { id: "c-please", label: "PLEASE", duration: 1.4, videoUrl: null, posterUrl: null, source: "INCLUDE" },
-  { id: "c-thankyou", label: "THANK YOU", duration: 1.6, videoUrl: null, posterUrl: null, source: "self-recorded" },
-  { id: "c-yes", label: "YES", duration: 0.8, videoUrl: null, posterUrl: null, source: "INCLUDE" },
-  { id: "c-no", label: "NO", duration: 0.8, videoUrl: null, posterUrl: null, source: "INCLUDE" },
-  { id: "c-water", label: "WATER", duration: 1.1, videoUrl: null, posterUrl: null, source: "INCLUDE" },
-  { id: "c-doctor", label: "DOCTOR", duration: 1.3, videoUrl: null, posterUrl: null, source: "INCLUDE" },
-];
-
-export const PRACTICE_LESSONS = [
-  {
-    id: "l-greet",
-    title: "Greetings",
-    domain: "Everyday",
-    words: ["HELLO", "GOOD MORNING", "HOW ARE YOU", "THANK YOU", "GOODBYE"],
-    progress: 0.6,
-  },
-  {
-    id: "l-emerg",
-    title: "Emergency essentials",
-    domain: "Medical",
-    words: ["HELP", "PAIN", "DOCTOR", "AMBULANCE", "HOSPITAL", "MEDICINE"],
-    progress: 0.35,
-  },
-  {
-    id: "l-class",
-    title: "Classroom basics",
-    domain: "Classroom",
-    words: ["TEACHER", "QUESTION", "PLEASE REPEAT", "I UNDERSTAND", "HOMEWORK"],
-    progress: 0.15,
-  },
-];
-
-export const PRACTICE_FEEDBACK = [
-  { word: "HELLO", score: 0.92, notes: ["Great hand posture.", "Slightly speed up the wave."] },
-  {
-    word: "THANK YOU",
-    score: 0.71,
-    notes: ["Palm should start closer to the chin.", "Motion arc is a touch shallow.", "Hold the ending pose for ~0.4s longer."],
-  },
-];
-
+/**
+ * Landing-page feature cards. Copy corrected to describe what the system
+ * actually does: it classifies isolated words, it does not assemble sentences
+ * character-by-character, and it cannot fingerspell (ISL uses a two-handed
+ * manual alphabet and the dataset contains no alphabet recordings).
+ */
 export const FEATURE_CARDS = [
   {
     kicker: "Live translation",
-    title: "See signs become sentences.",
-    body: "Landmarks are extracted in the browser, streamed to a compact model, and captions assemble character-by-character with confidence-gated correction chips.",
+    title: "See signs become words.",
+    body: "Webcam frames go to a local server, MediaPipe extracts the skeleton, and a BiLSTM or 1D CNN names the sign — one of 261 — in under a millisecond.",
     icon: "Radio",
   },
   {
     kicker: "Reply in sign",
     title: "Type or speak. It signs back.",
-    body: "Enter English, watch it re-order into ISL gloss, then play a cinematic stitched clip. Unknown words fall back to fingerspelling.",
+    body: "English is re-ordered into ISL gloss, then replayed from the same recordings the model was trained on. Words outside the vocabulary are reported, never guessed.",
     icon: "MessageSquare",
   },
   {
-    kicker: "Practice mode",
-    title: "A patient, honest coach.",
-    body: "Compare your attempt with a reference, get a similarity score and precise, actionable feedback — no shame, just signal.",
+    kicker: "Two models, measured",
+    title: "The smaller one won.",
+    body: "BiLSTM and 1D CNN trained on identical splits. The CNN reached 94.55% against 91.74% — with 3.6x fewer parameters and 5.6x lower latency.",
     icon: "Sparkles",
+  },
+];
+
+/**
+ * Practice-mode feedback. DEMO ONLY — landmark trajectory scoring is not
+ * implemented, so these scores are illustrative and the page says so.
+ * Words are drawn from the real vocabulary.
+ */
+export const PRACTICE_FEEDBACK = [
+  {
+    word: "HELLO",
+    score: 0.92,
+    notes: ["Scoring is not implemented — this is placeholder feedback.",
+            "Real scoring would compare your landmark trajectory against the reference."],
+  },
+  {
+    word: "THANK YOU",
+    score: 0.71,
+    notes: ["Scoring is not implemented — this is placeholder feedback.",
+            "The reference clip shown is a real recording from the dataset."],
   },
 ];

@@ -33,10 +33,10 @@ export default function About() {
           <div className="micro-caps mb-6">How it works</div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
-              ["01", "Webcam frame", "Captured in-browser. Never touches a server."],
-              ["02", "MediaPipe landmarks", "21 hand + 33 pose keypoints extracted locally."],
-              ["03", "Model inference", "PyTorch classifier (LSTM/Transformer) returns gloss."],
-              ["04", "Gemini + TTS", "Gloss → natural English → Web Speech reads aloud."],
+              ["01", "Webcam frame", "Captured in-browser, encoded as JPEG, sent to a local server."],
+              ["02", "MediaPipe landmarks", "21+21 hand and 33 pose keypoints, extracted server-side."],
+              ["03", "Model inference", "BiLSTM or 1D CNN classifies one of 261 isolated signs."],
+              ["04", "Speech", "Web Speech reads the predicted word aloud in the browser."],
             ].map(([n, t, b]) => (
               <div key={n} className="glass-card rounded-sm p-6">
                 <div className="font-display text-4xl text-copper mb-3">{n}</div>
@@ -52,10 +52,10 @@ export default function About() {
           <div className="micro-caps mb-6">Threat model & security</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              [EyeOff, "No raw video leaves the browser", "The webcam feed is processed locally. Only anonymized landmark tensors are sent over WSS."],
-              [Lock, "Encrypted transport", "All traffic uses HTTPS and WSS. Transcripts, when saved, are encrypted at rest."],
-              [ShieldCheck, "Opt-in persistence", "Anonymous sessions are ephemeral. Nothing is stored unless you sign in and toggle it on."],
-              [Cpu, "Auditable model", "Model weights, preprocessing, and gloss lookup are documented and versioned. A/B via request header for teammate iteration."],
+              [EyeOff, "Frames are never stored", "Frames ARE sent to the local server — MediaPipe runs there. They are processed in memory and discarded; nothing is written to disk, and only landmark coordinates are used."],
+              [Lock, "Local-only, for now", "The app runs on localhost over plain HTTP. There is no TLS, no authentication and no remote deployment — so nothing crosses a network, but it is also not yet hardened for one."],
+              [ShieldCheck, "No persistence at all", "Sessions are ephemeral. There is no database and no account system, so transcripts vanish when the tab closes. The Transcripts page is a UI shell."],
+              [Cpu, "Auditable and reproducible", "Both models train from one shared loop on an identical seed-42 split. Metrics come from ml/logs/comparison.json; the UI shows blanks when no run exists. Architecture switches per request."],
             ].map(([Icon, t, b]) => (
               <div key={t} className="glass-card rounded-sm p-8">
                 <div className="w-10 h-10 rounded-sm bg-cyan/10 border border-cyan/30 flex items-center justify-center mb-6">

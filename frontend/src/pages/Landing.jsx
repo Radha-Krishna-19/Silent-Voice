@@ -47,7 +47,7 @@ export default function Landing() {
                 <span className="italic text-copper copper-glow">heard.</span>
               </h1>
               <p className="text-lg md:text-xl text-cream/70 max-w-xl leading-relaxed mb-12">
-                A real-time <span className="text-cream">Indian Sign Language</span> translator, built for two-handed ISL vocabulary and fingerspelling. Signers get captions and a voice. Non-signers get to reply back in sign — no interpreter required.
+                A real-time <span className="text-cream">Indian Sign Language</span> translator over a <span className="text-cream">261-word</span> vocabulary. Signers get captions and a voice. Non-signers type English and watch it signed back — replayed from real recordings, not an avatar.
               </p>
               <div className="flex flex-wrap items-center gap-4">
                 <button
@@ -125,18 +125,18 @@ export default function Landing() {
           <div className="lg:col-span-5">
             <span className="micro-caps">The pipeline</span>
             <h3 className="font-display text-3xl md:text-4xl leading-tight mt-4 mb-6">
-              Landmarks in the browser. Meaning on the server. <span className="italic text-copper">Nothing else stored.</span>
+              Frames in. Landmarks out. <span className="italic text-copper">Nothing written to disk.</span>
             </h3>
             <p className="text-cream/60 leading-relaxed">
-              MediaPipe extracts 21 hand + 33 pose landmarks locally. Only those coordinates stream over WSS. The model returns a gloss sequence, Gemini shapes it into English, the browser reads it aloud.
+              The browser sends JPEG frames to a local FastAPI server at 12 fps. MediaPipe extracts 21+21 hand and 33 pose landmarks there — the same code path used to build the training data, so there is no train/serve skew. Frames are processed in memory and discarded; only coordinates are used.
             </p>
           </div>
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              ["01", "Capture", "Webcam frame stays local."],
-              ["02", "Landmarks", "21+33 keypoints extracted in-browser."],
-              ["03", "Model", "PyTorch classifier → gloss sequence."],
-              ["04", "Voice", "Gemini shapes English · Web Speech reads it."],
+              ["01", "Capture", "Webcam frame → JPEG, throttled to 12 fps."],
+              ["02", "Landmarks", "MediaPipe Holistic, server-side in Python."],
+              ["03", "Model", "BiLSTM or 1D CNN → one of 261 signs."],
+              ["04", "Voice", "Web Speech reads the label aloud."],
             ].map(([n, t, b]) => (
               <div key={n} className="glass-card rounded-sm p-6">
                 <div className="flex items-baseline justify-between mb-3">
