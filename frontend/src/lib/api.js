@@ -67,6 +67,22 @@ export async function fetchVocabulary() {
 }
 
 // --------------------------------------------------------------------------- //
+// Practice — real scoring against the reference recording for a word
+// --------------------------------------------------------------------------- //
+
+/** Score the last captured attempt (or an explicit window) against `label`. */
+export async function scorePractice(label, { window: win = null, mirror = false } = {}) {
+  const { data } = await api.post("/practice/score", { label, window: win, mirror });
+  return data;
+}
+
+/** Words that have a reference recording and can therefore be practised. */
+export async function fetchPracticeWords() {
+  const { data } = await api.get("/practice/words");
+  return data;
+}
+
+// --------------------------------------------------------------------------- //
 // Research
 // --------------------------------------------------------------------------- //
 

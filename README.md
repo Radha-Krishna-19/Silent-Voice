@@ -32,9 +32,9 @@ both have real limits, and this README states them plainly.
 | `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
 | `/reverse` | **Real** | English → ISL gloss → replays actual recorded signer skeletons. 261-word vocabulary. |
 | `/` `/about` | Static | Landing and explanation pages. |
-| `/practice` | **Demo data** | Coaching UI is built; scoring is not implemented. Labelled in the UI. |
-| `/transcripts` | **Demo data** | Session history UI is built; persistence is not implemented. Labelled in the UI. |
-| `/settings` | Partial | Controls work in-session; nothing is persisted (no accounts). Labelled in the UI. |
+| `/practice` | **Real** | Records your attempt, scores it against the reference recording — hand shape, placement and movement measured separately. |
+| `/transcripts` | **Real** | Sessions you record on Live are saved in this browser, with .txt / .srt export. |
+| `/settings` | **Real** | Preferences persist in this browser (no accounts, so per-browser only). |
 | `/auth` | Shell | Form renders, no authentication backend. |
 
 Nothing is silently fake. Every mocked surface says so on screen.
@@ -232,18 +232,27 @@ prototype, not a product.
 > **Python 3.13 does not work.** `mediapipe` ships compiled extensions and 0.10.14 —
 > the last release containing the `Holistic` model — has no `cp313` wheel.
 
-### The easy way
+### One command
 
 ```powershell
-.\setup.ps1     # once per machine: creates the nndl venv, installs everything, verifies
-.\start.ps1     # every time: opens backend + frontend in two windows
+.\run.ps1
 ```
 
-Then open **<http://localhost:3000>**.
+Or double-click **`run.bat`** if PowerShell's execution policy gets in the way.
 
-Both scripts call `nndl\Scripts\python.exe` directly, so **you never need to
-activate the virtualenv**. If PowerShell blocks them:
-`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+That single command checks Python and Node, creates the `nndl` virtualenv and
+installs packages if they are missing, rebuilds any derived artefact that is
+absent (sign bank, practice references, UI vocabulary), starts both servers,
+waits for the frontend to compile and opens the browser. Safe to run every
+time — it skips whatever is already done.
+
+```powershell
+.\run.ps1 -Check    # verify the environment, start nothing
+.\run.ps1 -Stop     # stop whatever is running on :3000 and :8000
+```
+
+It invokes `nndl\Scripts\python.exe` by full path, so **you never need to
+activate the virtualenv**.
 
 ### Manually
 

@@ -45,6 +45,7 @@ from preprocess import T, _lm_arr, _normalize  # noqa: E402
 
 import inference  # noqa: E402
 import gloss  # noqa: E402
+import practice  # noqa: E402
 
 app = FastAPI(title="Silent Voice", version="1.0")
 app.add_middleware(
@@ -166,7 +167,12 @@ def frame(f: Frame):
         if _is_recording and not f.record:          # user released -> classify
             _is_recording = False
             if len(_recording) >= 4:
-                prediction = inference.predict(_window(_recording).tolist(), f.model or "bilstm")
+                win = _window(_recording)
+                prediction = inference.predict(win.tolist(), f.model or "bilstm")
+                # Keep the window so Practice mode can score this exact attempt
+                # without the client having to re-send every frame.
+                _last_window = win
+                globals()["_last_window"] = _last_window
                 finished = True
             _recording = []
     else:                                            # continuous
@@ -265,6 +271,34 @@ def text_to_sign(body: TextIn):
 def text_to_gloss(body: TextIn):
     """Gloss only — no animation frames. Cheap, for previewing word order."""
     return gloss.text_to_gloss(body.text)
+
+
+# --------------------------------------------------------------------------- #
+# Practice mode — real scoring against the reference recording for a word.
+# --------------------------------------------------------------------------- #
+class PracticeIn(BaseModel):
+    label: str
+    window: list | None = None      # (T, 225); omit to score the last capture
+    mirror: bool = False
+
+
+@app.post("/api/practice/score")
+def practice_score(body: PracticeIn):
+    win = body.window
+    if win is None:
+        win = globals().get("_last_window")
+        if win is None:
+            return {"available": False,
+                    "error": "no attempt recorded yet — hold the record button, then release"}
+        win = win.tolist()
+    return practice.score(win, body.label, mirror=body.mirror)
+
+
+@app.get("/api/practice/words")
+def practice_words():
+    """Words that can be practised — those with a reference recording."""
+    v = practice.vocabulary()
+    return {"available": practice.available(), "count": len(v), "words": v}
 
 
 @app.get("/api/vocabulary")

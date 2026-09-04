@@ -1,119 +1,220 @@
-import { useState } from "react";
-import { ChevronDown, Download, FileText, FileCode2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, FileText, FileCode2, Trash2, Inbox } from "lucide-react";
 import Nav from "../components/Nav";
-import { SESSIONS } from "../lib/mockData";
+import { Reveal, Stagger, StaggerItem, CountUp, Magnetic, useRipple, PageTransition, EASE } from "../components/motion";
+import {
+  loadSessions, deleteSession, clearSessions, sessionToTxt, sessionToSrt,
+  download, fmtDuration, storageAvailable,
+} from "../lib/storage";
 
 export default function Transcripts() {
-  const [openId, setOpenId] = useState(SESSIONS[0].id);
+  const [sessions, setSessions] = useState([]);
+  const [open, setOpen] = useState(null);
+  const canStore = useMemo(storageAvailable, []);
+
+  useEffect(() => { setSessions(loadSessions()); }, []);
+
+  const totals = useMemo(() => {
+    const signs = sessions.reduce((s, x) => s + x.signs, 0);
+    const secs = sessions.reduce((s, x) => s + x.durationSec, 0);
+    const conf = sessions.length
+      ? sessions.reduce((s, x) => s + x.avgConfidence, 0) / sessions.length
+      : 0;
+    return { signs, secs, conf };
+  }, [sessions]);
 
   return (
     <div className="min-h-screen bg-ink text-cream" data-testid="transcripts-page">
       <Nav />
-      <main className="pt-28 pb-16 px-6 md:px-12 lg:px-24 max-w-[1200px] mx-auto">
-        <div className="mb-6 rounded-sm border border-copper/40 bg-copper/[0.06] px-4 py-3 text-xs text-cream/70">
-          <span className="text-copper uppercase tracking-widest text-[10px] mr-2">Demo data</span>
-          Session persistence is not implemented. These entries are illustrative; nothing is stored.
-        </div>
-
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <div className="micro-caps mb-2">Session history</div>
-            <h1 className="font-display text-4xl md:text-5xl tracking-tight">Transcripts</h1>
-            <p className="text-cream/60 mt-3 max-w-lg">
-              Every saved session, exportable as plain text or subtitle-ready .srt. Nothing is retained without your explicit opt-in.
+      <PageTransition>
+        <main className="pt-28 pb-20 px-6 md:px-12 lg:px-24 max-w-[1200px] mx-auto">
+          <Reveal>
+            <div className="micro-caps mb-3">Session history</div>
+            <h1 className="font-display text-4xl md:text-6xl tracking-tight mb-4">Transcripts</h1>
+            <p className="text-cream/60 max-w-2xl leading-relaxed mb-10">
+              Every session you record on <span className="text-cream">Live</span> is saved here, in this
+              browser. Nothing is uploaded and there is no account — clearing your browser data clears these.
             </p>
-          </div>
-          <div className="text-sm text-cream/50">{SESSIONS.length} sessions</div>
-        </div>
+          </Reveal>
 
-        <div className="space-y-3" data-testid="sessions-list">
-          {SESSIONS.map((s) => {
-            const open = openId === s.id;
-            return (
-              <div
-                key={s.id}
-                data-testid={`session-row-${s.id}`}
-                className={`glass-card rounded-sm overflow-hidden transition-colors ${open ? "border-copper/40" : ""}`}
-              >
-                <button
-                  onClick={() => setOpenId(open ? null : s.id)}
-                  className="focus-ring w-full grid grid-cols-12 gap-4 items-center px-6 py-5 text-left hover:bg-cream/[0.02] transition-colors"
-                  aria-expanded={open}
+          {!canStore && (
+            <Reveal>
+              <div className="mb-8 rounded-sm border border-copper/40 bg-copper/[0.06] px-4 py-3 text-sm text-cream/75">
+                Local storage is unavailable (private browsing?), so sessions cannot be saved.
+              </div>
+            </Reveal>
+          )}
+
+          {sessions.length > 0 && (
+            <Stagger className="grid grid-cols-3 gap-4 mb-10" gap={0.08}>
+              {[
+                { v: sessions.length, l: "Sessions", d: 0 },
+                { v: totals.signs, l: "Signs captured", d: 0 },
+                { v: totals.conf * 100, l: "Mean confidence", d: 1, suffix: "%" },
+              ].map((s) => (
+                <StaggerItem key={s.l}>
+                  <div className="glass-card rounded-sm p-5">
+                    <div className="font-display text-4xl text-copper">
+                      <CountUp value={s.v} decimals={s.d} suffix={s.suffix ?? ""} />
+                    </div>
+                    <div className="micro-caps mt-2">{s.l}</div>
+                  </div>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          )}
+
+          {sessions.length === 0 ? (
+            <Reveal>
+              <div className="glass-card rounded-sm p-14 text-center">
+                <motion.div
+                  animate={{ y: [0, -7, 0] }}
+                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-flex mb-5"
                 >
-                  <div className="col-span-6 md:col-span-5">
-                    <div className="font-display text-xl leading-snug">{s.title}</div>
-                    <div className="text-xs text-cream/40 mt-0.5">{s.date}</div>
-                  </div>
-                  <div className="hidden md:block col-span-2">
-                    <div className="micro-caps">{s.domain}</div>
-                  </div>
-                  <div className="col-span-3 md:col-span-2 text-sm text-cream/60">
-                    {s.duration}
-                    <div className="text-[10px] text-cream/40 uppercase tracking-widest mt-0.5">Duration</div>
-                  </div>
-                  <div className="col-span-2 md:col-span-2 text-sm">
-                    <span className="text-copper font-medium">{Math.round(s.avgConfidence * 100)}%</span>
-                    <div className="text-[10px] text-cream/40 uppercase tracking-widest mt-0.5">Avg conf.</div>
-                  </div>
-                  <div className="col-span-1 md:col-span-1 justify-self-end">
-                    <ChevronDown
-                      className={`w-4 h-4 text-cream/50 transition-transform ${open ? "rotate-180" : ""}`}
-                      strokeWidth={1.5}
-                    />
-                  </div>
-                </button>
+                  <Inbox className="w-9 h-9 text-cream/25" strokeWidth={1.2} />
+                </motion.div>
+                <div className="font-display text-2xl mb-2">No sessions yet</div>
+                <p className="text-sm text-cream/45 max-w-md mx-auto leading-relaxed">
+                  Open <a href="#/live" className="text-cyan hover:underline">Live</a>, start the camera and
+                  sign something. When you stop, the session is saved here automatically.
+                </p>
+              </div>
+            </Reveal>
+          ) : (
+            <>
+              <div className="space-y-3" data-testid="session-list">
                 <AnimatePresence initial={false}>
-                  {open && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-6 pb-6">
-                        <div className="hair-divider mb-5" />
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="md:col-span-2 space-y-3">
-                            {s.entries.map((e, i) => (
-                              <div key={i} className="flex gap-4 items-baseline">
-                                <span className="text-[11px] font-mono text-cream/40 flex-shrink-0 mt-1">{e.ts}</span>
-                                <div className="flex-1">
-                                  <div className="text-cream/90 leading-relaxed">{e.text}</div>
-                                </div>
-                                <span className="text-[10px] uppercase tracking-widest text-copper flex-shrink-0">
-                                  {Math.round(e.conf * 100)}%
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="glass-panel rounded-sm p-4">
-                            <div className="micro-caps mb-3">Export</div>
-                            <div className="space-y-2">
-                              <button data-testid={`export-txt-${s.id}`} className="focus-ring w-full flex items-center justify-between px-3 py-2 rounded-sm border border-cream/10 hover:border-copper transition-colors text-sm">
-                                <span className="flex items-center gap-2"><FileText className="w-4 h-4" strokeWidth={1.5} /> .txt</span>
-                                <Download className="w-3.5 h-3.5 text-cream/50" strokeWidth={1.5} />
-                              </button>
-                              <button data-testid={`export-srt-${s.id}`} className="focus-ring w-full flex items-center justify-between px-3 py-2 rounded-sm border border-cream/10 hover:border-copper transition-colors text-sm">
-                                <span className="flex items-center gap-2"><FileCode2 className="w-4 h-4" strokeWidth={1.5} /> .srt</span>
-                                <Download className="w-3.5 h-3.5 text-cream/50" strokeWidth={1.5} />
-                              </button>
-                            </div>
-                            <div className="hair-divider my-4" />
-                            <div className="text-[10px] uppercase tracking-widest text-cream/40 mb-1">Signs captured</div>
-                            <div className="font-display text-3xl text-cream">{s.signs}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                  {sessions.map((s, i) => (
+                    <SessionRow
+                      key={s.id}
+                      s={s}
+                      index={i}
+                      open={open === s.id}
+                      onToggle={() => setOpen(open === s.id ? null : s.id)}
+                      onDelete={() => setSessions(deleteSession(s.id))}
+                    />
+                  ))}
                 </AnimatePresence>
               </div>
-            );
-          })}
+
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={() => { if (window.confirm("Delete all saved sessions?")) setSessions(clearSessions()); }}
+                  className="focus-ring text-xs uppercase tracking-widest text-cream/40 hover:text-copper transition-colors"
+                >
+                  Clear all sessions
+                </button>
+              </div>
+            </>
+          )}
+        </main>
+      </PageTransition>
+    </div>
+  );
+}
+
+function SessionRow({ s, index, open, onToggle, onDelete }) {
+  const { fire, layer } = useRipple();
+  const date = new Date(s.startedAt);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -40, height: 0, marginBottom: 0 }}
+      transition={{ duration: 0.32, ease: EASE, delay: Math.min(index * 0.04, 0.2) }}
+      className="glass-card rounded-sm overflow-hidden"
+    >
+      <motion.button
+        onClick={(e) => { fire(e); onToggle(); }}
+        whileHover={{ backgroundColor: "rgba(242,236,224,0.03)" }}
+        className="relative w-full flex items-center gap-5 p-5 text-left focus-ring"
+      >
+        {layer}
+        <div className="flex-1 min-w-0">
+          <div className="font-display text-lg truncate">
+            {date.toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+            {" · "}
+            {date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+          </div>
+          <div className="text-[10px] uppercase tracking-widest text-cream/35 mt-1">
+            {s.model} · {s.entries.length} entries
+          </div>
         </div>
-      </main>
+        <Stat label="Duration" value={fmtDuration(s.durationSec)} />
+        <Stat label="Signs" value={s.signs} />
+        <Stat label="Mean conf." value={`${(s.avgConfidence * 100).toFixed(0)}%`} accent />
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25, ease: EASE }}>
+          <ChevronDown className="w-4 h-4 text-cream/40" strokeWidth={1.5} />
+        </motion.span>
+      </motion.button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: EASE }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div className="lg:col-span-2 space-y-1.5">
+                {s.entries.map((e, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.035, duration: 0.28, ease: EASE }}
+                    className="flex items-baseline gap-4 border-l-2 border-copper/40 pl-3 py-1"
+                  >
+                    <span className="font-mono text-[10px] text-cream/35 w-12 shrink-0">{e.ts}</span>
+                    <span className="text-sm text-cream/90 flex-1">{e.text}</span>
+                    <span className={`text-[10px] ${e.conf > 0.8 ? "text-cyan" : "text-copper"}`}>
+                      {(e.conf * 100).toFixed(0)}%
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <div className="micro-caps mb-1">Export</div>
+                {[
+                  { icon: FileText, label: ".txt", fn: () => download(`${s.id}.txt`, sessionToTxt(s)) },
+                  { icon: FileCode2, label: ".srt", fn: () => download(`${s.id}.srt`, sessionToSrt(s)) },
+                ].map(({ icon: Icon, label, fn }) => (
+                  <Magnetic key={label} strength={0.15}>
+                    <button
+                      onClick={fn}
+                      className="focus-ring w-full flex items-center gap-2 px-3 py-2.5 border border-cream/15 rounded-sm text-sm text-cream/70 hover:border-cyan hover:text-cyan transition-colors"
+                    >
+                      <Icon className="w-3.5 h-3.5" strokeWidth={1.5} /> {label}
+                    </button>
+                  </Magnetic>
+                ))}
+                <button
+                  onClick={onDelete}
+                  className="focus-ring w-full flex items-center gap-2 px-3 py-2.5 border border-cream/10 rounded-sm text-sm text-cream/40 hover:border-copper hover:text-copper transition-colors mt-3"
+                >
+                  <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} /> Delete session
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function Stat({ label, value, accent }) {
+  return (
+    <div className="hidden sm:block text-right shrink-0">
+      <div className={`font-display text-lg ${accent ? "text-copper" : "text-cream/85"}`}>{value}</div>
+      <div className="text-[9px] uppercase tracking-widest text-cream/30">{label}</div>
     </div>
   );
 }

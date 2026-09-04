@@ -1,105 +1,254 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, RotateCcw, HardDrive } from "lucide-react";
 import Nav from "../components/Nav";
-import { DOMAIN_PACKS } from "../lib/mockData";
-import { Switch } from "../components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Slider } from "../components/ui/slider";
-
-const Row = ({ label, description, children, testId }) => (
-  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 py-6 border-b border-cream/10" data-testid={testId}>
-    <div className="md:col-span-5">
-      <div className="font-medium text-cream">{label}</div>
-      {description && <div className="text-xs text-cream/50 mt-1 max-w-md leading-relaxed">{description}</div>}
-    </div>
-    <div className="md:col-span-7 flex items-center">{children}</div>
-  </div>
-);
+import { Reveal, Stagger, StaggerItem, PageTransition, Magnetic, EASE } from "../components/motion";
+import { loadSettings, saveSettings, resetSettings, storageAvailable, loadSessions } from "../lib/storage";
+import { VOCAB_SIZE } from "../lib/vocabulary";
 
 export default function Settings() {
-  const [pack, setPack] = useState("everyday");
-  const [voice, setVoice] = useState("en-IN-female");
-  const [rate, setRate] = useState([1.0]);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [saveTranscripts, setSaveTranscripts] = useState(true);
-  const [landmarksOnly, setLandmarksOnly] = useState(true);
+  const [s, setS] = useState(loadSettings);
+  const [voices, setVoices] = useState([]);
+  const [saved, setSaved] = useState(false);
+  const canStore = storageAvailable();
+  const sessionCount = loadSessions().length;
+
+  useEffect(() => {
+    const load = () => setVoices(window.speechSynthesis?.getVoices?.() ?? []);
+    load();
+    if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = load;
+    return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
+
+  const update = (patch) => {
+    setS(saveSettings(patch));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1600);
+  };
 
   return (
     <div className="min-h-screen bg-ink text-cream" data-testid="settings-page">
       <Nav />
-      <main className="pt-28 pb-16 px-6 md:px-12 lg:px-24 max-w-[1100px] mx-auto">
-        <div className="mb-6 rounded-sm border border-cream/15 px-4 py-3 text-xs text-cream/55">
-          Preferences are held in memory for this session only and are <span className="text-cream/80">not persisted</span> — there is no user account system yet.
-        </div>
-
-        <div className="mb-10">
-          <div className="micro-caps mb-2">Preferences</div>
-          <h1 className="font-display text-4xl md:text-5xl tracking-tight">Settings</h1>
-        </div>
-
-        <section className="mb-10">
-          <div className="micro-caps mb-4">Vocabulary</div>
-          <Row label="Default domain pack" description="Which vocabulary loads first when you open live translation." testId="setting-domain">
-            <Select value={pack} onValueChange={setPack}>
-              <SelectTrigger data-testid="domain-select" className="w-full md:w-72 bg-transparent border-cream/15 rounded-sm text-cream focus-ring">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-ink border-cream/15 text-cream">
-                {DOMAIN_PACKS.map((p) => (
-                  <SelectItem key={p.id} value={p.id} className="focus:bg-cream/10 focus:text-cream">
-                    {p.name} · {p.count} signs
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Row>
-        </section>
-
-        <section className="mb-10">
-          <div className="micro-caps mb-4">Voice output</div>
-          <Row label="TTS voice" description="Browser Web Speech voice used to read captions aloud." testId="setting-voice">
-            <Select value={voice} onValueChange={setVoice}>
-              <SelectTrigger data-testid="voice-select" className="w-full md:w-72 bg-transparent border-cream/15 rounded-sm text-cream focus-ring">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-ink border-cream/15 text-cream">
-                <SelectItem value="en-IN-female" className="focus:bg-cream/10 focus:text-cream">English (India) — Warm F</SelectItem>
-                <SelectItem value="en-IN-male" className="focus:bg-cream/10 focus:text-cream">English (India) — Neutral M</SelectItem>
-                <SelectItem value="en-US-female" className="focus:bg-cream/10 focus:text-cream">English (US) — F</SelectItem>
-                <SelectItem value="en-GB-male" className="focus:bg-cream/10 focus:text-cream">English (GB) — M</SelectItem>
-              </SelectContent>
-            </Select>
-          </Row>
-          <Row label="Speech rate" description="Adjust playback speed of the spoken captions." testId="setting-rate">
-            <div className="w-full max-w-sm flex items-center gap-4">
-              <Slider
-                data-testid="rate-slider"
-                value={rate}
-                onValueChange={setRate}
-                min={0.6} max={1.6} step={0.05}
-                className="flex-1"
-              />
-              <span className="text-cream/70 tabular-nums font-mono text-sm w-14 text-right">{rate[0].toFixed(2)}x</span>
+      <PageTransition>
+        <main className="pt-28 pb-20 px-6 md:px-12 lg:px-24 max-w-[900px] mx-auto">
+          <Reveal>
+            <div className="flex items-start justify-between mb-10">
+              <div>
+                <div className="micro-caps mb-3">Preferences</div>
+                <h1 className="font-display text-4xl md:text-6xl tracking-tight">Settings</h1>
+              </div>
+              <AnimatePresence>
+                {saved && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.94 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.94 }}
+                    transition={{ duration: 0.22, ease: EASE }}
+                    className="flex items-center gap-2 text-xs text-cyan border border-cyan/30 rounded-sm px-3 py-1.5"
+                  >
+                    <Check className="w-3 h-3" strokeWidth={2} /> Saved
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </Row>
-        </section>
+          </Reveal>
 
-        <section className="mb-10">
-          <div className="micro-caps mb-4">Motion & accessibility</div>
-          <Row label="Reduced motion" description="Disables character-assemble captions, landmark pulses, and staggered reveals in favor of plain fades." testId="setting-motion">
-            <Switch data-testid="motion-toggle" checked={reducedMotion} onCheckedChange={setReducedMotion} className="data-[state=checked]:bg-copper" />
-          </Row>
-        </section>
+          <Reveal delay={0.05}>
+            <div className="flex items-center gap-3 mb-10 text-xs text-cream/45 border border-cream/10 rounded-sm px-4 py-3">
+              <HardDrive className="w-3.5 h-3.5 shrink-0" strokeWidth={1.5} />
+              {canStore ? (
+                <span>
+                  Saved in this browser only — there is no account system. {sessionCount} session
+                  {sessionCount === 1 ? "" : "s"} stored.
+                </span>
+              ) : (
+                <span className="text-copper">Local storage unavailable — changes will not persist.</span>
+              )}
+            </div>
+          </Reveal>
 
-        <section>
-          <div className="micro-caps mb-4">Privacy</div>
-          <Row label="Landmarks only" description="Never transmit raw video. Only skeleton keypoints are sent to the model. Recommended." testId="setting-landmarks">
-            <Switch data-testid="landmarks-toggle" checked={landmarksOnly} onCheckedChange={setLandmarksOnly} className="data-[state=checked]:bg-copper" />
-          </Row>
-          <Row label="Save transcripts to my account" description="Store session transcripts so you can revisit and export them later. Off by default for anonymous users." testId="setting-save">
-            <Switch data-testid="save-toggle" checked={saveTranscripts} onCheckedChange={setSaveTranscripts} className="data-[state=checked]:bg-copper" />
-          </Row>
-        </section>
-      </main>
+          <Stagger className="space-y-10" gap={0.07}>
+            <Section title="Recognition">
+              <Choice
+                label="Model"
+                hint="Both are trained on the identical split. The CNN measured higher on every metric."
+                value={s.model}
+                onChange={(v) => update({ model: v })}
+                options={[
+                  { value: "cnn", label: "1D CNN", meta: "94.55% · 0.74 ms" },
+                  { value: "bilstm", label: "BiLSTM", meta: "91.74% · 4.12 ms" },
+                ]}
+              />
+              <Slider
+                label="Capture rate"
+                hint="Frames sent per second. Lower reduces CPU load; higher reacts faster."
+                value={s.captureFps} min={6} max={20} step={2} unit=" fps"
+                onChange={(v) => update({ captureFps: v })}
+              />
+            </Section>
+
+            <Section title="Voice">
+              <Toggle
+                label="Speak captions aloud"
+                hint="Uses the browser's Web Speech synthesis."
+                value={s.speakCaptions}
+                onChange={(v) => update({ speakCaptions: v })}
+              />
+              <Slider
+                label="Speech rate" value={s.speechRate}
+                min={0.6} max={1.6} step={0.1} unit="×"
+                onChange={(v) => update({ speechRate: v })}
+              />
+              {voices.length > 0 && (
+                <Row label="Voice" hint={`${voices.length} available in this browser`}>
+                  <select
+                    value={s.voiceURI ?? ""}
+                    onChange={(e) => update({ voiceURI: e.target.value || null })}
+                    className="focus-ring bg-ink border border-cream/15 rounded-sm px-3 py-2 text-sm text-cream/85 min-w-[220px]"
+                  >
+                    <option value="">System default</option>
+                    {voices.map((v) => (
+                      <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
+                    ))}
+                  </select>
+                </Row>
+              )}
+            </Section>
+
+            <Section title="Practice">
+              <Toggle
+                label="Mirror my attempt"
+                hint="Compensates when you sign left-handed against a right-handed reference."
+                value={s.mirrorPractice}
+                onChange={(v) => update({ mirrorPractice: v })}
+              />
+            </Section>
+
+            <Section title="Data & motion">
+              <Toggle
+                label="Save sessions"
+                hint="Store Live transcripts in this browser so they appear under Transcripts."
+                value={s.saveSessions}
+                onChange={(v) => update({ saveSessions: v })}
+              />
+              <Toggle
+                label="Reduce motion"
+                hint="Your operating system setting is respected automatically; this forces it on."
+                value={s.reducedMotion}
+                onChange={(v) => update({ reducedMotion: v })}
+              />
+            </Section>
+
+            <StaggerItem>
+              <div className="pt-6 border-t border-cream/10 flex items-center justify-between">
+                <div className="text-xs text-cream/40">
+                  Vocabulary: {VOCAB_SIZE} signs, from the trained label map.
+                </div>
+                <Magnetic strength={0.18}>
+                  <button
+                    onClick={() => { setS(resetSettings()); setSaved(true); setTimeout(() => setSaved(false), 1600); }}
+                    className="focus-ring flex items-center gap-2 text-xs uppercase tracking-widest text-cream/45 hover:text-copper transition-colors"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" strokeWidth={1.5} /> Reset to defaults
+                  </button>
+                </Magnetic>
+              </div>
+            </StaggerItem>
+          </Stagger>
+        </main>
+      </PageTransition>
     </div>
+  );
+}
+
+/* ----------------------------- controls ----------------------------- */
+
+function Section({ title, children }) {
+  return (
+    <StaggerItem>
+      <div className="micro-caps mb-5">{title}</div>
+      <div className="space-y-5">{children}</div>
+    </StaggerItem>
+  );
+}
+
+function Row({ label, hint, children }) {
+  return (
+    <div className="flex items-start justify-between gap-8 py-3 border-b border-cream/[0.06]">
+      <div className="min-w-0">
+        <div className="text-sm text-cream/90">{label}</div>
+        {hint && <div className="text-xs text-cream/40 mt-1 leading-relaxed max-w-md">{hint}</div>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function Toggle({ label, hint, value, onChange }) {
+  return (
+    <Row label={label} hint={hint}>
+      <button
+        role="switch"
+        aria-checked={value}
+        onClick={() => onChange(!value)}
+        className={`focus-ring relative w-12 h-6 rounded-full transition-colors ${value ? "bg-copper" : "bg-cream/12"}`}
+      >
+        <motion.span
+          layout
+          transition={{ type: "spring", stiffness: 500, damping: 32 }}
+          className={`absolute top-1 w-4 h-4 rounded-full ${value ? "bg-ink right-1" : "bg-cream/70 left-1"}`}
+        />
+      </button>
+    </Row>
+  );
+}
+
+function Slider({ label, hint, value, min, max, step, unit = "", onChange }) {
+  return (
+    <Row label={label} hint={hint}>
+      <div className="flex items-center gap-3 min-w-[220px]">
+        <input
+          type="range" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="focus-ring flex-1 accent-copper"
+        />
+        <span className="font-mono text-xs text-cyan w-14 text-right">
+          {Number(value).toFixed(step < 1 ? 1 : 0)}{unit}
+        </span>
+      </div>
+    </Row>
+  );
+}
+
+function Choice({ label, hint, value, onChange, options }) {
+  return (
+    <Row label={label} hint={hint}>
+      <div className="flex gap-2">
+        {options.map((o) => {
+          const active = value === o.value;
+          return (
+            <button
+              key={o.value}
+              onClick={() => onChange(o.value)}
+              className={`focus-ring relative px-4 py-2 rounded-sm text-xs transition-colors ${
+                active ? "text-ink" : "text-cream/55 hover:text-cream border border-cream/15"
+              }`}
+            >
+              {active && (
+                <motion.span
+                  layoutId="choice-pill"
+                  className="absolute inset-0 bg-copper rounded-sm"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              )}
+              <span className="relative z-10 block uppercase tracking-widest font-medium">{o.label}</span>
+              <span className={`relative z-10 block text-[9px] mt-0.5 ${active ? "text-ink/70" : "text-cream/35"}`}>
+                {o.meta}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Row>
   );
 }

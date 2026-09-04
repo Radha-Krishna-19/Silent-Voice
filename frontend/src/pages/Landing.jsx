@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Radio, MessageSquare, Sparkles, ShieldCheck } from "lucide-react";
 import Nav from "../components/Nav";
+import { Reveal, Stagger, StaggerItem, SplitText, Magnetic, Tilt, CountUp, PageTransition, useRipple, EASE } from "../components/motion";
 import LandmarkOverlay from "../components/LandmarkOverlay";
 import PrivacyBadge from "../components/PrivacyBadge";
 import OnboardingModal from "../components/OnboardingModal";
@@ -42,22 +43,29 @@ export default function Landing() {
                 <span className="micro-caps text-copper">Indian Sign Language ↔ English</span>
               </div>
               <h1 className="font-display text-[3.5rem] md:text-[5.5rem] lg:text-[7rem] leading-[0.92] tracking-[-0.02em] text-cream mb-8">
-                Every gesture,
+                <SplitText text="Every gesture," stagger={0.028} />
                 <br />
-                <span className="italic text-copper copper-glow">heard.</span>
+                <span className="italic text-copper copper-glow">
+                  <SplitText text="heard." delay={0.42} stagger={0.05} />
+                </span>
               </h1>
               <p className="text-lg md:text-xl text-cream/70 max-w-xl leading-relaxed mb-12">
                 A real-time <span className="text-cream">Indian Sign Language</span> translator over a <span className="text-cream">261-word</span> vocabulary. Signers get captions and a voice. Non-signers type English and watch it signed back — replayed from real recordings, not an avatar.
               </p>
               <div className="flex flex-wrap items-center gap-4">
-                <button
-                  data-testid="landing-cta-start"
-                  onClick={() => setOnboardOpen(true)}
-                  className="btn-copper focus-ring"
-                >
-                  Start translating
-                  <ArrowUpRight className="w-4 h-4" strokeWidth={2} />
-                </button>
+                <Magnetic strength={0.32}>
+                  <motion.button
+                    data-testid="landing-cta-start"
+                    onClick={() => setOnboardOpen(true)}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 380, damping: 22 }}
+                    className="btn-copper focus-ring"
+                  >
+                    Start translating
+                    <ArrowUpRight className="w-4 h-4" strokeWidth={2} />
+                  </motion.button>
+                </Magnetic>
                 <Link
                   to="/reverse"
                   data-testid="landing-cta-reverse"
@@ -99,19 +107,24 @@ export default function Landing() {
             return (
               <motion.div
                 key={card.kicker}
-                initial={reduced ? {} : { opacity: 0, y: 12 }}
+                initial={reduced ? {} : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.5, delay: i * 0.08 }}
+                transition={{ duration: 0.55, delay: i * 0.1, ease: EASE }}
                 data-testid={`feature-card-${i}`}
-                className="glass-card rounded-sm p-8 group"
               >
-                <div className="w-10 h-10 rounded-sm bg-copper/10 border border-copper/30 flex items-center justify-center mb-8 transition-colors group-hover:bg-copper/20">
+                <Tilt className="glass-card rounded-sm p-8 group h-full" max={5}>
+                <motion.div
+                  className="w-10 h-10 rounded-sm bg-copper/10 border border-copper/30 flex items-center justify-center mb-8"
+                  whileHover={{ rotate: 8, scale: 1.1, backgroundColor: "rgba(201,123,74,0.22)" }}
+                  transition={{ type: "spring", stiffness: 320, damping: 18 }}
+                >
                   <Icon className="w-5 h-5 text-copper" strokeWidth={1.5} />
-                </div>
+                </motion.div>
                 <div className="micro-caps mb-3">{card.kicker}</div>
                 <h3 className="font-display text-2xl leading-snug mb-4">{card.title}</h3>
                 <p className="text-cream/60 text-sm leading-relaxed">{card.body}</p>
+                </Tilt>
               </motion.div>
             );
           })}

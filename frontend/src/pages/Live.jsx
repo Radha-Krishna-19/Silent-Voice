@@ -9,6 +9,8 @@ import PrivacyBadge from "../components/PrivacyBadge";
 import Waveform from "../components/Waveform";
 import useLiveCapture from "../hooks/useLiveCapture";
 import { DOMAIN_PACKS, LIVE_CAPTION_QUEUE, RECENT_TRANSCRIPT } from "../lib/mockData";
+import { saveSession, loadSettings } from "../lib/storage";
+import { CountUp, Magnetic, useRipple, PageTransition } from "../components/motion";
 
 const mmss = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -22,9 +24,30 @@ export default function Live() {
   const [demoIdx, setDemoIdx] = useState(0);
   const scrollRef = useRef(null);
   const lastGloss = useRef(null);
+  const startedAt = useRef(null);
+  const settings = useRef(loadSettings());
 
   const cap = useLiveCapture({ model, mode: "continuous" });
   const live = cap.isLive;
+
+  // Persist the session when the camera stops. Real entries only — an empty
+  // session is not written, so Transcripts never fills with noise.
+  const stopAndSave = () => {
+    if (transcript.length && settings.current.saveSessions) {
+      saveSession({
+        entries: transcript,
+        durationSec: cap.elapsed,
+        model,
+        startedAt: startedAt.current ?? new Date().toISOString(),
+      });
+    }
+    cap.stop();
+  };
+
+  useEffect(() => {
+    if (live && !startedAt.current) startedAt.current = new Date().toISOString();
+    if (!live) startedAt.current = null;
+  }, [live]);
 
   // Demo mode is ONLY used before the camera is started. It is always labelled.
   const demo = cap.status === "idle" || cap.status === "requesting";
@@ -175,7 +198,7 @@ export default function Live() {
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1.5 glass-panel rounded-full">
                 <button
                   data-testid="live-camera-btn"
-                  onClick={() => (live ? cap.stop() : cap.start())}
+                  onClick={() => (live ? stopAndSave() : cap.start())}
                   className="focus-ring w-10 h-10 flex items-center justify-center rounded-full hover:bg-cream/10 transition-colors"
                   aria-label={live ? "Stop camera" : "Start camera"}
                   title={live ? "Stop camera" : "Start camera"}

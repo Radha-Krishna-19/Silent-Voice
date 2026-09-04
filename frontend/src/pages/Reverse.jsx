@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Send, Pause, Play, AlertTriangle, Loader2 } from "lucide-react";
 import Nav from "../components/Nav";
 import SignPlayer from "../components/SignPlayer";
 import { textToSign, fetchVocabulary } from "../lib/api";
+import { Reveal, Stagger, StaggerItem, FallingText, Magnetic, PageTransition, useRipple, EASE } from "../components/motion";
 
 const EXAMPLES = [
   "Hello, how are you today?",
@@ -78,6 +79,7 @@ export default function Reverse() {
   return (
     <div className="min-h-screen bg-ink text-cream" data-testid="reverse-page">
       <Nav />
+      <PageTransition>
       <main className="pt-24 pb-12 px-6 md:px-12 lg:px-20 max-w-[1500px] mx-auto">
         <div className="micro-caps mb-2">Reverse mode</div>
         <h1 className="font-display text-3xl md:text-5xl tracking-tight leading-[1.08] mb-2">
@@ -166,7 +168,11 @@ export default function Reverse() {
               {playable[current] && (
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-ink to-transparent">
                   <div className="micro-caps mb-1">Now signing</div>
-                  <div className="font-display text-3xl">{playable[current].gloss}</div>
+                  <div className="font-display text-3xl">
+                    <AnimatePresence mode="popLayout">
+                      <FallingText key={playable[current].gloss} text={playable[current].gloss} />
+                    </AnimatePresence>
+                  </div>
                   <div className="text-[10px] text-cream/40 mt-1 uppercase tracking-widest">
                     real recording · {playable[current].takes} takes available · {playable[current].hands} hands
                   </div>
@@ -187,21 +193,32 @@ export default function Reverse() {
               <div className="mt-4">
                 <div className="micro-caps mb-2">ISL gloss · re-ordered</div>
                 <div className="flex flex-wrap gap-2" data-testid="gloss-strip">
-                  {seq.items.map((it, i) => (
-                    <motion.span
-                      key={`${it.label}-${i}`}
-                      layout
-                      className={`px-3 py-1.5 text-xs uppercase tracking-widest rounded-sm border transition-colors ${
-                        !it.available
-                          ? "border-copper/40 text-copper/70 line-through"
-                          : playable[current]?.label === it.label
-                            ? "border-copper bg-copper text-ink"
-                            : "border-cream/15 text-cream/60"
-                      }`}
-                    >
-                      {it.gloss}
-                    </motion.span>
-                  ))}
+                  <AnimatePresence mode="popLayout">
+                    {seq.items.map((it, i) => (
+                      <motion.span
+                        key={`${it.label}-${i}`}
+                        layout
+                        initial={{ opacity: 0, y: -18, scale: 0.85, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                        exit={{
+                          opacity: 0, y: 34, scale: 0.8,
+                          rotate: (i % 2 ? 1 : -1) * (8 + i * 2),
+                          filter: "blur(3px)",
+                        }}
+                        transition={{ duration: 0.34, ease: EASE, delay: i * 0.035 }}
+                        whileHover={{ y: -3, scale: 1.05 }}
+                        className={`px-3 py-1.5 text-xs uppercase tracking-widest rounded-sm border cursor-default ${
+                          !it.available
+                            ? "border-copper/40 text-copper/70 line-through"
+                            : playable[current]?.label === it.label
+                              ? "border-copper bg-copper text-ink"
+                              : "border-cream/15 text-cream/60"
+                        }`}
+                      >
+                        {it.gloss}
+                      </motion.span>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </div>
             )}
@@ -263,6 +280,7 @@ export default function Reverse() {
           </aside>
         </div>
       </main>
+      </PageTransition>
     </div>
   );
 }
