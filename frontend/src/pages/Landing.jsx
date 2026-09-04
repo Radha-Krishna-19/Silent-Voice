@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import {motion} from "framer-motion";
+import { useReducedMotionPref } from "../components/motion/preference";
 import { ArrowUpRight, Radio, MessageSquare, Sparkles, ShieldCheck } from "lucide-react";
 import Nav from "../components/Nav";
 import { Reveal, Stagger, StaggerItem, SplitText, Magnetic, Tilt, CountUp, PageTransition, useRipple, EASE } from "../components/motion";
@@ -13,7 +14,7 @@ const iconMap = { Radio, MessageSquare, Sparkles };
 
 export default function Landing() {
   const [onboardOpen, setOnboardOpen] = useState(false);
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
 
   return (
     <div className="min-h-screen bg-ink text-cream overflow-x-hidden" data-testid="landing-page">

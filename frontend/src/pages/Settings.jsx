@@ -4,6 +4,7 @@ import { Check, RotateCcw, HardDrive } from "lucide-react";
 import Nav from "../components/Nav";
 import { Reveal, Stagger, StaggerItem, PageTransition, Magnetic, EASE } from "../components/motion";
 import { loadSettings, saveSettings, resetSettings, storageAvailable, loadSessions } from "../lib/storage";
+import { getMotionMode, setMotionMode, useOsReducedMotion } from "../components/motion/preference";
 import { VOCAB_SIZE } from "../lib/vocabulary";
 
 export default function Settings() {
@@ -11,6 +12,8 @@ export default function Settings() {
   const [voices, setVoices] = useState([]);
   const [saved, setSaved] = useState(false);
   const canStore = storageAvailable();
+  const osReduced = useOsReducedMotion();
+  const [motionMode, setMotionModeState] = useState(getMotionMode);
   const sessionCount = loadSessions().length;
 
   useEffect(() => {
@@ -124,18 +127,28 @@ export default function Settings() {
               />
             </Section>
 
-            <Section title="Data & motion">
+            <Section title="Motion">
+              <Choice
+                label="Animations"
+                hint={osReduced
+                  ? "Your system asks for reduced motion, so Auto keeps things still. Choose On to override it."
+                  : "Auto follows your operating system's reduced-motion setting."}
+                value={motionMode}
+                onChange={(v) => { setMotionMode(v); setMotionModeState(v); }}
+                options={[
+                  { value: "auto", label: "Auto", meta: osReduced ? "system: reduced" : "system: full" },
+                  { value: "on", label: "On", meta: "always animate" },
+                  { value: "off", label: "Off", meta: "never animate" },
+                ]}
+              />
+            </Section>
+
+            <Section title="Data">
               <Toggle
                 label="Save sessions"
                 hint="Store Live transcripts in this browser so they appear under Transcripts."
                 value={s.saveSessions}
                 onChange={(v) => update({ saveSessions: v })}
-              />
-              <Toggle
-                label="Reduce motion"
-                hint="Your operating system setting is respected automatically; this forces it on."
-                value={s.reducedMotion}
-                onChange={(v) => update({ reducedMotion: v })}
               />
             </Section>
 

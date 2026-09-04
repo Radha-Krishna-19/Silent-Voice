@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotionPref } from "./motion/preference";
 
 // ISL uses two-handed signs and a two-handed alphabet, so we render BOTH hands.
 // Each hand: 21 MediaPipe-style landmarks + standard connection graph.
@@ -39,7 +39,7 @@ export const LandmarkOverlay = ({
   hands = "both", // "both" | "right" | "left"
   live = null,    // { left: [[x,y],…], right: [[x,y],…] } from POST /api/frame
 }) => {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const [t, setT] = useState(0);
 
   useEffect(() => {

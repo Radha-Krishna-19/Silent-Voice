@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import {motion} from "framer-motion";
+import { useReducedMotionPref } from "./motion/preference";
 
 export const AssemblingCaption = ({ text, speed = 28, className = "", onDone }) => {
   const [visible, setVisible] = useState(0);
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
 
   useEffect(() => {
     setVisible(0);

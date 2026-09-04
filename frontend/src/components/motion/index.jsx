@@ -12,7 +12,12 @@
  *      accessibility product.
  */
 import { useEffect, useRef, useState, useCallback } from "react";
-import { motion, useReducedMotion, useInView, useSpring, useMotionValue, useTransform } from "framer-motion";
+import { motion, useInView, useSpring, useMotionValue, useTransform } from "framer-motion";
+import { useReducedMotionPref } from "./preference";
+
+// All primitives use useReducedMotionPref, NOT framer's useReducedMotion:
+// the latter reads only the OS flag, and Windows commonly ships with
+// animation effects disabled, which silently killed every animation here.
 
 export const EASE = [0.25, 0.1, 0.25, 1];       // the deck's editorial curve
 
@@ -29,7 +34,7 @@ export function Reveal({
   once = true,
   as = "div",
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const ref = useRef(null);
   const inView = useInView(ref, { once, margin: "-10% 0px -10% 0px" });
   const M = motion[as] ?? motion.div;
@@ -51,7 +56,7 @@ export function Reveal({
  * Stagger — children arrive in sequence rather than all at once.
  * ------------------------------------------------------------------ */
 export function Stagger({ children, gap = 0.06, className = "", delay = 0 }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-8% 0px" });
 
@@ -72,7 +77,7 @@ export function Stagger({ children, gap = 0.06, className = "", delay = 0 }) {
 }
 
 export function StaggerItem({ children, className = "", y = 16 }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   return (
     <motion.div
       className={className}
@@ -91,7 +96,7 @@ export function StaggerItem({ children, className = "", y = 16 }) {
  * Direct manipulation, so a spring is appropriate here.
  * ------------------------------------------------------------------ */
 export function Magnetic({ children, strength = 0.28, className = "", ...rest }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const ref = useRef(null);
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
@@ -124,7 +129,7 @@ export function Magnetic({ children, strength = 0.28, className = "", ...rest })
  * SplitText — per-character entrance. Characters rise into place.
  * ------------------------------------------------------------------ */
 export function SplitText({ text, className = "", delay = 0, stagger = 0.022, y = "0.5em" }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
   const chars = String(text).split("");
@@ -157,7 +162,7 @@ export function SplitText({ text, className = "", delay = 0, stagger = 0.022, y 
  * Keying by index+char keeps identity stable for unchanged characters.
  * ------------------------------------------------------------------ */
 export function FallingText({ text, className = "", charClass = "" }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const chars = String(text ?? "").split("");
 
   return (
@@ -190,7 +195,7 @@ export function FallingText({ text, className = "", charClass = "" }) {
  * CountUp — animates a number to its new value. Signals "this changed".
  * ------------------------------------------------------------------ */
 export function CountUp({ value, decimals = 0, suffix = "", prefix = "", duration = 0.9, className = "" }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const [shown, setShown] = useState(reduced ? value : 0);
   const raf = useRef(null);
   const from = useRef(0);
@@ -223,7 +228,7 @@ export function CountUp({ value, decimals = 0, suffix = "", prefix = "", duratio
  * Tilt — card leans in 3D under the cursor. Subtle: 6° maximum.
  * ------------------------------------------------------------------ */
 export function Tilt({ children, className = "", max = 6, scale = 1.012 }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const ref = useRef(null);
   const px = useMotionValue(0.5);
   const py = useMotionValue(0.5);
@@ -257,7 +262,7 @@ export function Tilt({ children, className = "", max = 6, scale = 1.012 }) {
  * ------------------------------------------------------------------ */
 export function useRipple() {
   const [ripples, setRipples] = useState([]);
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
 
   const fire = useCallback((e) => {
     if (reduced) return;
@@ -313,7 +318,7 @@ export function ScrollProgress({ className = "" }) {
  * CursorGlow — soft light that follows the pointer. Desktop only.
  * ------------------------------------------------------------------ */
 export function CursorGlow({ size = 380, color = "rgba(201,123,74,0.07)" }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const x = useMotionValue(-9999);
   const y = useMotionValue(-9999);
   const sx = useSpring(x, { stiffness: 120, damping: 22, mass: 0.6 });
@@ -344,7 +349,7 @@ export function CursorGlow({ size = 380, color = "rgba(201,123,74,0.07)" }) {
  * PageTransition — wraps a route so navigation reads as movement.
  * ------------------------------------------------------------------ */
 export function PageTransition({ children, className = "" }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   return (
     <motion.div
       className={className}
@@ -362,7 +367,7 @@ export function PageTransition({ children, className = "" }) {
  * AnimatedRing — progress ring that draws itself to a value.
  * ------------------------------------------------------------------ */
 export function AnimatedRing({ value = 0, size = 132, stroke = 7, color = "#C97B4A", track = "rgba(242,236,224,0.10)", children }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionPref();
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(1, value));
@@ -385,3 +390,5 @@ export function AnimatedRing({ value = 0, size = 132, stroke = 7, color = "#C97B
     </div>
   );
 }
+
+export { getMotionMode, setMotionMode, useReducedMotionPref, useOsReducedMotion } from "./preference";
