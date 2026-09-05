@@ -9,14 +9,15 @@
  * The distinction matters: the old hero was an illustration of the idea, this
  * one is the product doing its job before you have clicked anything.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowUpRight, Radio, MessageSquare, Sparkles, ShieldCheck, Loader2,
 } from "lucide-react";
 import Nav from "../components/Nav";
-import HandRig from "../components/HandRig";
+import SignTrail from "../components/SignTrail";
+import SignTrailHero from "../components/SignTrailHero";
 import {
   Reveal, Stagger, StaggerItem, SplitText, Magnetic, Tilt, CountUp,
   PageTransition, EASE,
@@ -24,13 +25,16 @@ import {
 import {
   Marquee, Parallax, ScrollScene, Scramble, Spotlight, ScrollSkew,
 } from "../components/motion/advanced";
+import {
+  MaskReveal, WordReveal, Counter, GradientSweep, CharHover, Shimmer,
+} from "../components/motion/text";
 import { useReducedMotionPref } from "../components/motion/preference";
 import PrivacyBadge from "../components/PrivacyBadge";
 import OnboardingModal from "../components/OnboardingModal";
 import { FEATURE_CARDS } from "../lib/mockData";
 import { ALL_WORDS, VOCAB_SIZE, pretty } from "../lib/vocabulary";
 import { fetchComparison } from "../lib/api";
-import { useSignLoop, resolveSign, SAMPLE_WORDS } from "../lib/signs";
+import { resolveSign, SAMPLE_WORDS } from "../lib/signs";
 import { useAuth } from "../lib/auth";
 
 const iconMap = { Radio, MessageSquare, Sparkles };
@@ -44,7 +48,6 @@ const HERO_WORDS = SAMPLE_WORDS;
 export default function Landing() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const reduced = useReducedMotionPref();
-  const handRef = useRef(null);
   const [stats, setStats] = useState(null);
   const { guest } = useAuth();
 
@@ -70,29 +73,17 @@ export default function Landing() {
     return () => { alive = false; };
   }, []);
 
-  const { word, source, play, pause, resume } = useSignLoop(handRef, HERO_WORDS, {
-    intervalMs: 4400,
-  });
+  const [word, setWord] = useState(null);
+  const [source, setSource] = useState(null);
+  const [pinned, setPinned] = useState(null);   // word held while hovering the ribbon
 
-  /* ---- the hand tracks the cursor when not replaying ------------ */
-  useEffect(() => {
-    const move = (e) => {
-      handRef.current?.setPointer(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        (e.clientY / window.innerHeight) * 2 - 1
-      );
-    };
-    window.addEventListener("mousemove", move, { passive: true });
-    return () => window.removeEventListener("mousemove", move);
-  }, []);
-
+  // Hovering a word in the vocabulary ribbon draws THAT sign. The full 261
+  // come from the API; the 16 bundled ones answer instantly.
   const hoverWord = async (w) => {
-    pause();
-    const ok = await resolveSign(w);
-    if (ok) play(w, true);
+    const hit = await resolveSign(w);
+    if (hit) setPinned(hit);
   };
-
-  const leaveWord = () => { handRef.current?.stopSign(); resume(); };
+  const leaveWord = () => setPinned(null);
 
   return (
     <PageTransition className="min-h-screen bg-ink text-cream overflow-x-hidden" data-testid="landing-page">
@@ -115,9 +106,25 @@ export default function Landing() {
           />
         </div>
 
-        {/* The hand — real signs, not decoration */}
-        <div className="absolute right-0 lg:right-[3%] top-1/2 -translate-y-1/2 w-full lg:w-[46%] h-[58vh] lg:h-[76vh] opacity-90 lg:opacity-100 pointer-events-none">
-          <HandRig ref={handRef} className="absolute inset-0" showCaption={false} />
+        {/* The sign, written in light — real trajectories, not decoration */}
+        <div className="absolute right-0 lg:right-[2%] top-1/2 -translate-y-1/2 w-full lg:w-[50%] h-[60vh] lg:h-[82vh] pointer-events-none">
+          {pinned ? (
+            <SignTrail
+              key={pinned.label}
+              className="absolute inset-0 w-full h-full"
+              frames={pinned.frames}
+              activeHands={pinned.activeHands}
+              lineScale={1.1}
+            />
+          ) : (
+            <SignTrailHero
+              className="absolute inset-0"
+              words={HERO_WORDS}
+              showCaption={false}
+              lineScale={1.1}
+              onWord={(w, src) => { setWord(w); setSource(src); }}
+            />
+          )}
         </div>
 
         <div className="relative max-w-[1440px] w-full mx-auto px-6 md:px-12 lg:px-24 pt-40 pb-28 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
@@ -134,28 +141,31 @@ export default function Landing() {
                 </span>
               </div>
 
-              <h1 className="font-display text-[3.5rem] md:text-[5.5rem] lg:text-[7rem] leading-[0.92] tracking-[-0.02em] text-cream mb-8">
-                <SplitText text="Every gesture," stagger={0.028} />
-                <br />
-                <span className="italic text-copper copper-glow">
-                  <SplitText text="heard." delay={0.42} stagger={0.05} />
-                </span>
-              </h1>
+              <MaskReveal
+                as="h1"
+                className="font-display text-[3.5rem] md:text-[5.5rem] lg:text-[7rem] leading-[0.92] tracking-[-0.02em] text-cream mb-8"
+                duration={0.72}
+                stagger={0.09}
+              >
+                {[
+                  <GradientSweep key="a">Every gesture,</GradientSweep>,
+                  <span key="b" className="italic text-copper copper-glow">heard.</span>,
+                ]}
+              </MaskReveal>
 
               <p className="text-lg md:text-xl text-cream/70 max-w-xl leading-relaxed mb-8">
-                A real-time <span className="text-cream">Indian Sign Language</span>{" "}
-                translator over a <span className="text-cream">{VOCAB_SIZE}-word</span>{" "}
-                vocabulary. Signers get captions and a voice. Non-signers type
-                English and watch it signed back — replayed from real recordings,
-                not an avatar.
+                <WordReveal
+                  delay={0.5}
+                  text={`A real-time Indian Sign Language translator over a ${VOCAB_SIZE}-word vocabulary. Signers get captions and a voice. Non-signers type English and watch it signed back — replayed from real recordings, not an avatar.`}
+                />
               </p>
 
               {/* what the hand is doing right now */}
               <div className="h-12 mb-8">
                 <AnimatePresence mode="wait">
-                  {word ? (
+                  {(pinned?.label || word) ? (
                     <motion.div
-                      key={word}
+                      key={pinned?.label || word}
                       initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
                       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                       exit={{ opacity: 0, y: -12, filter: "blur(6px)" }}
@@ -163,9 +173,12 @@ export default function Landing() {
                       className="flex items-baseline gap-3 flex-wrap"
                     >
                       <span className="micro-caps text-copper">now signing</span>
-                      <span className="font-display text-3xl tracking-tight">{pretty(word)}</span>
+                      <span className="font-display text-3xl tracking-tight">
+                        {pretty(pinned?.label || word)}
+                      </span>
                       <span className="text-[11px] text-cream/30">
-                        real recording · {source === "bundled" ? "bundled with the app" : "from the server"}
+                        the path a real signer's hands travelled ·{" "}
+                        {(pinned?.source || source) === "bundled" ? "bundled with the app" : "from the server"}
                       </span>
                     </motion.div>
                   ) : (
@@ -235,7 +248,7 @@ export default function Landing() {
               onMouseLeave={leaveWord}
               className="focus-ring text-cream/35 hover:text-copper transition-colors text-sm uppercase tracking-widest shrink-0"
             >
-              {pretty(w)}
+              <CharHover text={pretty(w)} lift={4} />
             </button>
           ))}
         </Marquee>
@@ -271,9 +284,9 @@ export default function Landing() {
                 <Spotlight className="border border-cream/10 rounded-sm p-6 h-full">
                   <div className="font-display text-3xl md:text-4xl tracking-tight text-cream mb-2">
                     {s.v == null ? (
-                      <span className="text-cream/25 text-2xl">—</span>
+                      <Shimmer className="h-9 w-24" />
                     ) : (
-                      <CountUp value={s.v} decimals={s.d} suffix={s.suffix} />
+                      <Counter value={s.v} decimals={s.d} suffix={s.suffix} />
                     )}
                   </div>
                   <div className="text-sm text-cream/70">{s.label}</div>

@@ -13,8 +13,7 @@ same landmark tensor the recogniser was trained on, quantised exactly as the
 sign bank quantises it, so nothing here is invented or stylised — it is a real
 signer's hand, just shipped as JS instead of fetched.
 
-Only hand landmarks are exported (the 3-D rig has no torso), which keeps the
-file small: 20 frames x 42 integers per hand.
+Only hand landmarks are exported, which keeps the file small.
 
     cd ml && python scripts/export_sign_samples.py
 """
@@ -65,6 +64,9 @@ def main() -> None:
             "frames": frames,
             "hands": entry.get("hands"),
             "takes": entry.get("takes"),
+            # Which hands carry the sign, from trim_sign_bank.py. The renderer
+            # crops to these so a hand resting at the hip cannot shrink the view.
+            "activeHands": entry.get("activeHands") or ["l", "r"],
         }
 
     if missing:
@@ -87,9 +89,13 @@ def main() -> None:
         "// from the INCLUDE dataset, quantised the same way the sign bank\n"
         "// quantises them — the same data the recogniser was trained on.\n"
         "//\n"
-        "// They are bundled so the 3-D hand can perform real signs even when\n"
+        "// They are bundled so the hero renderers can draw real signs even when\n"
         "// the backend is not running. The full 261-word vocabulary still\n"
         "// comes from the API; this is a subset for the hero elements.\n"
+        "//\n"
+        "// Frames are already trimmed to the signing window by\n"
+        "// ml/scripts/trim_sign_bank.py, and activeHands says which hands\n"
+        "// carry the sign so a renderer can crop to the working hand.\n"
         "//\n"
         f"// {len(out)} words, {sum(len(v['frames']) for v in out.values())} frames total.\n"
         "// Re-run the script after retraining.\n\n"
@@ -100,7 +106,8 @@ def main() -> None:
         "/** Frames for one bundled word, or null. Shape matches /api/text-to-sign. */\n"
         "export function sampleSign(word) {\n"
         "  const e = DATA.words[word];\n"
-        "  return e ? { frames: e.frames, hands: e.hands, takes: e.takes } : null;\n"
+        "  return e ? { frames: e.frames, hands: e.hands, takes: e.takes,\n"
+        "               activeHands: e.activeHands } : null;\n"
         "}\n",
         encoding="utf-8",
     )

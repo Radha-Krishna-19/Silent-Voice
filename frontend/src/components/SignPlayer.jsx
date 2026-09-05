@@ -36,6 +36,11 @@ export default function SignPlayer({
   loop = true,
   onWordChange,
   className = "",
+  // "body"  — fit the whole signer (context: where the sign sits in space)
+  // "hands" — fit the HANDS ONLY. INCLUDE was filmed wide, so fitting the body
+  //           renders the hands at roughly 8% of the frame and the handshape is
+  //           unreadable. Practice needs this one.
+  focus = "body",
 }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
@@ -56,9 +61,15 @@ export default function SignPlayer({
   const fit = useMemo(() => {
     const xs = [];
     const ys = [];
-    playable.forEach((it) =>
+    // In hands mode the pose block is excluded from the fit entirely, and only
+    // the hands that carry the sign are measured — a hand resting at the hip
+    // would otherwise stretch the box and shrink the signing area to nothing.
+    playable.forEach((it) => {
+      const keys = focus === "hands"
+        ? (it.activeHands?.length ? it.activeHands : ["l", "r"])
+        : ["l", "r", "p"];
       it.frames.forEach((f) => {
-        ["l", "r", "p"].forEach((k) => {
+        keys.forEach((k) => {
           const v = f[k];
           if (!v) return;
           for (let i = 0; i < v.length; i += 2) {
@@ -66,8 +77,8 @@ export default function SignPlayer({
             ys.push(v[i + 1]);
           }
         });
-      })
-    );
+      });
+    });
     if (xs.length < 8) return null;
     xs.sort((a, b) => a - b);
     ys.sort((a, b) => a - b);
@@ -75,16 +86,23 @@ export default function SignPlayer({
     // and shrink the signing area to nothing. Clipping the extremes keeps the
     // frame on the part of the body that actually carries the sign.
     const pct = (arr, p) => arr[Math.min(arr.length - 1, Math.max(0, Math.floor(arr.length * p)))];
-    let x0 = pct(xs, 0.01);
-    let x1 = pct(xs, 0.99);
-    let y0 = pct(ys, 0.01);
-    let y1 = pct(ys, 0.90);
+    // Hands mode uses the true extremes: there is no resting limb left to clip
+    // away, and losing a fingertip to a percentile would be worse than a
+    // slightly looser frame.
+    const lo = focus === "hands" ? 0 : 0.01;
+    const hiX = focus === "hands" ? 1 : 0.99;
+    const hiY = focus === "hands" ? 1 : 0.90;
+    let x0 = pct(xs, lo);
+    let x1 = pct(xs, hiX);
+    let y0 = pct(ys, lo);
+    let y1 = pct(ys, hiY);
     if (x1 - x0 < 1 || y1 - y0 < 1) return null;
-    const padX = (x1 - x0) * 0.22;
-    const padY = (y1 - y0) * 0.12;
+    const pad = focus === "hands" ? 0.16 : 0.22;
+    const padX = (x1 - x0) * pad;
+    const padY = (y1 - y0) * (focus === "hands" ? pad : 0.12);
     return { x0: x0 - padX, x1: x1 + padX, y0: y0 - padY, y1: y1 + padY };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [items, focus]);
 
   const draw = useCallback(
     (ctx, w, h, frame) => {
@@ -114,7 +132,7 @@ export default function SignPlayer({
         return out;
       };
 
-      const body = pts(frame.p);
+      const body = focus === "hands" ? null : pts(frame.p);
       if (body) {
         ctx.strokeStyle = "rgba(242,236,224,0.30)";
         ctx.lineWidth = Math.max(2, unit * 0.010);
@@ -161,7 +179,7 @@ export default function SignPlayer({
         ctx.shadowBlur = 0;
       });
     },
-    [quant, fit]
+    [quant, fit, focus]
   );
 
   useEffect(() => {

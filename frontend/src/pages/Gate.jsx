@@ -1,30 +1,33 @@
 /**
  * The entry page. Sign in, create an account, or continue as a guest.
  *
- * The 3-D hand is wired to the form rather than decorating it: it types along
- * with you (correct finger per key), sweeps when you delete, looks away while
- * you enter a password, points at the field you focus, shakes when the server
- * rejects you, and waves you in when it accepts. Between all that it performs
- * real signs from bundled landmark recordings, so it is doing the thing the
- * product does before you have clicked anything — and it keeps doing it with
- * the backend switched off, because those recordings ship in the bundle.
+ * The visual is a sign being written in light — the actual path a signer's
+ * fingertips travelled, drawn on over time, one word after another. It comes
+ * from landmark recordings bundled into the app, so it paints instantly and
+ * keeps working with the backend switched off.
+ *
+ * The earlier version of this page rendered a 3-D hand skeleton. It was
+ * replaced because monocular landmark data has no depth, so a reconstructed
+ * hand always reads as slightly broken — whereas a trajectory has no such
+ * failure mode: it is simply where the hand went, which is exactly what was
+ * measured.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Loader2, ShieldCheck, User, KeyRound, AlertCircle, Sparkles,
 } from "lucide-react";
-import HandRig from "../components/HandRig";
+import SignTrailHero from "../components/SignTrailHero";
 import ConstellationField from "../components/ConstellationField";
 import { Reveal, Stagger, StaggerItem, Magnetic, useRipple, EASE } from "../components/motion";
 import { FallingInput, Scramble, Typewriter } from "../components/motion/advanced";
+import { MaskReveal } from "../components/motion/text";
 import { login, register, continueAsGuest, getToken } from "../lib/auth";
-import { useSignLoop, SAMPLE_WORDS } from "../lib/signs";
+import { SAMPLE_WORDS } from "../lib/signs";
 
 export default function Gate() {
   const nav = useNavigate();
-  const handRef = useRef(null);
   const [mode, setMode] = useState("signin");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -35,71 +38,36 @@ export default function Gate() {
 
   const isSignup = mode === "signup";
 
-  // Real recordings, bundled — this cannot fail because the server is down.
-  const { word, source, pause, resume } = useSignLoop(handRef, SAMPLE_WORDS, {
-    intervalMs: 4600,
-  });
+  const [word, setWord] = useState(null);
+  const [source, setSource] = useState(null);
+  const [shake, setShake] = useState(0);
 
   useEffect(() => {
     if (getToken()) nav("/home", { replace: true });
   }, [nav]);
 
-  useEffect(() => {
-    const move = (e) => {
-      handRef.current?.setPointer(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        (e.clientY / window.innerHeight) * 2 - 1
-      );
-    };
-    window.addEventListener("mousemove", move, { passive: true });
-    return () => window.removeEventListener("mousemove", move);
-  }, []);
-
-  /* ---- keystrokes drive the fingers ----------------------------- */
-  const onKeyDown = (e) => {
-    const h = handRef.current;
-    if (!h) return;
-    pause();
-    h.stopSign();
-    if (e.key === "Backspace" || e.key === "Delete") h.sweep();
-    else if (e.key.length === 1) h.press(e.key);
-  };
-
-  const focusField = (which) => () => {
-    const h = handRef.current;
-    if (!h) return;
-    pause();
-    h.stopSign();
-    if (which === "password") h.shy();
-    else { h.release(); h.point(0.2, which === "username" ? -0.2 : 0.1); }
-  };
-
-  const blurField = () => {
-    handRef.current?.release();
-    resume();
-  };
+  const onKeyDown = () => {};
+  const focusField = () => () => {};
+  const blurField = () => {};
 
   const submit = async (e) => {
     e.preventDefault();
     if (busy) return;
     setError(null);
     setBusy(true);
-    handRef.current?.release();
-    try {
+      try {
       if (isSignup) await register(username.trim(), password, displayName.trim() || username.trim());
       else await login(username.trim(), password);
-      handRef.current?.wave();
       setTimeout(() => nav("/home"), 620);
     } catch (err) {
       setError(err.message);
-      handRef.current?.shake();
+      setShake((n) => n + 1);        // the form recoils, not a mascot
       setBusy(false);
     }
   };
 
   const asGuest = () => {
     continueAsGuest();
-    handRef.current?.thumbsUp();
     setTimeout(() => nav("/home"), 400);
   };
 
@@ -121,7 +89,12 @@ export default function Gate() {
         {/* concentric rings, slowly counter-rotating */}
         <RingHalo />
 
-        <HandRig ref={handRef} className="absolute inset-0" showCaption={false} />
+        <SignTrailHero
+          className="absolute inset-0"
+          showCaption={false}
+          lineScale={1.05}
+          onWord={(w, src) => { setWord(w); setSource(src); }}
+        />
 
         {/* floor glow under the hand */}
         <div
@@ -160,7 +133,8 @@ export default function Gate() {
                   </span>
                 </div>
                 <div className="text-[10px] uppercase tracking-[0.2em] text-cream/30 mt-1.5">
-                  real recording · {source === "bundled" ? "bundled with the app" : "from the server"}
+                  the path a real signer's hands travelled ·{" "}
+                  {source === "bundled" ? "bundled with the app" : "from the server"}
                 </div>
               </motion.div>
             ) : (
@@ -171,7 +145,8 @@ export default function Gate() {
                 exit={{ opacity: 0 }}
                 className="text-xs text-cream/30 leading-relaxed max-w-sm"
               >
-                21 landmarks — the same topology the recogniser reads.
+                Drawn from the landmarks the recogniser reads. No avatar, no
+                animation — just where the hands went.
               </motion.div>
             )}
           </AnimatePresence>
@@ -189,19 +164,26 @@ export default function Gate() {
           {/* animated gradient hairline around the card */}
           <GradientFrame />
 
-          <div className="relative px-1">
+          <motion.div
+            className="relative px-1"
+            key={`form-${shake}`}
+            animate={shake ? { x: [0, -9, 8, -6, 4, 0] } : {}}
+            transition={{ duration: 0.42, ease: "easeInOut" }}
+          >
             <Reveal>
               <div className="flex items-center gap-2 micro-caps text-cream/40 mb-3">
                 <Sparkles className="w-3 h-3 text-copper" strokeWidth={1.5} />
                 <Scramble text="Welcome" speed={26} />
               </div>
-              <h1 className="font-display text-4xl md:text-5xl tracking-tight leading-[1.04] mb-4">
-                {isSignup ? (
-                  <>Make it <span className="italic text-copper copper-glow">yours.</span></>
-                ) : (
-                  <>Sign in, or <span className="italic text-copper copper-glow">don't.</span></>
-                )}
-              </h1>
+              <MaskReveal
+                as="h1"
+                className="font-display text-4xl md:text-5xl tracking-tight leading-[1.04] mb-4"
+                duration={0.55}
+              >
+                {isSignup
+                  ? [<>Make it <span className="italic text-copper copper-glow">yours.</span></>]
+                  : [<>Sign in, or <span className="italic text-copper copper-glow">don't.</span></>]}
+              </MaskReveal>
               <p className="text-cream/45 text-sm leading-relaxed mb-9 min-h-[2.6rem]">
                 Translate{" "}
                 <Typewriter
@@ -365,7 +347,6 @@ export default function Gate() {
                 <motion.button
                   onClick={asGuest}
                   data-testid="gate-guest"
-                  onMouseEnter={() => handRef.current?.point(-0.3, 0.4)}
                   whileHover={{ x: 3 }}
                   transition={{ type: "spring", stiffness: 400, damping: 26 }}
                   className="focus-ring group w-full text-left border border-cream/12 hover:border-copper/40 rounded-sm px-4 py-3.5 transition-colors"
@@ -394,7 +375,7 @@ export default function Gate() {
                 </div>
               </div>
             </Reveal>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </motion.div>

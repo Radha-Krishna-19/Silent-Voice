@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Circle, RotateCcw, ChevronRight, AlertTriangle, Video } from "lucide-react";
 import Nav from "../components/Nav";
 import SignPlayer from "../components/SignPlayer";
+import SignTrail from "../components/SignTrail";
 import LandmarkOverlay from "../components/LandmarkOverlay";
 import useLiveCapture from "../hooks/useLiveCapture";
 import { textToSign, scorePractice, fetchPracticeWords } from "../lib/api";
@@ -21,6 +22,10 @@ export default function Practice() {
   const [result, setResult] = useState(null);
   const [phase, setPhase] = useState("idle");   // idle | recording | scoring | done
   const [error, setError] = useState(null);
+  // Hands is the default: fitting the whole signer renders the hands at ~8% of
+  // the frame, which is why the handshape was unreadable.
+  const [refView, setRefView] = useState("hands");
+
   const [backendWords, setBackendWords] = useState(null);
   const settings = useRef(loadSettings());
   const holdTimer = useRef(null);
@@ -82,6 +87,7 @@ export default function Practice() {
   };
 
   const scoreable = backendWords?.available !== false;
+  const refItem = reference?.items?.find((i) => i.available && i.frames?.length);
 
   return (
     <div className="min-h-screen bg-ink text-cream" data-testid="practice-page">
@@ -140,10 +146,49 @@ export default function Practice() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             {/* REFERENCE */}
             <div className="lg:col-span-4">
-              <div className="micro-caps mb-2">Reference</div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="micro-caps">Reference</span>
+                <div className="flex items-center gap-1 p-0.5 border border-cream/10 rounded-sm">
+                  {[["hands", "Hands"], ["body", "Whole signer"], ["trail", "Path"]].map(([v, label]) => (
+                    <button
+                      key={v}
+                      onClick={() => setRefView(v)}
+                      data-testid={`practice-refview-${v}`}
+                      className={`focus-ring relative px-2 py-1 rounded-sm text-[9px] uppercase tracking-widest transition-colors ${
+                        refView === v ? "text-ink" : "text-cream/50 hover:text-cream"
+                      }`}
+                    >
+                      {refView === v && (
+                        <motion.span
+                          layoutId="practice-refview-pill"
+                          className="absolute inset-0 bg-copper rounded-sm"
+                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        />
+                      )}
+                      <span className="relative z-10">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="relative rounded-sm overflow-hidden bg-black aspect-[3/4] border border-cream/10">
                 {reference?.items?.some((i) => i.available) ? (
-                  <SignPlayer items={reference.items} fps={reference.fps} quant={reference.quant} playing />
+                  refView === "trail" ? (
+                    <SignTrail
+                      key={word}
+                      className="absolute inset-0 w-full h-full"
+                      frames={refItem?.frames}
+                      activeHands={refItem?.activeHands}
+                      lineScale={0.8}
+                    />
+                  ) : (
+                    <SignPlayer
+                      items={reference.items}
+                      fps={reference.fps}
+                      quant={reference.quant}
+                      playing
+                      focus={refView}
+                    />
+                  )
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center text-cream/25 text-sm">
                     Loading reference…

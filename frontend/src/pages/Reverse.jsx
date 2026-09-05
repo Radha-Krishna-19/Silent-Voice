@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Send, Pause, Play, AlertTriangle, Loader2, Box, User } from "lucide-react";
 import Nav from "../components/Nav";
 import SignPlayer from "../components/SignPlayer";
-import HandRig from "../components/HandRig";
+import SignTrail from "../components/SignTrail";
 import { textToSign, fetchVocabulary } from "../lib/api";
 import { Reveal, FallingText, PageTransition, EASE } from "../components/motion";
 import { FallingInput, Scramble } from "../components/motion/advanced";
@@ -25,9 +25,8 @@ export default function Reverse() {
   const [current, setCurrent] = useState(0);
   const [vocab, setVocab] = useState(null);
   const [listening, setListening] = useState(false);
-  const [view, setView] = useState("signer");        // signer (2-D) | hand (3-D)
+  const [view, setView] = useState("signer");        // signer | trail
   const recogRef = useRef(null);
-  const handRef = useRef(null);
   const [params] = useSearchParams();
 
   useEffect(() => {
@@ -42,27 +41,9 @@ export default function Reverse() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
-  // Keystrokes drive the 3-D hand: correct finger per key, sweep on delete.
   const onKeyDown = (e) => {
-    const h = handRef.current;
-    if (e.key === "Enter") { translate(); return; }
-    if (!h) return;
-    if (e.key === "Backspace" || e.key === "Delete") h.sweep();
-    else if (e.key.length === 1) h.press(e.key);
+    if (e.key === "Enter") translate();
   };
-
-  // Feed the 3-D view the frames for whichever word the player is on, so both
-  // views stay on the same sign.
-  useEffect(() => {
-    if (view !== "hand") return;
-    const item = seq?.items?.filter((i) => i.available)[current];
-    if (item?.frames?.length) {
-      handRef.current?.playSign(item.frames, {
-        fps: seq.fps, quant: seq.quant, label: item.label, loop: true,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, current, seq]);
 
   const translate = async (value) => {
     const t = (value ?? text).trim();
@@ -200,7 +181,13 @@ export default function Reverse() {
                     onWordChange={(_, idx) => setCurrent(idx)}
                   />
                 ) : (
-                  <HandRig ref={handRef} className="absolute inset-0" showCaption={false} />
+                  <SignTrail
+                    key={playable[current]?.label}
+                    className="absolute inset-0 w-full h-full"
+                    frames={playable[current]?.frames}
+                    activeHands={playable[current]?.activeHands}
+                    lineScale={0.9}
+                  />
                 )
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-cream/30 text-sm">
@@ -212,7 +199,7 @@ export default function Reverse() {
               <div className="absolute top-4 left-4 flex items-center gap-1 p-1 glass-panel rounded-sm">
                 {[
                   ["signer", "Signer", User],
-                  ["hand", "Hand 3D", Box],
+                  ["trail", "Trail", Box],
                 ].map(([v, label, Icon]) => (
                   <button
                     key={v}
@@ -235,11 +222,10 @@ export default function Reverse() {
                 ))}
               </div>
 
-              {view === "hand" && (
-                <div className="absolute top-16 left-4 max-w-[15rem] text-[10px] text-cream/35 leading-relaxed">
-                  The dataset is monocular video, so these landmarks have no
-                  measured depth. The hand is a real 2-D constellation shown in
-                  3-D space, not a depth reconstruction.
+              {view === "trail" && (
+                <div className="absolute top-16 left-4 max-w-[16rem] text-[10px] text-cream/35 leading-relaxed">
+                  The path the signer's fingertips travelled, drawn over time.
+                  Copper marks the start of the movement, cyan the end.
                 </div>
               )}
 

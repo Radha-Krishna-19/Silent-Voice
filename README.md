@@ -29,11 +29,11 @@ both have real limits, and this README states them plainly.
 
 | Page | Status | What it does |
 |---|---|---|
-| `/` | **Real** | Sign in, create an account, or continue as a guest. A 3-D hand types along with you and performs real signs while idle. |
-| `/home` | **Real** | The hand performs signs replayed from the trained landmark data; measured metrics are pulled from the backend, not hardcoded. |
+| `/` | **Real** | Sign in, create an account, or continue as a guest. A sign is written in light beside the form. |
+| `/home` | **Real** | Signs drawn as light trails from the trained landmark data; measured metrics pulled from the backend, not hardcoded. |
 | `/live` | **Real** | Webcam → MediaPipe → BiLSTM/CNN → predicted sign. Model switchable per request. |
 | `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
-| `/reverse` | **Real** | English → ISL gloss → replays actual recorded signer skeletons. Switch between the 2-D signer and the 3-D hand. |
+| `/reverse` | **Real** | English → ISL gloss → replays actual recorded landmarks. Switch between the signer and the motion trail. |
 | `/practice` | **Real** | Records your attempt, scores it against the reference recording — hand shape, placement and movement measured separately. |
 | `/transcripts` | **Real** | Sessions from Live. Server-side when signed in; not stored at all as a guest. |
 | `/rubric` | **Real** | The Review 2 rubric, scored against evidence the project can actually point at. |
@@ -44,6 +44,43 @@ Nothing is silently fake. Every limitation is stated on the screen it affects.
 
 **Press `Ctrl+K` anywhere** for the command palette: jump between pages, or search
 all 261 trained signs and watch one play.
+
+### Why signs are drawn as light trails, not a skeleton
+
+INCLUDE clips begin and end with the signer's arms at rest. Measured on the
+bank: for `hello` the wrist sits at y=760 hanging, rises to y=325 in signing
+space, and returns to y=762. **Roughly the first and last third of every clip is
+the arm travelling to and from rest, not the sign.**
+
+That one fact caused three separate visible problems: the player auto-fitted its
+camera to the whole rest→sign→rest sweep, so hands rendered at about 8% of the
+frame and the handshape was unreadable; most of the replayed "motion" was an arm
+flapping; and any rendering was dominated by one huge vertical streak.
+
+`ml/scripts/trim_sign_bank.py` fixes it at the source. It finds the window that
+maximises **wrist-relative fingertip movement** — during the arm-raise the
+handshape is frozen so this is near zero, during the sign it spikes — weighted by
+wrist height. 5,220 frames became 2,349, and each word records which hands
+actually carry it so viewers can crop to the working hand.
+
+The renderer then draws only the **paths** the fingertips travel, like a
+long-exposure photograph of someone signing with lights on their fingers. A
+skeleton has joints and joints can look anatomically wrong; monocular landmarks
+have no depth, so a reconstructed hand always reads as slightly broken. A
+trajectory has no such failure mode — it is simply where the hand went, which is
+exactly what the data measures. Copper marks the start of the movement, cyan the
+end.
+
+Doing this let **three.js be removed entirely** (~600 KB minified). The whole
+effect is canvas 2-D.
+
+### Which hands to show the camera
+
+**Both, always.** Measured across all 261 signs: 150 are genuinely two-handed,
+111 are effectively one-handed. But the model consumes a fixed 225-feature
+vector that always contains both hand blocks, and a missing hand is fed as
+zeros. In training the resting hand was usually still detected, so hiding it
+gives the model a zero-block pattern it rarely saw.
 
 ### Accounts vs guest — the difference is real
 
