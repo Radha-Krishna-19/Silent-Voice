@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, RotateCcw, HardDrive } from "lucide-react";
 import Nav from "../components/Nav";
 import { Reveal, Stagger, StaggerItem, PageTransition, Magnetic, EASE } from "../components/motion";
-import { loadSettings, saveSettings, resetSettings, storageAvailable, loadSessions } from "../lib/storage";
+import { loadSettings, saveSettings, resetSettings, storageAvailable } from "../lib/storage";
 import { getMotionMode, setMotionMode, useOsReducedMotion } from "../components/motion/preference";
 import { VOCAB_SIZE } from "../lib/vocabulary";
 
@@ -14,7 +14,6 @@ export default function Settings() {
   const canStore = storageAvailable();
   const osReduced = useOsReducedMotion();
   const [motionMode, setMotionModeState] = useState(getMotionMode);
-  const sessionCount = loadSessions().length;
 
   useEffect(() => {
     const load = () => setVoices(window.speechSynthesis?.getVoices?.() ?? []);
@@ -61,8 +60,9 @@ export default function Settings() {
               <HardDrive className="w-3.5 h-3.5 shrink-0" strokeWidth={1.5} />
               {canStore ? (
                 <span>
-                  Saved in this browser only — there is no account system. {sessionCount} session
-                  {sessionCount === 1 ? "" : "s"} stored.
+                  Preferences are saved in this browser and apply whether or not you
+                  are signed in. Transcripts are separate — signed in they go to the
+                  server, as a guest they are not saved at all.
                 </span>
               ) : (
                 <span className="text-copper">Local storage unavailable — changes will not persist.</span>

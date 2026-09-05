@@ -1,19 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, FileText, FileCode2, Trash2, Inbox } from "lucide-react";
+import {
+  ChevronDown, FileText, FileCode2, Trash2, Inbox, Database, CloudOff, HardDrive,
+} from "lucide-react";
 import Nav from "../components/Nav";
 import { Reveal, Stagger, StaggerItem, CountUp, Magnetic, useRipple, PageTransition, EASE } from "../components/motion";
-import {
-  loadSessions, deleteSession, clearSessions, sessionToTxt, sessionToSrt,
-  download, fmtDuration, storageAvailable,
-} from "../lib/storage";
+import { Scramble } from "../components/motion/advanced";
+import { sessionToTxt, sessionToSrt, download, fmtDuration } from "../lib/storage";
+import { listSessions, removeSession, clearAllSessions, subscribe } from "../lib/sessions";
+import { useAuth } from "../lib/auth";
 
 export default function Transcripts() {
   const [sessions, setSessions] = useState([]);
   const [open, setOpen] = useState(null);
-  const canStore = useMemo(storageAvailable, []);
+  const [state, setState] = useState({ persistent: false, offline: false, loaded: false });
+  const { user } = useAuth();
 
-  useEffect(() => { setSessions(loadSessions()); }, []);
+  const refresh = useCallback(async () => {
+    const r = await listSessions();
+    setSessions(r.sessions);
+    setState({ persistent: r.persistent, offline: !!r.offline, loaded: true });
+  }, []);
+
+  useEffect(() => { refresh(); return subscribe(refresh); }, [refresh, user]);
 
   const totals = useMemo(() => {
     const signs = sessions.reduce((s, x) => s + x.signs, 0);
@@ -30,21 +40,58 @@ export default function Transcripts() {
       <PageTransition>
         <main className="pt-28 pb-20 px-6 md:px-12 lg:px-24 max-w-[1200px] mx-auto">
           <Reveal>
-            <div className="micro-caps mb-3">Session history</div>
+            <div className="micro-caps mb-3"><Scramble text="Session history" /></div>
             <h1 className="font-display text-4xl md:text-6xl tracking-tight mb-4">Transcripts</h1>
-            <p className="text-cream/60 max-w-2xl leading-relaxed mb-10">
-              Every session you record on <span className="text-cream">Live</span> is saved here, in this
-              browser. Nothing is uploaded and there is no account — clearing your browser data clears these.
+            <p className="text-cream/60 max-w-2xl leading-relaxed mb-8">
+              Every session you record on <span className="text-cream">Live</span> lands here.
+              {state.persistent ? (
+                <> Signed in as <span className="text-cream">{user?.displayName}</span>, so these are rows
+                in a database on this machine — clearing your browser will not touch them.</>
+              ) : (
+                <> You are a guest, so these live in the page only and disappear when you close the tab.</>
+              )}
             </p>
           </Reveal>
 
-          {!canStore && (
-            <Reveal>
-              <div className="mb-8 rounded-sm border border-copper/40 bg-copper/[0.06] px-4 py-3 text-sm text-cream/75">
-                Local storage is unavailable (private browsing?), so sessions cannot be saved.
-              </div>
-            </Reveal>
-          )}
+          <Reveal delay={0.05}>
+            <div
+              className={`mb-10 flex items-start gap-3 rounded-sm border px-4 py-3 text-xs leading-relaxed ${
+                state.offline
+                  ? "border-copper/40 bg-copper/[0.06] text-cream/75"
+                  : state.persistent
+                    ? "border-cyan/25 text-cream/55"
+                    : "border-cream/12 text-cream/50"
+              }`}
+              data-testid="transcripts-storage-banner"
+            >
+              {state.offline ? (
+                <>
+                  <CloudOff className="w-4 h-4 shrink-0 mt-px text-copper" strokeWidth={1.5} />
+                  <span>
+                    Signed in, but the server did not answer. Your saved sessions are
+                    still on disk — this list is empty because it could not be read.
+                    Start the backend with <code className="font-mono">python server.py</code>.
+                  </span>
+                </>
+              ) : state.persistent ? (
+                <>
+                  <Database className="w-4 h-4 shrink-0 mt-px text-cyan" strokeWidth={1.5} />
+                  <span>Stored server-side in <code className="font-mono">backend/data/silentvoice.db</code>, owned by your account.</span>
+                </>
+              ) : (
+                <>
+                  <HardDrive className="w-4 h-4 shrink-0 mt-px" strokeWidth={1.5} />
+                  <span>
+                    Nothing is being written — not to a server, not to this browser.{" "}
+                    <Link to="/" className="text-copper hover:text-cream underline underline-offset-2">
+                      Create an account
+                    </Link>{" "}
+                    to keep sessions.
+                  </span>
+                </>
+              )}
+            </div>
+          </Reveal>
 
           {sessions.length > 0 && (
             <Stagger className="grid grid-cols-3 gap-4 mb-10" gap={0.08}>
@@ -93,7 +140,7 @@ export default function Transcripts() {
                       index={i}
                       open={open === s.id}
                       onToggle={() => setOpen(open === s.id ? null : s.id)}
-                      onDelete={() => setSessions(deleteSession(s.id))}
+                      onDelete={async () => { await removeSession(s.id); refresh(); }}
                     />
                   ))}
                 </AnimatePresence>
@@ -101,7 +148,12 @@ export default function Transcripts() {
 
               <div className="mt-8 flex justify-end">
                 <button
-                  onClick={() => { if (window.confirm("Delete all saved sessions?")) setSessions(clearSessions()); }}
+                  onClick={async () => {
+                    if (window.confirm("Delete all saved sessions?")) {
+                      await clearAllSessions();
+                      refresh();
+                    }
+                  }}
                   className="focus-ring text-xs uppercase tracking-widest text-cream/40 hover:text-copper transition-colors"
                 >
                   Clear all sessions

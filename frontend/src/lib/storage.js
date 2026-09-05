@@ -1,19 +1,20 @@
 /**
  * Local persistence for sessions and preferences.
  *
- * There is no account system and no database, so "your data" means "this
- * browser". That is a real limitation, not a feature — but it does mean the
- * Transcripts page shows sessions you actually recorded rather than invented
- * ones, and Settings survive a reload.
+ * This file handles SETTINGS and the export/formatting helpers only.
+ *
+ * Session persistence moved to lib/sessions.js when accounts arrived, because
+ * where a session goes now depends on who you are: a signed-in user gets a row
+ * in the server's database, a guest gets nothing at all. Settings stay here —
+ * they are per-browser preferences, not user data, and should survive a reload
+ * whether or not you are signed in.
  *
  * Everything is wrapped in try/catch: localStorage throws in private-browsing
  * modes and when the quota is exceeded, and a translator should not white-screen
  * because it could not save a preference.
  */
 
-const SESSIONS_KEY = "silentvoice.sessions.v1";
 const SETTINGS_KEY = "silentvoice.settings.v1";
-const MAX_SESSIONS = 50;
 
 function read(key, fallback) {
   try {
@@ -33,51 +34,9 @@ function write(key, value) {
   }
 }
 
-/* ----------------------------- sessions ----------------------------- */
-
-export function loadSessions() {
-  const s = read(SESSIONS_KEY, []);
-  return Array.isArray(s) ? s : [];
-}
-
-/**
- * Persist a finished /live session.
- * @param {{entries: Array, durationSec: number, model: string}} session
- */
-export function saveSession(session) {
-  if (!session?.entries?.length) return null;   // never store empty sessions
-  const entries = session.entries;
-  const avg = entries.reduce((s, e) => s + (e.confidence ?? 0), 0) / entries.length;
-
-  const record = {
-    id: `s-${Date.now()}`,
-    startedAt: session.startedAt ?? new Date().toISOString(),
-    durationSec: Math.round(session.durationSec ?? 0),
-    model: session.model ?? "bilstm",
-    signs: entries.length,
-    avgConfidence: Number(avg.toFixed(4)),
-    entries: entries.map((e) => ({
-      ts: e.ts,
-      text: e.text,
-      conf: Number((e.confidence ?? 0).toFixed(4)),
-    })),
-  };
-
-  const all = [record, ...loadSessions()].slice(0, MAX_SESSIONS);
-  write(SESSIONS_KEY, all);
-  return record;
-}
-
-export function deleteSession(id) {
-  const all = loadSessions().filter((s) => s.id !== id);
-  write(SESSIONS_KEY, all);
-  return all;
-}
-
-export function clearSessions() {
-  write(SESSIONS_KEY, []);
-  return [];
-}
+/* --------------------- session formatting & export -------------------- */
+/* Storing sessions lives in lib/sessions.js — see the note above. What is
+   left here is turning a session into a file, which is identity-agnostic. */
 
 /** Plain-text export of one session. */
 export function sessionToTxt(s) {

@@ -81,13 +81,26 @@ Ok "torch, mediapipe, cv2, fastapi, sklearn all import"
 # ------------------------------------------------------------ node
 Step "Frontend packages"
 try { $nv = node --version } catch { Die "Node.js not found. Install 18+ from nodejs.org" }
-if (-not (Test-Path (Join-Path $root "frontend\node_modules\react"))) {
-    Warn "installing (~1400 packages, a few minutes)"
-    Push-Location (Join-Path $root "frontend")
+
+# Reinstall when package.json changes, not just when node_modules is absent.
+# Checking only for node_modules\react meant that adding a dependency (three,
+# for the 3-D hand) left everyone with a stale tree and a runtime
+# "Cannot find module" that looked like a code bug.
+$fe        = Join-Path $root "frontend"
+$pkgPath   = Join-Path $fe "package.json"
+$stampPath = Join-Path $fe "node_modules\.silentvoice-install-stamp"
+$pkgHash   = (Get-FileHash $pkgPath -Algorithm SHA256).Hash
+$stamp     = if (Test-Path $stampPath) { (Get-Content $stampPath -Raw).Trim() } else { "" }
+
+if (-not (Test-Path (Join-Path $fe "node_modules\react")) -or $stamp -ne $pkgHash) {
+    if ($stamp -and $stamp -ne $pkgHash) { Warn "package.json changed - updating packages" }
+    else { Warn "installing (~1400 packages, a few minutes)" }
+    Push-Location $fe
     npm install --legacy-peer-deps --no-audit --no-fund
     $rc = $LASTEXITCODE
     Pop-Location
     if ($rc -ne 0) { Die "npm install failed" }
+    Set-Content -Path $stampPath -Value $pkgHash -NoNewline
 }
 Ok "node $nv, packages present"
 
@@ -166,8 +179,12 @@ if ($ready) {
     Write-Host " Frontend is still compiling - open http://localhost:3000 shortly." -ForegroundColor Yellow
 }
 
-Write-Host "  /live       webcam -> live sign recognition"    -ForegroundColor Gray
+Write-Host "  /           sign in, or continue as a guest"    -ForegroundColor Gray
+Write-Host "  /home       the 3-D hand performing real signs"  -ForegroundColor Gray
+Write-Host "  /live       webcam -> live sign recognition"     -ForegroundColor Gray
 Write-Host "  /reverse    English -> replayed signer skeleton" -ForegroundColor Gray
 Write-Host "  /practice   record an attempt, get scored"       -ForegroundColor Gray
 Write-Host "  /research   BiLSTM vs 1D CNN, measured"          -ForegroundColor Gray
+Write-Host "  /rubric     Review 2 rubric, scored honestly"    -ForegroundColor Gray
+Write-Host "`n  Ctrl+K anywhere opens the command palette."    -ForegroundColor Gray
 Write-Host "`n  Stop everything with:  .\run.ps1 -Stop" -ForegroundColor Gray

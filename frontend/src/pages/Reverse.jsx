@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Send, Pause, Play, AlertTriangle, Loader2 } from "lucide-react";
+import { Mic, Send, Pause, Play, AlertTriangle, Loader2, Box, User } from "lucide-react";
 import Nav from "../components/Nav";
 import SignPlayer from "../components/SignPlayer";
+import HandRig from "../components/HandRig";
 import { textToSign, fetchVocabulary } from "../lib/api";
-import { Reveal, Stagger, StaggerItem, FallingText, Magnetic, PageTransition, useRipple, EASE } from "../components/motion";
+import { Reveal, FallingText, PageTransition, EASE } from "../components/motion";
+import { FallingInput, Scramble } from "../components/motion/advanced";
 
 const EXAMPLES = [
   "Hello, how are you today?",
@@ -22,11 +25,44 @@ export default function Reverse() {
   const [current, setCurrent] = useState(0);
   const [vocab, setVocab] = useState(null);
   const [listening, setListening] = useState(false);
+  const [view, setView] = useState("signer");        // signer (2-D) | hand (3-D)
   const recogRef = useRef(null);
+  const handRef = useRef(null);
+  const [params] = useSearchParams();
 
   useEffect(() => {
     fetchVocabulary().then((v) => setVocab(v.count)).catch(() => setVocab(null));
   }, []);
+
+  // The command palette links here with ?q=<word>, so searching for a sign and
+  // pressing enter lands on it already translated.
+  useEffect(() => {
+    const q = params.get("q");
+    if (q) { setText(q); translate(q); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  // Keystrokes drive the 3-D hand: correct finger per key, sweep on delete.
+  const onKeyDown = (e) => {
+    const h = handRef.current;
+    if (e.key === "Enter") { translate(); return; }
+    if (!h) return;
+    if (e.key === "Backspace" || e.key === "Delete") h.sweep();
+    else if (e.key.length === 1) h.press(e.key);
+  };
+
+  // Feed the 3-D view the frames for whichever word the player is on, so both
+  // views stay on the same sign.
+  useEffect(() => {
+    if (view !== "hand") return;
+    const item = seq?.items?.filter((i) => i.available)[current];
+    if (item?.frames?.length) {
+      handRef.current?.playSign(item.frames, {
+        fps: seq.fps, quant: seq.quant, label: item.label, loop: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, current, seq]);
 
   const translate = async (value) => {
     const t = (value ?? text).trim();
@@ -81,7 +117,7 @@ export default function Reverse() {
       <Nav />
       <PageTransition>
       <main className="pt-24 pb-12 px-6 md:px-12 lg:px-20 max-w-[1500px] mx-auto">
-        <div className="micro-caps mb-2">Reverse mode</div>
+        <div className="micro-caps mb-2"><Scramble text="Reverse mode" /></div>
         <h1 className="font-display text-3xl md:text-5xl tracking-tight leading-[1.08] mb-2">
           Type or speak. <span className="italic text-copper">Watch it signed back.</span>
         </h1>
@@ -105,13 +141,16 @@ export default function Reverse() {
           >
             <Mic className="w-4 h-4" strokeWidth={1.5} />
           </button>
-          <input
+          <FallingInput
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && translate()}
+            onChange={setText}
+            onKeyDown={onKeyDown}
             data-testid="reverse-input"
             placeholder="Type an English sentence…"
-            className="flex-1 bg-transparent outline-none text-lg font-display px-2 placeholder:text-cream/25"
+            className="flex-1"
+            inputClassName="text-lg font-display px-2 py-2"
+            charClassName="text-lg font-display"
+            name="sentence"
           />
           <button
             onClick={() => translate()}
@@ -152,16 +191,55 @@ export default function Reverse() {
             <div className="relative rounded-sm overflow-hidden bg-black aspect-[4/3] border border-cream/10">
               <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 40%, rgba(110,231,242,0.06), transparent 60%), #050506" }} />
               {playable.length > 0 ? (
-                <SignPlayer
-                  items={seq.items}
-                  fps={seq.fps}
-                  quant={seq.quant}
-                  playing={playing}
-                  onWordChange={(_, idx) => setCurrent(idx)}
-                />
+                view === "signer" ? (
+                  <SignPlayer
+                    items={seq.items}
+                    fps={seq.fps}
+                    quant={seq.quant}
+                    playing={playing}
+                    onWordChange={(_, idx) => setCurrent(idx)}
+                  />
+                ) : (
+                  <HandRig ref={handRef} className="absolute inset-0" showCaption={false} />
+                )
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-cream/30 text-sm">
                   {status === "loading" ? "Translating…" : "Nothing signable yet."}
+                </div>
+              )}
+
+              {/* view switch */}
+              <div className="absolute top-4 left-4 flex items-center gap-1 p-1 glass-panel rounded-sm">
+                {[
+                  ["signer", "Signer", User],
+                  ["hand", "Hand 3D", Box],
+                ].map(([v, label, Icon]) => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    data-testid={`reverse-view-${v}`}
+                    className={`focus-ring relative px-2.5 py-1.5 rounded-sm text-[10px] uppercase tracking-widest flex items-center gap-1.5 transition-colors ${
+                      view === v ? "text-ink" : "text-cream/55 hover:text-cream"
+                    }`}
+                  >
+                    {view === v && (
+                      <motion.span
+                        layoutId="reverse-view-pill"
+                        className="absolute inset-0 bg-copper rounded-sm"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <Icon className="relative z-10 w-3 h-3" strokeWidth={1.5} />
+                    <span className="relative z-10">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {view === "hand" && (
+                <div className="absolute top-16 left-4 max-w-[15rem] text-[10px] text-cream/35 leading-relaxed">
+                  The dataset is monocular video, so these landmarks have no
+                  measured depth. The hand is a real 2-D constellation shown in
+                  3-D space, not a depth reconstruction.
                 </div>
               )}
 

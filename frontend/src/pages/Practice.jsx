@@ -7,6 +7,7 @@ import LandmarkOverlay from "../components/LandmarkOverlay";
 import useLiveCapture from "../hooks/useLiveCapture";
 import { textToSign, scorePractice, fetchPracticeWords } from "../lib/api";
 import { loadSettings } from "../lib/storage";
+import { savePracticeAttempt } from "../lib/sessions";
 import { DOMAIN_PACKS, pretty } from "../lib/vocabulary";
 import {
   Reveal, Stagger, StaggerItem, CountUp, AnimatedRing, Magnetic,
@@ -65,6 +66,9 @@ export default function Practice() {
       if (r.available === false) { setError(r.error); setPhase("idle"); return; }
       setResult(r);
       setPhase("done");
+      // Signed in -> a row in the database. Guest -> memory only. The store
+      // makes that decision, not this page.
+      savePracticeAttempt(word, r.score ?? 0, r.breakdown ?? {});
     } catch (err) {
       setError(err?.message ?? "scoring failed");
       setPhase("idle");

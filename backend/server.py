@@ -46,11 +46,13 @@ from preprocess import T, _lm_arr, _normalize  # noqa: E402
 import inference  # noqa: E402
 import gloss  # noqa: E402
 import practice  # noqa: E402
+import auth  # noqa: E402
 
-app = FastAPI(title="Silent Voice", version="1.0")
+app = FastAPI(title="Silent Voice", version="1.1")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
+app.include_router(auth.router)
 
 _holistic = None
 _buffer: deque = deque(maxlen=T)
@@ -69,6 +71,7 @@ def holistic():
 
 @app.on_event("startup")
 def _startup() -> None:
+    auth.init_db()
     inference.load_models()
     st = inference.status()
     loaded = st.get("models") or []   # not string-matching "_loaded" — that caught labels_loaded
@@ -82,6 +85,9 @@ def _startup() -> None:
         print("     (it copies the files here for you), then restart this server.")
     comp = ML_LOGS / "comparison.json"
     print(f"  results page  : {'ready' if comp.exists() else 'no comparison.json yet'}")
+    with auth.db() as _con:
+        n_users = _con.execute("SELECT COUNT(*) c FROM users").fetchone()["c"]
+    print(f"  accounts      : {n_users} registered  (guests store nothing)")
     print("")
     print("  ->  http://localhost:8000")
     print("=" * 60 + "\n")

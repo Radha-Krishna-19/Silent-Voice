@@ -132,3 +132,6 @@ __pycache__/
 
 # Reverse-translation animation bank — regenerate with ml/scripts/build_sign_bank.py
 backend/models/sign_bank.json
+
+# Local account database — user data, never committed.
+backend/data/

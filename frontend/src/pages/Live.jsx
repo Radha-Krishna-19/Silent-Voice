@@ -9,7 +9,8 @@ import PrivacyBadge from "../components/PrivacyBadge";
 import Waveform from "../components/Waveform";
 import useLiveCapture from "../hooks/useLiveCapture";
 import { DOMAIN_PACKS, LIVE_CAPTION_QUEUE, RECENT_TRANSCRIPT } from "../lib/mockData";
-import { saveSession, loadSettings } from "../lib/storage";
+import { loadSettings } from "../lib/storage";
+import { saveSession } from "../lib/sessions";
 import { CountUp, Magnetic, useRipple, PageTransition } from "../components/motion";
 
 const mmss = (s) =>
