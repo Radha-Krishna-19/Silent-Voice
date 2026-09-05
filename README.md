@@ -21,6 +21,7 @@ both have real limits, and this README states them plainly.
 9. [API reference](#9-api-reference)
 10. [Troubleshooting](#10-troubleshooting)
 11. [Bugs found and fixed](#11-bugs-found-and-fixed)
+12. [Tests](#12-tests)
 
 ---
 
@@ -28,16 +29,41 @@ both have real limits, and this README states them plainly.
 
 | Page | Status | What it does |
 |---|---|---|
+| `/` | **Real** | Sign in, create an account, or continue as a guest. A 3-D hand types along with you and performs real signs while idle. |
+| `/home` | **Real** | The hand performs signs replayed from the trained landmark data; measured metrics are pulled from the backend, not hardcoded. |
 | `/live` | **Real** | Webcam → MediaPipe → BiLSTM/CNN → predicted sign. Model switchable per request. |
 | `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
-| `/reverse` | **Real** | English → ISL gloss → replays actual recorded signer skeletons. 261-word vocabulary. |
-| `/` `/about` | Static | Landing and explanation pages. |
+| `/reverse` | **Real** | English → ISL gloss → replays actual recorded signer skeletons. Switch between the 2-D signer and the 3-D hand. |
 | `/practice` | **Real** | Records your attempt, scores it against the reference recording — hand shape, placement and movement measured separately. |
-| `/transcripts` | **Real** | Sessions you record on Live are saved in this browser, with .txt / .srt export. |
-| `/settings` | **Real** | Preferences persist in this browser (no accounts, so per-browser only). |
-| `/auth` | Shell | Form renders, no authentication backend. |
+| `/transcripts` | **Real** | Sessions from Live. Server-side when signed in; not stored at all as a guest. |
+| `/rubric` | **Real** | The Review 2 rubric, scored against evidence the project can actually point at. |
+| `/settings` | **Real** | Preferences persist in this browser, signed in or not. |
+| `/about` | **Real** | How it works, and an honest threat model. |
 
-Nothing is silently fake. Every mocked surface says so on screen.
+Nothing is silently fake. Every limitation is stated on the screen it affects.
+
+**Press `Ctrl+K` anywhere** for the command palette: jump between pages, or search
+all 261 trained signs and watch one play.
+
+### Accounts vs guest — the difference is real
+
+| | Signed in | Guest |
+|---|---|---|
+| Transcripts | Rows in `backend/data/silentvoice.db`, owned by your user id | Held in the page; gone when the tab closes |
+| Practice history | Stored, with best-per-word | Held in the page |
+| Survives clearing the browser | Yes | N/A — nothing was stored |
+| Written to localStorage | Only the session token | Only the "I chose guest" flag |
+
+Passwords are hashed with **scrypt** (n=2^14, per-user 16-byte salt) and compared
+with `hmac.compare_digest`. Session tokens are 32 random bytes, stored **hashed**,
+so read access to the database does not let you impersonate a live session. Failed
+logins are rate limited per username, and an unknown username takes the same time
+to reject as a wrong password, so the endpoint cannot be used to enumerate users.
+
+**The honest caveat:** the server speaks plain HTTP on localhost. There is no TLS,
+so the password is visible in transit on a hostile network. This is an academic
+demo to run on your own machine — do not expose it to the internet as-is, and do
+not reuse a password you care about.
 
 ---
 
@@ -391,6 +417,19 @@ Base URL `http://localhost:8000`.
 | `POST` | `/api/text-to-sign` | English → gloss **+ animation frames** |
 | `POST` | `/api/text-to-gloss` | English → gloss only (no frames) |
 | `GET` | `/api/vocabulary` | The 261 signable words |
+| `POST` | `/api/practice/score` | Score a recorded attempt against the reference |
+| `GET` | `/api/practice/words` | Words that have a reference recording |
+| `POST` | `/api/auth/register` | Create an account. Body: `{username, password, displayName}` |
+| `POST` | `/api/auth/login` | Exchange credentials for a bearer token |
+| `POST` | `/api/auth/logout` | Revoke the current token |
+| `GET` | `/api/auth/me` | Current user plus transcript/practice counts |
+| `GET` `POST` | `/api/me/transcripts` | List or save your sessions (auth required) |
+| `DELETE` | `/api/me/transcripts/{id}` | Delete one of your sessions |
+| `GET` `POST` | `/api/me/practice` | Practice history and best-per-word (auth required) |
+
+Everything under `/api/me/` and `/api/auth/me` requires `Authorization: Bearer <token>`
+and is scoped to your user id — one account cannot read or delete another's rows,
+which `backend/test_auth.py` asserts directly.
 
 `/api/comparison` reads from disk on **every** request, so retraining updates the
 website with no rebuild and no restart.
@@ -447,3 +486,36 @@ and each would silently mislead.
 ---
 
 *Course: 23CSE461 — Neural Networks and Deep Learning · Dataset: INCLUDE (IIT Bombay, ACM MM 2020)*
+
+---
+
+## 12. Tests
+
+Three suites, all runnable without a GPU, a camera or the internet.
+
+```powershell
+# Accounts: hashing, tokens, per-user isolation, rate limiting, expiry
+cd backend
+..\nndl\Scripts\python.exe test_auth.py          # 38 assertions
+
+# 3-D hand kinematics: bone-length invariance, curl trajectory,
+# finger ordering, replay of real landmark frames
+cd ..\frontend
+node scripts/handmodel.test.mjs                   # 51 assertions
+
+# Every route, in jsdom, with the backend deliberately DOWN.
+# Fails on any console error or a page that renders nothing.
+npm run build
+node scripts/routecheck.mjs                       # 10 routes
+```
+
+`routecheck.mjs` is the one worth understanding. A successful webpack build only
+proves the code parses and resolves; it says nothing about a hook called
+conditionally, a null dereference in an effect, or a route that renders an empty
+shell. Running the real bundle in jsdom with `fetch` stubbed to fail catches all
+three, and doubles as a check that every page degrades honestly when the server is
+not running rather than white-screening.
+
+It also asserts the route guard works: a deep link to `/transcripts` with no
+identity must land on the gate. A guard that silently lets you through is worse
+than no guard.
