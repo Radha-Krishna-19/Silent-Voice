@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useReducedMotionPref } from "./motion/preference";
+import { cn } from "../lib/utils";
 
 // ISL uses two-handed signs and a two-handed alphabet, so we render BOTH hands.
 // Each hand: 21 MediaPipe-style landmarks + standard connection graph.
@@ -126,7 +127,7 @@ export const LandmarkOverlay = ({
     <svg
       viewBox="0 0 1 1"
       preserveAspectRatio="none"
-      className={`absolute inset-0 w-full h-full pointer-events-none ${className}`}
+      className={cn("absolute inset-0 w-full h-full pointer-events-none", className)}
       data-testid="landmark-overlay"
       aria-hidden="true"
     >

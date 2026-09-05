@@ -104,10 +104,12 @@ console.log("\n=== canvas output ===");
 const bundle = readFileSync(bundlePath, "utf8");
 const vc = new VirtualConsole();
 const errors = [];
+const warnings = [];
 vc.on("jsdomError", (e) => {
   const m = String(e?.message || e);
   if (!/not implemented|WebGL/i.test(m)) errors.push(m.split("\n")[0]);
 });
+vc.on("warn", (...a) => warnings.push(a.map(String).join(" ")));
 
 const dom = new JSDOM(
   `<!doctype html><html><body><div id="root"></div></body></html>`,
@@ -144,8 +146,19 @@ function recordingContext() {
 window.HTMLCanvasElement.prototype.getContext = function getContext() {
   return recordingContext();
 };
+// Size ONLY the canvases whose class list says they should fill their parent.
+// Blanket-stubbing every canvas to 800x800 is what hid a real bug: a wrapper
+// composed `relative` with `absolute inset-0`, Tailwind's `.relative` won, the
+// box collapsed to zero height, and the canvas was 0x0 in the browser while
+// this test happily reported 66,299 strokes.
+let sizedCanvases = 0;
+let unsizedCanvases = 0;
 window.HTMLCanvasElement.prototype.getBoundingClientRect = function rect() {
-  return { width: 800, height: 800, top: 0, left: 0, right: 800, bottom: 800, x: 0, y: 0 };
+  const cls = this.getAttribute("class") || "";
+  const fills = /\b(w-full|inset-0)\b/.test(cls);
+  if (fills) { sizedCanvases++; return { width: 800, height: 800, top: 0, left: 0, right: 800, bottom: 800, x: 0, y: 0 }; }
+  unsizedCanvases++;
+  return { width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0 };
 };
 window.matchMedia = (q) => ({
   matches: false, media: q, addListener() {}, removeListener() {},
@@ -188,6 +201,12 @@ check("the stroke traverses a warm-to-cool ramp",
   rgbTriples.some(([r, , b]) => r > b) && rgbTriples.some(([r, , b]) => b > r),
   `warm ${rgbTriples.filter(([r, , b]) => r > b).length}, cool ${rgbTriples.filter(([r, , b]) => b > r).length}`);
 check("no unexpected page errors", errors.length === 0, errors.slice(0, 3).join(" | "));
+
+// The renderer warns rather than painting into a 0x0 buffer. If that warning
+// ever fires here, a container has collapsed.
+const collapsed = warnings.filter((w) => w.includes("[SignTrail]"));
+check("no canvas reported a collapsed container", collapsed.length === 0,
+  collapsed[0] || "");
 
 window.close();
 

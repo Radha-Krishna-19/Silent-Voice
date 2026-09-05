@@ -15,6 +15,7 @@ import { resolveSign, SAMPLE_WORDS } from "../lib/signs";
 import { pretty } from "../lib/vocabulary";
 import { EASE_OUT } from "./motion/text";
 import { useReducedMotionPref } from "./motion/preference";
+import { cn } from "../lib/utils";
 
 export default function SignTrailHero({
   className = "",
@@ -81,8 +82,17 @@ export default function SignTrailHero({
     return () => window.removeEventListener("mousemove", move);
   }, []);
 
+  // cn() is tailwind-merge: a later utility from the same group REPLACES an
+  // earlier one, so a caller passing "absolute inset-0" correctly overrides the
+  // "relative" default.
+  //
+  // Writing this as `relative ${className}` is what broke both heroes. Tailwind
+  // emits `.relative` AFTER `.absolute`, so the browser resolved
+  // class="relative absolute inset-0" to position:relative no matter what order
+  // it was written in — and a relatively-positioned element ignores `inset` for
+  // sizing, so this wrapper had zero height and the canvas inside it was 0x0.
   return (
-    <div className={`relative ${className}`} data-testid="sign-trail-hero">
+    <div className={cn("relative", className)} data-testid="sign-trail-hero">
       {/* the previous mark, dissolving */}
       {ghost && !reduced && (
         <motion.div
@@ -114,7 +124,7 @@ export default function SignTrailHero({
       />
 
       {showCaption && (
-        <div className={`absolute inset-x-0 bottom-0 ${captionClassName}`}>
+        <div className={cn("absolute inset-x-0 bottom-0", captionClassName)}>
           <AnimatePresence mode="wait">
             {current && (
               <motion.div

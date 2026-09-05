@@ -123,8 +123,35 @@ const SignTrail = forwardRef(function SignTrail(
     let w = 0;
     let h = 0;
 
+    // Measure defensively. A canvas whose own box has collapsed still has a
+    // laid-out ancestor almost all the time, and silently painting into a 0x0
+    // buffer is the worst failure mode there is: everything "works", nothing
+    // appears. If we cannot find a real size, say so once in the console rather
+    // than rendering nothing in silence.
+    let warned = false;
+    const measure = () => {
+      const own = canvas.getBoundingClientRect();
+      if (own.width >= 2 && own.height >= 2) return own;
+      const parent = canvas.parentElement?.getBoundingClientRect();
+      if (parent && parent.width >= 2 && parent.height >= 2) return parent;
+      const grand = canvas.parentElement?.parentElement?.getBoundingClientRect();
+      if (grand && grand.width >= 2 && grand.height >= 2) return grand;
+      if (!warned) {
+        warned = true;
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[SignTrail] the canvas and its ancestors have no measurable size, so " +
+          "nothing can be drawn. Check for a container with collapsed height " +
+          "(a common cause is combining `relative` and `absolute inset-0` on one " +
+          "element — Tailwind's `.relative` wins and the box stops being sized)."
+        );
+      }
+      return null;
+    };
+
     const resize = () => {
-      const r = canvas.getBoundingClientRect();
+      const r = measure();
+      if (!r) { w = 0; h = 0; return; }
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = Math.max(1, r.width);
       h = Math.max(1, r.height);
@@ -140,6 +167,14 @@ const SignTrail = forwardRef(function SignTrail(
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       const s = stateRef.current;
+
+      // The box can arrive after mount (fonts, images, a late layout pass), so
+      // keep trying rather than giving up on the first zero measurement.
+      if (w < 2 || h < 2) {
+        resize();
+        raf = requestAnimationFrame(draw);
+        return;
+      }
 
       ctx.clearRect(0, 0, w, h);
 

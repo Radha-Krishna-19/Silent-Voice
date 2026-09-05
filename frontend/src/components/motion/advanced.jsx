@@ -15,6 +15,7 @@ import {
   useSpring, useTransform, useVelocity,
 } from "framer-motion";
 import { useReducedMotionPref } from "./preference";
+import { cn } from "../../lib/utils";
 
 export const EASE = [0.25, 0.1, 0.25, 1];
 
@@ -74,7 +75,7 @@ export function FallingInput({
   const masked = type === "password";
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={cn("relative", className)}>
       {/* Visible, animated rendering of the text */}
       <div
         aria-hidden="true"
@@ -261,7 +262,7 @@ export function ScrollScene({ children, height = "220vh", className = "" }) {
   useEffect(() => scrollYProgress.on("change", setP), [scrollYProgress]);
 
   return (
-    <div ref={ref} style={{ height }} className={`relative ${className}`}>
+    <div ref={ref} style={{ height }} className={cn("relative", className)}>
       <div className="sticky top-0 h-screen flex items-center overflow-hidden">
         {typeof children === "function" ? children(p) : children}
       </div>
@@ -321,7 +322,7 @@ export function Spotlight({ children, className = "", color = "rgba(201,123,74,0
   return (
     <div
       ref={ref}
-      className={`relative overflow-hidden ${className}`}
+      className={cn("relative overflow-hidden", className)}
       onMouseMove={onMove}
       onMouseEnter={() => setOn(true)}
       onMouseLeave={() => setOn(false)}

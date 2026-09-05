@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, useInView, useSpring, useMotionValue, useTransform } from "framer-motion";
 import { useReducedMotionPref } from "./preference";
+import { cn } from "../../lib/utils";
 
 // All primitives use useReducedMotionPref, NOT framer's useReducedMotion:
 // the latter reads only the OS flag, and Windows commonly ships with
@@ -305,7 +306,7 @@ export function ScrollProgress({ className = "" }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
   return (
-    <div className={`fixed top-0 left-0 right-0 h-px z-[60] ${className}`}>
+    <div className={cn("fixed top-0 left-0 right-0 h-px z-[60]", className)}>
       <div
         className="h-full bg-copper origin-left"
         style={{ transform: `scaleX(${p})`, transition: "transform 90ms linear" }}

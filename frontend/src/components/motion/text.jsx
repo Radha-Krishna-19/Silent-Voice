@@ -21,6 +21,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { useReducedMotionPref } from "./preference";
+import { cn } from "../../lib/utils";
 
 export const EASE = [0.25, 0.1, 0.25, 1];
 export const EASE_OUT = [0.16, 1, 0.3, 1];        // strong deceleration
@@ -126,7 +127,7 @@ export function ShiftText({ children, k, className = "", direction = "up" }) {
   const reduced = useReducedMotionPref();
   const dy = direction === "up" ? 1 : -1;
   return (
-    <span className={`relative inline-block overflow-hidden align-bottom ${className}`}>
+    <span className={cn("relative inline-block overflow-hidden align-bottom", className)}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={k}
@@ -242,7 +243,7 @@ export function ElasticUnderline({ children, className = "", color = "#C97B4A" }
   return (
     <span
       ref={ref}
-      className={`relative inline-block group ${className}`}
+      className={cn("relative inline-block group", className)}
       onMouseEnter={(e) => setFrom(side(e))}
       onMouseLeave={(e) => setFrom(side(e))}
     >
@@ -268,7 +269,7 @@ export function ElasticUnderline({ children, className = "", color = "#C97B4A" }
 export function Shimmer({ className = "", rounded = "rounded-sm" }) {
   const reduced = useReducedMotionPref();
   return (
-    <span className={`relative block overflow-hidden bg-cream/[0.05] ${rounded} ${className}`}>
+    <span className={cn("relative block overflow-hidden bg-cream/[0.05]", rounded, className)}>
       {!reduced && (
         <motion.span
           className="absolute inset-y-0 w-1/2"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import LandmarkOverlay from "./LandmarkOverlay";
+import { cn } from "../lib/utils";
 
 /**
  * Sign-clip player.
@@ -33,7 +34,7 @@ export const SignClipPlayer = ({
 
   return (
     <div
-      className={`relative rounded-sm overflow-hidden bg-black ${aspect} border border-cream/10 ${className}`}
+      className={cn("relative rounded-sm overflow-hidden bg-black border border-cream/10", aspect, className)}
       data-testid="sign-clip-player"
     >
       {useVideo ? (
