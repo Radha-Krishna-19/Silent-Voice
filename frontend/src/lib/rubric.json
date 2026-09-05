@@ -1,0 +1,180 @@
+{
+  "rubric": [
+    {
+      "n": 1,
+      "title": "Problem statement, introduction, motivation",
+      "marks": 4,
+      "status": "have",
+      "evidence": [
+        "Deck slides 3–7 (sections 01–04): the 63-million figure, the interpreter shortage, and the objective.",
+        "Review template slide 2 carries the problem statement and objective in the faculty format."
+      ],
+      "missing": []
+    },
+    {
+      "n": 2,
+      "title": "Literature survey",
+      "detail": "Five papers per student, related to your deep learning architecture, from a journal listed on scimagojr.com in 2025 or 2026.",
+      "marks": 5,
+      "status": "todo",
+      "evidence": [],
+      "missing": [
+        "Five papers, each confirmed present in the SCImago 2025/2026 listing — this confirmation has to be done by you, on scimagojr.com.",
+        "For each: full citation, the architecture it uses, its reported metric values, and how it relates to the BiLSTM-vs-CNN comparison.",
+        "A survey slide in the deck."
+      ],
+      "note": "docs/literature-survey-worksheet.md has a starting shortlist of real, URL-verified candidates plus the search strategy. They are candidates, not citations: journal indexing and publication year must be checked on scimagojr.com before any of them goes in the deck. Citing a paper nobody has opened is the fastest way to lose the viva."
+    },
+    {
+      "n": 3,
+      "title": "Architecture diagram for the overall application",
+      "marks": 5,
+      "status": "have",
+      "evidence": [
+        "Deck slide 16 (09 — SYSTEM ARCHITECTURE).",
+        "The diagram matches the shipped code path: browser capture → POST /api/frame → MediaPipe Holistic → normalise → model → gloss."
+      ],
+      "missing": []
+    },
+    {
+      "n": 4,
+      "title": "Module details",
+      "marks": 5,
+      "status": "have",
+      "evidence": [
+        "Deck slide 17 (10 — MODULES).",
+        "Every module named there exists as a file: preprocess.py, models.py, inference.py, gloss.py, practice.py."
+      ],
+      "missing": []
+    },
+    {
+      "n": 5,
+      "title": "Formula of performance metrics",
+      "detail": "A table with the metric name, its purpose, why it suits this application, and the best values discussed for that metric in the papers.",
+      "marks": 3,
+      "status": "partial",
+      "evidence": [
+        "Deck slide 26 already has metric · formula · what it captures, for nine metrics.",
+        "Notation is defined (N = 261 classes, n = 642 test clips).",
+        "All formulas are the ones evaluate.py actually computes via sklearn."
+      ],
+      "missing": [
+        "A fourth column: best values reported for each metric in the surveyed papers — which needs row 2 done first."
+      ]
+    },
+    {
+      "n": 6,
+      "title": "Deep learning architecture",
+      "detail": "a. Diagram   b. Explanation   c. Novelty proposed   d. Time and space complexity",
+      "marks": 5,
+      "status": "have",
+      "evidence": [
+        "(a,b) Deck slides 22–23: layer-by-layer diagrams and design rationale for both BiLSTM and 1D CNN.",
+        "(c) Deck slide 17.4 states the novelty as the controlled single-variable comparison and the shared landmark front-end — and states explicitly what is NOT claimed as novel.",
+        "(d) Deck slide 17.3: big-O time, critical path, MAC counts, parameter and activation complexity for both models.",
+        "The complexity is derived in scripts/analyze_complexity.py, which asserts its parameter counts against the trained checkpoints — 2,665,477 and 736,773 both match torch exactly."
+      ],
+      "missing": [],
+      "note": "The novelty is stated narrowly on purpose. Claiming a new architecture would not survive the first question, because none was designed; the defensible contribution is the experiment."
+    },
+    {
+      "n": 7,
+      "title": "Algorithm procedure, step by step, mathematically",
+      "marks": 5,
+      "status": "have",
+      "evidence": [
+        "Deck slides 17.1 and 17.2: a ten-step numbered derivation from webcam frame to predicted label.",
+        "Steps 1–6 cover landmark extraction, concatenation, temporal resampling, wrist-origin translation, shoulder-width scaling and z-scoring with train-split-only statistics.",
+        "Steps 7–9 give the LSTM gate and cell equations beside the 1D convolution and pooling equations, side by side.",
+        "Step 10 is the shared head: dropout, GELU, softmax, argmax — plus the label-smoothed cross-entropy objective.",
+        "Every equation is the one implemented in preprocess.py and models.py, not a textbook restatement."
+      ],
+      "missing": [],
+      "note": "Laying both models out against shared steps 1–6 and 10 is what shows the comparison is controlled: only 7–9 differ."
+    },
+    {
+      "n": 8,
+      "title": "Hyperparameter details table with justification",
+      "marks": 5,
+      "status": "have",
+      "evidence": [
+        "Deck slides 24–25: the table and the tuning discussion.",
+        "Values are the ones actually used: AdamW, cosine annealing, label smoothing 0.05, early stopping patience 20, lr 3e-3, batch 32, 60 epochs.",
+        "Best epochs are recorded: 41/60 for BiLSTM, 45/60 for CNN."
+      ],
+      "missing": []
+    },
+    {
+      "n": 9,
+      "title": "Results and discussion",
+      "detail": "Tables, graphs, inference achieved from the architecture.",
+      "marks": 3,
+      "status": "have",
+      "evidence": [
+        "Deck slide 27: nine metrics, both models, with a stated winner and observation per row.",
+        "Numbers are measured on a 642-clip held-out test split, not estimated.",
+        "The Research page in this app reads the same comparison.json off disk, so it cannot drift from the deck."
+      ],
+      "missing": [],
+      "link": "/research"
+    },
+    {
+      "n": 10,
+      "title": "Dataset chosen, and the novelty in the dataset",
+      "detail": "IEEE Dataport URL required.",
+      "marks": 3,
+      "status": "partial",
+      "evidence": [
+        "Deck slides 13, 18–21: INCLUDE described, plus extraction results.",
+        "Real counts: 261 classes, 4,276 usable clips after filtering classes with fewer than 5 recordings.",
+        "Canonical sources verified: Zenodo record 4010759 (the 56.8 GB video release), the Hugging Face mirror ai4bharat/INCLUDE, and the ACM MM 2020 paper doi:10.1145/3394171.3413528.",
+        "Dataset novelty: INCLUDE is the largest published lexical ISL corpus, recorded with experienced signers rather than crowd-sourced, which is why it supports 261 classes where most ISL work reports on 20–50."
+      ],
+      "missing": [
+        "A decision on the IEEE Dataport requirement — see the note."
+      ],
+      "note": "Checked: INCLUDE is NOT on IEEE Dataport. It is distributed via Zenodo (record 4010759) and Hugging Face, and published at ACM Multimedia 2020. Ask your faculty whether the Zenodo DOI satisfies the requirement. IEEE DataPort does host other ISL datasets (e.g. ISL-50), so if the Dataport URL is non-negotiable, the honest options are to cite one of those as a secondary dataset or to change datasets — not to invent a link."
+    },
+    {
+      "n": 11,
+      "title": "UI screens planned for the application",
+      "marks": 5,
+      "status": "have",
+      "evidence": [
+        "Ten screens exist and run: gate, home, live, reverse, practice, transcripts, research, rubric, settings, about.",
+        "These are the working application, not mockups — the same build the demo runs on."
+      ],
+      "missing": [],
+      "link": "/home"
+    },
+    {
+      "n": 12,
+      "title": "Standard paper chosen for the application",
+      "detail": "Title and justification, from a journal.",
+      "marks": 2,
+      "status": "todo",
+      "evidence": [],
+      "missing": [
+        "One paper nominated as the reference standard, with a justification tying it to this system."
+      ],
+      "note": "Falls out of row 2 once the survey is done — pick the closest of the five."
+    }
+  ],
+  "statusMeta": {
+    "have": {
+      "label": "Evidenced",
+      "color": "#6EE7F2",
+      "desc": "The artefact exists and can be pointed at."
+    },
+    "partial": {
+      "label": "Partial",
+      "color": "#C97B4A",
+      "desc": "Some required parts are missing."
+    },
+    "todo": {
+      "label": "Not started",
+      "color": "#8A8A93",
+      "desc": "Nothing exists for this row yet."
+    }
+  }
+}

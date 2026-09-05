@@ -15,6 +15,7 @@ Nothing here claims a mark the project has not earned.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -41,46 +42,26 @@ STATUS_LABEL = {"have": "Evidenced", "partial": "Partial", "todo": "Not started"
 
 
 # --------------------------------------------------------------------------- #
-# The rubric, mirroring frontend/src/lib/rubric.js so the deck and the app
-# can never disagree about what is done.
+# The rubric, read from the SAME file the web app reads.
+#
+# This script used to carry its own copy of the table. It went stale the first
+# time a status changed, which is precisely the failure the "one source of
+# truth" claim was supposed to prevent — so now there is actually one source.
 # --------------------------------------------------------------------------- #
+RUBRIC_JSON = ROOT / "frontend" / "src" / "lib" / "rubric.json"
+_DATA = json.loads(RUBRIC_JSON.read_text(encoding="utf-8"))
+
+# (n, title, marks, status, evidence, missing) — the shape the slide builders use.
 RUBRIC = [
-    (1, "Problem statement, introduction, motivation", 4, "have",
-     "Deck slides 3-7 (sections 01-04) and Review-template slide 2.",
-     ""),
-    (2, "Literature survey - 5 papers per student, SCImago-listed, 2025/2026", 5, "todo",
-     "",
-     "Five papers, each verified in the SCImago 2025/2026 listing, with architecture and reported metrics."),
-    (3, "Architecture diagram for the overall application", 5, "have",
-     "Deck slide 16 (09 - SYSTEM ARCHITECTURE); matches the shipped code path.",
-     ""),
-    (4, "Module details", 5, "have",
-     "Deck slide 17 (10 - MODULES); every module named exists as a file.",
-     ""),
-    (5, "Formula of performance metrics", 3, "partial",
-     "Deck slide 26: nine metrics with formula and purpose, matching evaluate.py.",
-     "Fourth column: best values reported in the surveyed papers (needs row 2)."),
-    (6, "Deep learning architecture - diagram, explanation, novelty, complexity", 5, "partial",
-     "Deck slides 22-23: layer diagrams, design rationale, measured parameter counts.",
-     "Explicit novelty statement (c) and big-O time/space per model (d)."),
-    (7, "Algorithm procedure, step by step, mathematically", 5, "todo",
-     "",
-     "Numbered procedure from raw frame to label with equations - already implemented, needs writing up."),
-    (8, "Hyperparameter details table with justification", 5, "have",
-     "Deck slides 24-25; values are the ones actually used in the training run.",
-     ""),
-    (9, "Results and discussion", 3, "have",
-     "Deck slide 27: nine metrics, both models, measured on 642 held-out clips.",
-     ""),
-    (10, "Dataset chosen and its novelty - IEEE Dataport URL", 3, "partial",
-     "Deck slides 13, 18-21: INCLUDE described; 261 classes, 4,276 usable clips.",
-     "The IEEE Dataport URL, and a stated novelty for the dataset choice."),
-    (11, "UI screens planned for the application", 5, "have",
-     "Ten working screens, not mockups - the same build the demo runs on.",
-     ""),
-    (12, "Standard paper chosen - title and justification", 2, "todo",
-     "",
-     "One paper nominated as the reference standard, with justification."),
+    (
+        r["n"],
+        r["title"] + (f" - {r['detail']}" if r.get("detail") else ""),
+        r["marks"],
+        r["status"],
+        " ".join(r.get("evidence") or []),
+        " ".join(r.get("missing") or []),
+    )
+    for r in _DATA["rubric"]
 ]
 
 TOTAL = sum(r[2] for r in RUBRIC)
@@ -116,14 +97,14 @@ def slide_overview(prs):
     ]):
         stat(s, 0.65 + i * (w + 0.17), 2.55, w, 1.62, val, lab, sub, accent=col)
 
-    D.band(s, "WHAT UNLOCKS THE MOST MARKS", 4.42, [
-        ("Literature survey", "5 marks itself, and unblocks rows 5 and 12 - 10 more behind it."),
-        ("Algorithm procedure", "5 marks of transcription: every equation is already coded."),
-        ("Novelty + complexity", "Completes row 6. State the novelty as the controlled comparison."),
+    D.band(s, "WHAT IS LEFT", 4.42, [
+        ("Literature survey (5)", "Five papers verified against the SCImago 2025/2026 listing."),
+        ("Metrics column (3)", "'Best value in the papers' - blocked on the survey."),
+        ("Standard paper (2)", "Nominate one of the five, with a justification."),
     ])
 
-    note(s, "Mirrors frontend/src/lib/rubric.js, which drives the /rubric page in the running app - "
-            "the deck and the product cannot disagree about what is done.", y=6.28)
+    note(s, "Generated from frontend/src/lib/rubric.json - the same file that drives the /rubric page "
+            "in the running app, so this deck and the product cannot disagree.", y=6.28)
     return s
 
 
@@ -151,35 +132,42 @@ def slide_table(prs, rows, part, eyebrow):
 
 
 def slide_gaps(prs):
-    s = base(prs, "REVIEW 2 - RUBRIC", "The Twelve Marks Not Yet Earned")
+    outstanding = [r for r in _DATA["rubric"] if r["status"] != "have"]
+    todo = [r for r in outstanding if r["status"] == "todo"]
+    partial = [r for r in outstanding if r["status"] == "partial"]
+    remaining = sum(r["marks"] for r in outstanding)
 
-    card(s, 0.65, 1.78, 3.66, 2.05, "Row 2 - Literature survey (5)",
-         "Five papers on sign-language recognition or temporal architectures, each verified as "
-         "appearing in a SCImago-listed journal for 2025 or 2026. Record citation, architecture, "
-         "and reported metric values - the last of these is what row 5 needs.",
-         accent=STONE)
-    card(s, 4.52, 1.78, 3.66, 2.05, "Row 7 - Algorithm procedure (5)",
-         "A numbered derivation: landmark extraction, wrist-origin translation, shoulder-width "
-         "scaling, z-scoring with train-split statistics, the LSTM recurrence and 1-D convolution "
-         "equations, mean-pooling, softmax, argmax. All of it is already implemented.",
-         accent=STONE)
-    card(s, 8.39, 1.78, 3.66, 2.05, "Row 12 - Standard paper (2)",
-         "One paper nominated as the reference standard for the application, with a justification "
-         "tying it to this system. Falls out of row 2 - pick the closest of the five.",
-         accent=STONE)
+    s = base(prs, "REVIEW 2 - RUBRIC", f"The {remaining} Marks Not Yet Earned")
 
-    D.band(s, "PARTIAL ROWS - WHAT CLOSES THEM", 4.10, [
-        ("Row 5 (3)", "Add a 'best reported value' column to the metrics table, sourced from the survey."),
-        ("Row 6 (5)", "Add the novelty statement and big-O time/space for both models."),
-        ("Row 10 (3)", "Supply the IEEE Dataport URL; confirm whether the Zenodo DOI is acceptable."),
-    ])
+    # Not-started rows, as cards.
+    # Titles are truncated: a long one wraps to two lines and lands on top of
+    # the card body, which is exactly the kind of thing nobody notices until
+    # it is on a projector.
+    def short(t: str, limit: int = 26) -> str:
+        t = t.split(",")[0].split(" - ")[0]
+        return t if len(t) <= limit else t[:limit - 1].rstrip() + "\u2026"
 
-    tf = callout(s, 0.65, 5.30, 11.4, 0.78, "", accent=CRIMSON)
-    _run(tf.paragraphs[0], "Worth checking: ", size=11, bold=True, color=CRIMSON)
+    w = 3.66
+    for i, r in enumerate(todo[:3]):
+        body = " ".join(r.get("missing") or []) or "Nothing exists for this row yet."
+        card(s, 0.65 + i * (w + 0.21), 1.78, w, 2.20,
+             f"Row {r['n']} - {short(r['title'])} ({r['marks']})",
+             body[:290],
+             accent=STONE, bsize=10)
+
+    if partial:
+        D.band(s, "PARTIAL ROWS - WHAT CLOSES THEM", 4.28, [
+            (f"Row {r['n']} ({r['marks']})", " ".join(r.get("missing") or [])[:150])
+            for r in partial[:3]
+        ])
+
+    tf = callout(s, 0.65, 5.48, 11.4, 0.86, "", accent=CRIMSON)
+    _run(tf.paragraphs[0], "The honest position: ", size=11, bold=True, color=CRIMSON)
     _run(tf.paragraphs[0],
-         "INCLUDE is distributed via Zenodo. If it is not on IEEE Dataport, ask whether the Zenodo "
-         "DOI satisfies row 10 rather than citing a URL that does not resolve - a broken link in a "
-         "review is worse than an honest substitution.",
+         "what remains is the literature survey and everything that depends on it. Those marks "
+         "need papers actually read and verified against the SCImago listing - they cannot be "
+         "manufactured. docs/literature-survey-worksheet.md holds a URL-verified candidate "
+         "shortlist and the verification procedure.",
          size=11, color=INK)
     return s
 
@@ -201,6 +189,12 @@ def slide_evidence(prs):
         ["8  Hyperparameters",
          "Deck slides 24-25",
          "AdamW, cosine annealing, label smoothing 0.05, patience 20, lr 3e-3, batch 32, 60 epochs - as run."],
+        ["6  Architecture (a-d)",
+         "Deck slides 22-23, 17.3, 17.4",
+         "Diagrams and rationale, plus big-O complexity and an explicitly narrow novelty claim."],
+        ["7  Algorithm procedure",
+         "Deck slides 17.1-17.2",
+         "Ten numbered steps with the real equations, both models side by side against a shared spine."],
         ["9  Results",
          "Deck slide 27; /research page",
          "CNN 94.55% vs BiLSTM 91.74% on 642 held-out clips; the page reads the same file off disk."],
