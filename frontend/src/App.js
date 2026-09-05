@@ -6,6 +6,7 @@ import { LandmarkCursor, ScrollSpine } from "./components/motion/advanced";
 import { Toaster } from "./components/ui/sonner";
 import GrainOverlay from "./components/GrainOverlay";
 import CommandPalette from "./components/CommandPalette";
+import MotionNotice from "./components/MotionNotice";
 import Gate from "./pages/Gate";
 import Landing from "./pages/Landing";
 import Live from "./pages/Live";
@@ -62,6 +63,7 @@ function App() {
       <LandmarkCursor />
       <ScrollProgress />
       <ScrollSpine />
+      <MotionNotice />
       <BrowserRouter>
         <CommandPalette />
         <AnimatedRoutes />

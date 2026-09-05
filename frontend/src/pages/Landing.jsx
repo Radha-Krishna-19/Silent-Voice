@@ -9,11 +9,11 @@
  * The distinction matters: the old hero was an illustration of the idea, this
  * one is the product doing its job before you have clicked anything.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowUpRight, Radio, MessageSquare, Sparkles, ShieldCheck, Loader2, WifiOff,
+  ArrowUpRight, Radio, MessageSquare, Sparkles, ShieldCheck, Loader2,
 } from "lucide-react";
 import Nav from "../components/Nav";
 import HandRig from "../components/HandRig";
@@ -29,27 +29,23 @@ import PrivacyBadge from "../components/PrivacyBadge";
 import OnboardingModal from "../components/OnboardingModal";
 import { FEATURE_CARDS } from "../lib/mockData";
 import { ALL_WORDS, VOCAB_SIZE, pretty } from "../lib/vocabulary";
-import { textToSign, fetchComparison } from "../lib/api";
+import { fetchComparison } from "../lib/api";
+import { useSignLoop, resolveSign, SAMPLE_WORDS } from "../lib/signs";
 import { useAuth } from "../lib/auth";
 
 const iconMap = { Radio, MessageSquare, Sparkles };
 
-// A rotation for the idle hero. Verified present in ALL_WORDS at build time by
-// the filter below, so this can never advertise a sign we cannot produce.
-const HERO_WORDS = [
-  "hello", "friend", "teacher", "doctor", "book", "school", "family",
-  "mother", "happy", "beautiful", "morning", "today", "city", "money",
-].filter((w) => ALL_WORDS.includes(w));
+// The hero rotates through the words bundled with the app, so the hand is
+// performing real recordings the instant the page paints — no request, and
+// nothing to break when the backend is off. Hovering the vocabulary ribbon
+// reaches the full 261 through the API.
+const HERO_WORDS = SAMPLE_WORDS;
 
 export default function Landing() {
   const [onboardOpen, setOnboardOpen] = useState(false);
   const reduced = useReducedMotionPref();
   const handRef = useRef(null);
-  const [word, setWord] = useState(null);
-  const [offline, setOffline] = useState(false);
   const [stats, setStats] = useState(null);
-  const cache = useRef(new Map());
-  const rotator = useRef(null);
   const { guest } = useAuth();
 
   /* ---- real measured numbers for the strip ---------------------- */
@@ -74,41 +70,9 @@ export default function Landing() {
     return () => { alive = false; };
   }, []);
 
-  /* ---- play one real sign --------------------------------------- */
-  const play = useCallback(async (w, loop = false) => {
-    const h = handRef.current;
-    if (!h) return false;
-    let item = cache.current.get(w);
-    if (!item) {
-      try {
-        const data = await textToSign(w);
-        const found = data?.items?.find((it) => it.available && it.frames?.length);
-        if (!found) return false;
-        item = { frames: found.frames, fps: data.fps, quant: data.quant, label: found.label };
-        cache.current.set(w, item);
-        setOffline(false);
-      } catch {
-        setOffline(true);
-        return false;
-      }
-    }
-    h.playSign(item.frames, { fps: item.fps, quant: item.quant, label: item.label, loop });
-    setWord(item.label);
-    return true;
-  }, []);
-
-  /* ---- rotate through the hero words ---------------------------- */
-  useEffect(() => {
-    if (reduced || !HERO_WORDS.length) return undefined;
-    let i = Math.floor(Math.random() * HERO_WORDS.length);
-    const step = () => {
-      play(HERO_WORDS[i % HERO_WORDS.length]);
-      i++;
-      rotator.current = setTimeout(step, 4200);
-    };
-    rotator.current = setTimeout(step, 700);
-    return () => clearTimeout(rotator.current);
-  }, [play, reduced]);
+  const { word, source, play, pause, resume } = useSignLoop(handRef, HERO_WORDS, {
+    intervalMs: 4400,
+  });
 
   /* ---- the hand tracks the cursor when not replaying ------------ */
   useEffect(() => {
@@ -122,13 +86,16 @@ export default function Landing() {
     return () => window.removeEventListener("mousemove", move);
   }, []);
 
-  const hoverWord = (w) => {
-    clearTimeout(rotator.current);
-    play(w, true);
+  const hoverWord = async (w) => {
+    pause();
+    const ok = await resolveSign(w);
+    if (ok) play(w, true);
   };
 
+  const leaveWord = () => { handRef.current?.stopSign(); resume(); };
+
   return (
-    <div className="min-h-screen bg-ink text-cream overflow-x-hidden" data-testid="landing-page">
+    <PageTransition className="min-h-screen bg-ink text-cream overflow-x-hidden" data-testid="landing-page">
       <Nav transparent />
 
       {/* ============================================ HERO */}
@@ -186,28 +153,20 @@ export default function Landing() {
               {/* what the hand is doing right now */}
               <div className="h-12 mb-8">
                 <AnimatePresence mode="wait">
-                  {offline ? (
-                    <motion.div
-                      key="offline"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="flex items-center gap-2 text-xs text-copper/80"
-                    >
-                      <WifiOff className="w-3.5 h-3.5" strokeWidth={1.5} />
-                      Backend unreachable — start it with{" "}
-                      <code className="font-mono text-cream/60">python server.py</code>
-                    </motion.div>
-                  ) : word ? (
+                  {word ? (
                     <motion.div
                       key={word}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.26, ease: EASE }}
-                      className="flex items-baseline gap-3"
+                      initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      exit={{ opacity: 0, y: -12, filter: "blur(6px)" }}
+                      transition={{ duration: 0.3, ease: EASE }}
+                      className="flex items-baseline gap-3 flex-wrap"
                     >
                       <span className="micro-caps text-copper">now signing</span>
                       <span className="font-display text-3xl tracking-tight">{pretty(word)}</span>
-                      <span className="text-[11px] text-cream/30">from a real recording</span>
+                      <span className="text-[11px] text-cream/30">
+                        real recording · {source === "bundled" ? "bundled with the app" : "from the server"}
+                      </span>
                     </motion.div>
                   ) : (
                     <motion.div
@@ -273,6 +232,7 @@ export default function Landing() {
             <button
               key={w}
               onMouseEnter={() => hoverWord(w)}
+              onMouseLeave={leaveWord}
               className="focus-ring text-cream/35 hover:text-copper transition-colors text-sm uppercase tracking-widest shrink-0"
             >
               {pretty(w)}
@@ -285,6 +245,7 @@ export default function Landing() {
             <button
               key={w}
               onMouseEnter={() => hoverWord(w)}
+              onMouseLeave={leaveWord}
               className="focus-ring text-cream/25 hover:text-cyan transition-colors text-sm uppercase tracking-widest shrink-0"
             >
               {pretty(w)}
@@ -479,6 +440,6 @@ export default function Landing() {
       </footer>
 
       <OnboardingModal open={onboardOpen} onClose={() => setOnboardOpen(false)} />
-    </div>
+    </PageTransition>
   );
 }

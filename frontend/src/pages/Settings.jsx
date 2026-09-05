@@ -131,13 +131,13 @@ export default function Settings() {
               <Choice
                 label="Animations"
                 hint={osReduced
-                  ? "Your system asks for reduced motion, so Auto keeps things still. Choose On to override it."
-                  : "Auto follows your operating system's reduced-motion setting."}
+                  ? "Your system asks for reduced motion. The app animates anyway by default, because Windows turns that flag on by default — choose Auto or Off to honour it."
+                  : "On animates everything. Auto follows your operating system's reduced-motion setting."}
                 value={motionMode}
                 onChange={(v) => { setMotionMode(v); setMotionModeState(v); }}
                 options={[
+                  { value: "on", label: "On", meta: "default" },
                   { value: "auto", label: "Auto", meta: osReduced ? "system: reduced" : "system: full" },
-                  { value: "on", label: "On", meta: "always animate" },
                   { value: "off", label: "Off", meta: "never animate" },
                 ]}
               />

@@ -348,15 +348,19 @@ export function CursorGlow({ size = 380, color = "rgba(201,123,74,0.07)" }) {
 /* ------------------------------------------------------------------ *
  * PageTransition — wraps a route so navigation reads as movement.
  * ------------------------------------------------------------------ */
-export function PageTransition({ children, className = "" }) {
+export function PageTransition({ children, className = "", ...rest }) {
   const reduced = useReducedMotionPref();
   return (
     <motion.div
       className={className}
-      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
-      transition={{ duration: 0.32, ease: EASE }}
+      // ...rest so callers can pass data-testid and aria attributes through;
+      // without it a page that replaces its wrapper div with PageTransition
+      // silently loses its test id.
+      {...rest}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, y: -10, filter: "blur(4px)" }}
+      transition={{ duration: 0.36, ease: EASE }}
     >
       {children}
     </motion.div>
