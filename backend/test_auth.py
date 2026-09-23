@@ -176,4 +176,6 @@ try:
 except OSError:
     pass
 
+raise SystemExit(1 if FAILED else 0)
+
 sys.exit(1 if FAILED else 0)

@@ -1,0 +1,28 @@
+# Local venvs — never needed in a container, and nndl/ alone is hundreds of MB.
+nndl/
+.venv/
+**/__pycache__/
+*.pyc
+
+# Raw/processed training data — large, not needed to serve (only ml/scripts
+# and ml/logs are copied into the backend image).
+ml/data/
+archive*/
+
+# Frontend build artifacts / deps — rebuilt inside the frontend image.
+frontend/node_modules/
+frontend/build/
+
+# VCS / editor / docs not needed inside either image.
+.git/
+.vscode/
+.emergent/
+*.md
+*.pptx
+docs/
+memory/
+
+# Env files — never bake secrets into an image; pass them at `docker run` /
+# compose `environment:` instead.
+.env
+.env.*

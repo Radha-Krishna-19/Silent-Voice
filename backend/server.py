@@ -6,7 +6,8 @@
     # open http://localhost:8000
 
 Design choice that matters: MediaPipe runs on the SERVER, in Python, not in the
-browser. The browser only captures webcam frames and POSTs them as JPEG.
+browser. The browser only captures webcam frames and streams them over a
+WebSocket.
 
 Why:
   * the demo works with no internet — no CDN, no downloaded WASM bundles
@@ -15,13 +16,16 @@ Why:
     zero train/serve skew. A JS reimplementation would be a second thing to
     keep in sync and a second thing to get subtly wrong.
 
-Cost: a round trip per frame. On localhost that is a few milliseconds, and the
-client throttles itself to ~12 fps, which is plenty for a 60-frame window.
+Transport: a persistent WebSocket (/ws/frame), not HTTP polling. Recognition
+state (rolling landmark buffer, in-progress recording) lives per-connection,
+not in a module global — two people using the live demo at once used to
+silently corrupt each other's buffer.
 """
 from __future__ import annotations
 
 import base64
 import json
+import os
 import sys
 import time
 from collections import deque
@@ -29,7 +33,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -45,22 +49,29 @@ from preprocess import T, _lm_arr, _normalize  # noqa: E402
 
 import inference  # noqa: E402
 import gloss  # noqa: E402
+import nlg  # noqa: E402
 import practice  # noqa: E402
 import auth  # noqa: E402
 
-app = FastAPI(title="Silent Voice", version="1.1")
+app = FastAPI(title="Silent Voice", version="1.2")
+
+# CORS_ORIGINS is a comma-separated allowlist. Previously this env var was
+# declared in .env but never actually read — the middleware below was
+# hardcoded to "*" regardless. Wired up for real now.
+_cors_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware, allow_origins=_cors_origins, allow_methods=["*"], allow_headers=["*"],
 )
 app.include_router(auth.router)
 
 _holistic = None
-_buffer: deque = deque(maxlen=T)
-_recording: list[np.ndarray] = []
-_is_recording = False
 
 
 def holistic():
+    # Shared singleton is safe here: uvicorn runs a single async event loop,
+    # and holistic().process() is a synchronous call, so two connections can
+    # never actually be inside it at once — no need to pay for a model per
+    # connection.
     global _holistic
     if _holistic is None:
         _holistic = mp.solutions.holistic.Holistic(
@@ -88,6 +99,8 @@ def _startup() -> None:
     with auth.db() as _con:
         n_users = _con.execute("SELECT COUNT(*) c FROM users").fetchone()["c"]
     print(f"  accounts      : {n_users} registered  (guests store nothing)")
+    print(f"  cors origins  : {_cors_origins}")
+    print(f"  sentence NLG  : {'gemini + rule-based fallback' if os.environ.get('GEMINI_API_KEY') else 'rule-based only (no GEMINI_API_KEY set)'}")
     print("")
     print("  ->  http://localhost:8000")
     print("=" * 60 + "\n")
@@ -136,74 +149,119 @@ def _window(frames: list[np.ndarray]) -> np.ndarray:
     return _normalize(arr)
 
 
-@app.post("/api/frame")
-def frame(f: Frame):
-    global _is_recording, _recording
-
-    img = _decode(f.image)
-    if img is None:
-        return JSONResponse({"error": "bad image"}, status_code=400)
-
-    t0 = time.perf_counter()
-    h, w = img.shape[:2]
-    if w > 640:
-        img = cv2.resize(img, (640, int(h * 640 / w)), interpolation=cv2.INTER_AREA)
-
-    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    rgb.flags.writeable = False
-    res = holistic().process(rgb)
-
-    feats = np.concatenate([
-        _lm_arr(res.left_hand_landmarks, 21),
-        _lm_arr(res.right_hand_landmarks, 21),
-        _lm_arr(res.pose_landmarks, 33),
-    ])
-    _buffer.append(feats)
-
-    # ---- recording state machine (capture mode)
-    if f.record and not _is_recording:
-        _is_recording, _recording = True, []
-    if _is_recording:
-        _recording.append(feats)
-
-    prediction = None
-    finished = False
-
-    if f.mode == "capture":
-        if _is_recording and not f.record:          # user released -> classify
-            _is_recording = False
-            if len(_recording) >= 4:
-                win = _window(_recording)
-                prediction = inference.predict(win.tolist(), f.model or "bilstm")
-                # Keep the window so Practice mode can score this exact attempt
-                # without the client having to re-send every frame.
-                _last_window = win
-                globals()["_last_window"] = _last_window
-                finished = True
-            _recording = []
-    else:                                            # continuous
-        if len(_buffer) >= T // 2:
-            prediction = inference.predict(_window(list(_buffer)).tolist(), f.model or "bilstm")
-
-    hands_visible = bool(res.left_hand_landmarks or res.right_hand_landmarks)
-
-    return {
-        "landmarks": _overlay_points(res),
-        "prediction": prediction,
-        "recording": _is_recording,
-        "recorded_frames": len(_recording),
-        "hands_visible": hands_visible,
-        "finished": finished,
-        "server_ms": round((time.perf_counter() - t0) * 1000, 1),
-    }
+# --------------------------------------------------------------------------- #
+# WebSocket connection rate limiting — same in-memory sliding-window pattern
+# already proven in auth.py, rather than pulling in a new dependency.
+# --------------------------------------------------------------------------- #
+MAX_WS_CONNECTS = 20
+WS_WINDOW = 60.0
+_ws_connects: dict[str, list[float]] = {}
 
 
-@app.post("/api/reset")
-def reset():
-    global _is_recording, _recording
-    _buffer.clear()
-    _recording, _is_recording = [], False
-    return {"ok": True}
+def _ws_rate_limited(client_ip: str) -> bool:
+    now = time.time()
+    hits = [t for t in _ws_connects.get(client_ip, []) if now - t < WS_WINDOW]
+    hits.append(now)
+    _ws_connects[client_ip] = hits
+    return len(hits) > MAX_WS_CONNECTS
+
+
+# "Step 1" smoothing from ml/ROADMAP.md: drop low-confidence continuous-mode
+# predictions server-side rather than passing every noisy guess to the client
+# — gives the sentence-formation step a cleaner gloss stream to work with.
+CONTINUOUS_CONFIDENCE_FLOOR = 0.5
+
+
+@app.websocket("/ws/frame")
+async def ws_frame(websocket: WebSocket) -> None:
+    client_ip = websocket.client.host if websocket.client else "unknown"
+    if _ws_rate_limited(client_ip):
+        await websocket.close(code=1013)  # 1013 = try again later
+        return
+    await websocket.accept()
+
+    # Per-connection state. This used to be module-level globals shared by
+    # every client — two people signing at once would corrupt each other's
+    # rolling buffer and in-progress recording.
+    buffer: deque = deque(maxlen=T)
+    recording: list[np.ndarray] = []
+    is_recording = False
+
+    try:
+        while True:
+            try:
+                msg = await websocket.receive_json()
+            except (json.JSONDecodeError, ValueError):
+                await websocket.send_json({"error": "bad message"})
+                continue
+
+            try:
+                f = Frame(**msg)
+            except Exception:
+                await websocket.send_json({"error": "bad message"})
+                continue
+
+            img = _decode(f.image)
+            if img is None:
+                await websocket.send_json({"error": "bad image"})
+                continue
+
+            t0 = time.perf_counter()
+            h, w = img.shape[:2]
+            if w > 640:
+                img = cv2.resize(img, (640, int(h * 640 / w)), interpolation=cv2.INTER_AREA)
+
+            rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            rgb.flags.writeable = False
+            res = holistic().process(rgb)
+
+            feats = np.concatenate([
+                _lm_arr(res.left_hand_landmarks, 21),
+                _lm_arr(res.right_hand_landmarks, 21),
+                _lm_arr(res.pose_landmarks, 33),
+            ])
+            buffer.append(feats)
+
+            if f.record and not is_recording:
+                is_recording, recording = True, []
+            if is_recording:
+                recording.append(feats)
+
+            prediction = None
+            finished = False
+
+            if f.mode == "capture":
+                if is_recording and not f.record:          # user released -> classify
+                    is_recording = False
+                    if len(recording) >= 4:
+                        win = _window(recording)
+                        prediction = inference.predict(win.tolist(), f.model or "bilstm")
+                        # Keep the window (module-level, matches practice.py's
+                        # existing single-session contract) so Practice mode
+                        # can score this exact attempt without the client
+                        # re-sending every frame.
+                        globals()["_last_window"] = win
+                        finished = True
+                    recording = []
+            else:                                            # continuous
+                if len(buffer) >= T // 2:
+                    prediction = inference.predict(_window(list(buffer)).tolist(), f.model or "bilstm")
+                    if prediction and prediction.get("confidence", 0) < CONTINUOUS_CONFIDENCE_FLOOR:
+                        prediction = None
+
+            hands_visible = bool(res.left_hand_landmarks or res.right_hand_landmarks)
+
+            await websocket.send_json({
+                "landmarks": _overlay_points(res),
+                "prediction": prediction,
+                "recording": is_recording,
+                "recorded_frames": len(recording),
+                "hands_visible": hands_visible,
+                "finished": finished,
+                "server_ms": round((time.perf_counter() - t0) * 1000, 1),
+            })
+    except WebSocketDisconnect:
+        pass
 
 
 @app.get("/api/status")
@@ -211,6 +269,21 @@ def status():
     st = inference.status()
     st["vocabulary"] = inference._state.get("labels") or []
     return st
+
+
+# --------------------------------------------------------------------------- #
+# Sentence formation: recognized gloss stream -> fluent English.
+# Stateless by design — the client already maintains the transcript, so the
+# server doesn't need to track per-session gloss history separately from the
+# per-connection recognition buffer above.
+# --------------------------------------------------------------------------- #
+class WordsIn(BaseModel):
+    words: list[str]
+
+
+@app.post("/api/sentence")
+def sentence(body: WordsIn):
+    return nlg.glosses_to_sentence(body.words)
 
 
 # --------------------------------------------------------------------------- #

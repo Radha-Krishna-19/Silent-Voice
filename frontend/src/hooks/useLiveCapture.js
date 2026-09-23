@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { postFrame, resetSession, fetchStatus } from "../lib/api";
+import { wsFrameUrl, fetchStatus } from "../lib/api";
 
 /**
  * Drives the real ISL→English loop on /live.
  *
- * Webcam frames are captured to an offscreen canvas, encoded as JPEG and POSTed
- * to /api/frame at a fixed rate. MediaPipe runs server-side, so the browser
- * never has to load a WASM bundle and — more importantly — landmark extraction
- * is byte-for-byte the same code path used to build the training tensors.
+ * Webcam frames are captured to an offscreen canvas, encoded as JPEG and sent
+ * over a persistent WebSocket (/ws/frame) at a fixed rate. MediaPipe runs
+ * server-side, so the browser never has to load a WASM bundle and — more
+ * importantly — landmark extraction is byte-for-byte the same code path used
+ * to build the training tensors.
  *
  * States:
  *   "idle"       nothing started yet
- *   "requesting" waiting on the camera permission prompt
+ *   "requesting" waiting on the camera permission prompt / WS handshake
  *   "streaming"  frames flowing, predictions coming back
  *   "denied"     user refused camera access
  *   "offline"    camera fine, but the backend is unreachable → caller falls back to demo
@@ -29,6 +30,7 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const timerRef = useRef(null);
+  const wsRef = useRef(null);
   const inFlight = useRef(false);
   const recordRef = useRef(false);
 
@@ -63,27 +65,17 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
     return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
   }, []);
 
-  const tick = useCallback(async () => {
+  const tick = useCallback(() => {
     // Drop the frame rather than queue it — a backlog would make captions lag
     // behind the signer, which is worse than a lower effective frame rate.
     if (inFlight.current) return;
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
     const image = grabFrame();
     if (!image) return;
 
     inFlight.current = true;
-    try {
-      const r = await postFrame(image, { record: recordRef.current, mode, model });
-      setLandmarks(r.landmarks ?? null);
-      setHandsVisible(Boolean(r.hands_visible));
-      setServerMs(r.server_ms ?? null);
-      if (r.prediction) setPrediction(r.prediction);
-      setStatus((s) => (s === "offline" ? "streaming" : s));
-    } catch (err) {
-      setStatus("offline");
-      setError(err?.message ?? "backend unreachable");
-    } finally {
-      inFlight.current = false;
-    }
+    ws.send(JSON.stringify({ image, record: recordRef.current, mode, model }));
   }, [grabFrame, mode, model]);
 
   const start = useCallback(async () => {
@@ -108,8 +100,6 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
     try {
       const st = await fetchStatus();
       setBackend(st);
-      await resetSession();
-      setStatus("streaming");
     } catch {
       // Camera works; server does not. Report it rather than faking output.
       setStatus("offline");
@@ -117,12 +107,53 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
       return;
     }
 
-    timerRef.current = setInterval(tick, Math.round(1000 / FPS));
+    await new Promise((resolve) => {
+      const ws = new WebSocket(wsFrameUrl());
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setStatus("streaming");
+        timerRef.current = setInterval(tick, Math.round(1000 / FPS));
+        resolve();
+      };
+
+      ws.onmessage = (evt) => {
+        inFlight.current = false;
+        let r;
+        try {
+          r = JSON.parse(evt.data);
+        } catch {
+          return;
+        }
+        if (r.error) return;
+        setLandmarks(r.landmarks ?? null);
+        setHandsVisible(Boolean(r.hands_visible));
+        setServerMs(r.server_ms ?? null);
+        if (r.prediction) setPrediction(r.prediction);
+        setStatus((s) => (s === "offline" ? "streaming" : s));
+      };
+
+      ws.onerror = () => {
+        inFlight.current = false;
+        setStatus("offline");
+        setError("backend unreachable — start it with: cd backend && python server.py");
+        resolve();
+      };
+
+      ws.onclose = () => {
+        inFlight.current = false;
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = null;
+      };
+    });
   }, [tick]);
 
   const stop = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
+    wsRef.current?.close();
+    wsRef.current = null;
+    inFlight.current = false;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;

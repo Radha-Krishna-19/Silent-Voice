@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pause, Play, VolumeX, Volume2, Trash2, Circle, Video, VideoOff, AlertTriangle } from "lucide-react";
+import { Pause, Play, VolumeX, Volume2, Trash2, Circle, Video, VideoOff, AlertTriangle, Sparkles } from "lucide-react";
 import Nav from "../components/Nav";
 import LandmarkOverlay from "../components/LandmarkOverlay";
 import AssemblingCaption from "../components/AssemblingCaption";
@@ -11,7 +11,10 @@ import useLiveCapture from "../hooks/useLiveCapture";
 import { DOMAIN_PACKS, LIVE_CAPTION_QUEUE, RECENT_TRANSCRIPT } from "../lib/mockData";
 import { loadSettings } from "../lib/storage";
 import { saveSession } from "../lib/sessions";
+import { formSentence } from "../lib/api";
 import { CountUp, Magnetic, useRipple, PageTransition } from "../components/motion";
+
+const SENTENCE_PAUSE_MS = 1600;   // hands-not-visible pause before auto-forming a sentence
 
 const mmss = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -23,10 +26,14 @@ export default function Live() {
   const [model, setModel] = useState("bilstm");
   const [transcript, setTranscript] = useState([]);
   const [demoIdx, setDemoIdx] = useState(0);
+  const [sentence, setSentence] = useState(null);       // { sentence, source }
+  const [sentenceBusy, setSentenceBusy] = useState(false);
   const scrollRef = useRef(null);
   const lastGloss = useRef(null);
   const startedAt = useRef(null);
   const settings = useRef(loadSettings());
+  const sentencedCount = useRef(0);   // how many transcript rows the last sentence covered
+  const pauseTimer = useRef(null);
 
   const cap = useLiveCapture({ model, mode: "continuous" });
   const live = cap.isLive;
@@ -90,6 +97,47 @@ export default function Live() {
       el.scrollTop = el.scrollHeight;
     }
   }, [transcript.length]);
+
+  // ---- sentence formation: recognized words -> one fluent sentence --------
+  const runFormSentence = async () => {
+    const words = transcript.slice(sentencedCount.current).map((e) => e.text);
+    if (words.length === 0 || sentenceBusy) return;
+    setSentenceBusy(true);
+    try {
+      const r = await formSentence(words);
+      if (r?.sentence) {
+        setSentence(r);
+        sentencedCount.current = transcript.length;
+      }
+    } catch {
+      // Backend hiccup — leave the previous sentence (if any) on screen
+      // rather than clearing it; the raw transcript is still there either way.
+    } finally {
+      setSentenceBusy(false);
+    }
+  };
+
+  // Auto-form a sentence after a pause in signing (hands drop out of frame
+  // for SENTENCE_PAUSE_MS), so the user doesn't have to reach for a button
+  // mid-sentence. Only fires when there's new material since the last one.
+  useEffect(() => {
+    if (!live || paused) return undefined;
+    if (cap.handsVisible) {
+      if (pauseTimer.current) clearTimeout(pauseTimer.current);
+      return undefined;
+    }
+    if (transcript.length <= sentencedCount.current) return undefined;
+    pauseTimer.current = setTimeout(runFormSentence, SENTENCE_PAUSE_MS);
+    return () => clearTimeout(pauseTimer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cap.handsVisible, live, paused, transcript.length]);
+
+  useEffect(() => {
+    if (!live) {
+      sentencedCount.current = 0;
+      setSentence(null);
+    }
+  }, [live]);
 
   const rows = demo ? RECENT_TRANSCRIPT : transcript;
   const currentEntry = rows[rows.length - 1];
@@ -270,6 +318,32 @@ export default function Live() {
 
           {/* SIDEBAR */}
           <aside className="lg:col-span-4 glass-panel rounded-sm p-6 flex flex-col max-h-[calc(100vh-140px)]">
+            {(sentence?.sentence || sentenceBusy || (live && transcript.length > 0)) && (
+              <div className="mb-5 pb-5 border-b border-cream/10" data-testid="sentence-panel">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="micro-caps flex items-center gap-1.5 text-copper">
+                    <Sparkles className="w-3 h-3" strokeWidth={1.5} />
+                    Sentence
+                  </span>
+                  {sentence?.source && (
+                    <span className="text-[9px] uppercase tracking-widest text-cream/35">{sentence.source}</span>
+                  )}
+                </div>
+                <p className="text-sm text-cream/90 leading-relaxed min-h-[1.5rem]" data-testid="sentence-text">
+                  {sentenceBusy && !sentence?.sentence ? "Forming…" : sentence?.sentence || "Pause after signing to form a sentence."}
+                </p>
+                {live && (
+                  <button
+                    data-testid="form-sentence-btn"
+                    onClick={runFormSentence}
+                    disabled={sentenceBusy || transcript.length <= sentencedCount.current}
+                    className="focus-ring mt-2 text-[10px] uppercase tracking-widest text-cyan hover:text-cyan/70 disabled:text-cream/25 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {sentenceBusy ? "Forming…" : "Form sentence now"}
+                  </button>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4">
               <span className="micro-caps">Session transcript</span>
               <span className="text-[10px] text-cream/40">{rows.length} entries</span>

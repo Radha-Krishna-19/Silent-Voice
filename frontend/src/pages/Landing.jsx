@@ -16,8 +16,7 @@ import {
   ArrowUpRight, Radio, MessageSquare, Sparkles, ShieldCheck, Loader2,
 } from "lucide-react";
 import Nav from "../components/Nav";
-import SignTrail from "../components/SignTrail";
-import SignTrailHero from "../components/SignTrailHero";
+import VocabularyWall from "../components/VocabularyWall";
 import {
   Reveal, Stagger, StaggerItem, SplitText, Magnetic, Tilt, CountUp,
   PageTransition, EASE,
@@ -34,16 +33,10 @@ import OnboardingModal from "../components/OnboardingModal";
 import { FEATURE_CARDS } from "../lib/mockData";
 import { ALL_WORDS, VOCAB_SIZE, pretty } from "../lib/vocabulary";
 import { fetchComparison } from "../lib/api";
-import { resolveSign, SAMPLE_WORDS } from "../lib/signs";
 import { useAuth } from "../lib/auth";
 
 const iconMap = { Radio, MessageSquare, Sparkles };
 
-// The hero rotates through the words bundled with the app, so the hand is
-// performing real recordings the instant the page paints — no request, and
-// nothing to break when the backend is off. Hovering the vocabulary ribbon
-// reaches the full 261 through the API.
-const HERO_WORDS = SAMPLE_WORDS;
 
 export default function Landing() {
   const [onboardOpen, setOnboardOpen] = useState(false);
@@ -74,16 +67,7 @@ export default function Landing() {
   }, []);
 
   const [word, setWord] = useState(null);
-  const [source, setSource] = useState(null);
-  const [pinned, setPinned] = useState(null);   // word held while hovering the ribbon
 
-  // Hovering a word in the vocabulary ribbon draws THAT sign. The full 261
-  // come from the API; the 16 bundled ones answer instantly.
-  const hoverWord = async (w) => {
-    const hit = await resolveSign(w);
-    if (hit) setPinned(hit);
-  };
-  const leaveWord = () => setPinned(null);
 
   return (
     <PageTransition className="min-h-screen bg-ink text-cream overflow-x-hidden" data-testid="landing-page">
@@ -106,25 +90,10 @@ export default function Landing() {
           />
         </div>
 
-        {/* The sign, written in light — real trajectories, not decoration */}
-        <div className="absolute right-0 lg:right-[2%] top-1/2 -translate-y-1/2 w-full lg:w-[50%] h-[60vh] lg:h-[82vh] pointer-events-none">
-          {pinned ? (
-            <SignTrail
-              key={pinned.label}
-              className="absolute inset-0 w-full h-full"
-              frames={pinned.frames}
-              activeHands={pinned.activeHands}
-              lineScale={1.1}
-            />
-          ) : (
-            <SignTrailHero
-              className="absolute inset-0"
-              words={HERO_WORDS}
-              showCaption={false}
-              lineScale={1.1}
-              onWord={(w, src) => { setWord(w); setSource(src); }}
-            />
-          )}
+        {/* The vocabulary as architecture — see VocabularyWall for why the
+            hero does not render sign data. */}
+        <div className="absolute right-0 top-0 bottom-0 w-full lg:w-[44%] pointer-events-none opacity-70 lg:opacity-100">
+          <VocabularyWall className="absolute inset-0" columns={2} onWord={setWord} />
         </div>
 
         <div className="relative max-w-[1440px] w-full mx-auto px-6 md:px-12 lg:px-24 pt-40 pb-28 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
@@ -160,35 +129,25 @@ export default function Landing() {
                 />
               </p>
 
-              {/* what the hand is doing right now */}
-              <div className="h-12 mb-8">
+              <div className="h-10 mb-8">
                 <AnimatePresence mode="wait">
-                  {(pinned?.label || word) ? (
+                  {word && (
                     <motion.div
-                      key={pinned?.label || word}
-                      initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
-                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                      exit={{ opacity: 0, y: -12, filter: "blur(6px)" }}
-                      transition={{ duration: 0.3, ease: EASE }}
-                      className="flex items-baseline gap-3 flex-wrap"
+                      key={word}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.28, ease: EASE }}
+                      className="flex items-baseline gap-3 flex-wrap text-sm"
                     >
-                      <span className="micro-caps text-copper">now signing</span>
-                      <span className="font-display text-3xl tracking-tight">
-                        {pretty(pinned?.label || word)}
-                      </span>
-                      <span className="text-[11px] text-cream/30">
-                        the path a real signer's hands travelled ·{" "}
-                        {(pinned?.source || source) === "bundled" ? "bundled with the app" : "from the server"}
-                      </span>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="loading"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="flex items-center gap-2 text-xs text-cream/30"
-                    >
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />
-                      Loading a sign…
+                      <span className="micro-caps text-copper">in the set</span>
+                      <Link
+                        to={`/reverse?q=${encodeURIComponent(word)}`}
+                        className="focus-ring font-display text-2xl tracking-tight text-cream hover:text-copper transition-colors"
+                      >
+                        {pretty(word)}
+                      </Link>
+                      <span className="text-[11px] text-cream/30">see it signed</span>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -236,33 +195,31 @@ export default function Landing() {
             The whole vocabulary — {VOCAB_SIZE} signs
           </span>
           <span className="hidden sm:block text-[11px] text-cream/25">
-            hover a word to see it signed
+            click any word to see it signed
           </span>
         </div>
 
         <Marquee speed={90}>
           {ALL_WORDS.slice(0, 90).map((w) => (
-            <button
+            <Link
               key={w}
-              onMouseEnter={() => hoverWord(w)}
-              onMouseLeave={leaveWord}
+              to={`/reverse?q=${encodeURIComponent(w)}`}
               className="focus-ring text-cream/35 hover:text-copper transition-colors text-sm uppercase tracking-widest shrink-0"
             >
               <CharHover text={pretty(w)} lift={4} />
-            </button>
+            </Link>
           ))}
         </Marquee>
         <div className="h-3" />
         <Marquee speed={110} reverse>
           {ALL_WORDS.slice(90, 180).map((w) => (
-            <button
+            <Link
               key={w}
-              onMouseEnter={() => hoverWord(w)}
-              onMouseLeave={leaveWord}
+              to={`/reverse?q=${encodeURIComponent(w)}`}
               className="focus-ring text-cream/25 hover:text-cyan transition-colors text-sm uppercase tracking-widest shrink-0"
             >
               {pretty(w)}
-            </button>
+            </Link>
           ))}
         </Marquee>
       </section>

@@ -3,27 +3,34 @@
  *
  *   node scripts/trailcheck.mjs
  *
+ * Tests signTrailDraw.js DIRECTLY, as its own header says it was built for:
+ * "so a node script can render the identical code ... and be looked at."
+ * This used to boot the full compiled app bundle at "/" instead — but SignTrail
+ * is only ever mounted on /reverse and /practice (behind a live API call and a
+ * "has a reference recording" gate, respectively), so with fetch stubbed to
+ * fail, "/" rendered nothing but the Gate page's decorative starfield
+ * (ConstellationField). That component also draws with a plain per-particle
+ * strokeStyle, so every "does it draw" check happened to pass anyway — which
+ * is exactly how this kept silently testing the wrong component: the one
+ * check specific to SignTrail's actual behavior (the copper->cyan gradient
+ * ramp) failed, because a starfield has no such ramp. Driving the real
+ * exported functions with real bundled sample data is both more direct and
+ * more honest about what's actually being verified.
+ *
  * A canvas component can mount, pass a route check, and still paint nothing —
  * jsdom returns null from getContext, so the render loop silently bails and no
- * test notices. This mounts the real compiled bundle with a RECORDING 2-D
- * context and counts the draw calls, so "it renders" is measured rather than
- * assumed.
+ * test notices. This uses a RECORDING 2-D context and counts the draw calls,
+ * so "it renders" is measured rather than assumed.
  *
  * It also checks the geometry the renderer is fed: that the bundled signs are
  * trimmed, that activeHands is present, and that cropping to the active hand
  * actually makes the mark bigger — which is the whole point of the change.
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { JSDOM, VirtualConsole } from "jsdom";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const bundlePath = join(here, "../build/static/js/bundle.js");
-if (!existsSync(bundlePath)) {
-  console.error(`No bundle at ${bundlePath} — run node scripts/compile-check.js first.`);
-  process.exit(2);
-}
 
 let pass = 0;
 let fail = 0;
@@ -98,24 +105,16 @@ check("cropping typically shrinks the box a lot, so the hand renders bigger",
   median < 0.8, `median ratio ${median.toFixed(2)} (lower is better)`);
 
 /* ------------------------------------------------------------------ *
- * 2. The renderer actually paints
+ * 2. The renderer actually paints — signTrailDraw.js's real exports,
+ *    driven directly with real bundled sample frames, sweeping the
+ *    write-on "head" the same way SignTrail.jsx's rAF loop does
+ *    (0 -> 1 over time, per its `s.t += dt * 0.42 * speed`).
  * ------------------------------------------------------------------ */
 console.log("\n=== canvas output ===");
-const bundle = readFileSync(bundlePath, "utf8");
-const vc = new VirtualConsole();
-const errors = [];
-const warnings = [];
-vc.on("jsdomError", (e) => {
-  const m = String(e?.message || e);
-  if (!/not implemented|WebGL/i.test(m)) errors.push(m.split("\n")[0]);
-});
-vc.on("warn", (...a) => warnings.push(a.map(String).join(" ")));
-
-const dom = new JSDOM(
-  `<!doctype html><html><body><div id="root"></div></body></html>`,
-  { url: "http://localhost:3000/", runScripts: "outside-only", pretendToBeVisual: true, virtualConsole: vc }
+const drawSrc = readFileSync(join(here, "../src/components/signTrailDraw.js"), "utf8");
+const draw = await import(
+  `data:text/javascript;base64,${Buffer.from(drawSrc).toString("base64")}`
 );
-const { window } = dom;
 
 const calls = {};
 const bump = (k) => { calls[k] = (calls[k] || 0) + 1; };
@@ -135,56 +134,48 @@ function recordingContext() {
     createRadialGradient: () => { bump("gradient"); return { addColorStop: () => {} }; },
     createLinearGradient: () => ({ addColorStop: () => {} }),
     ellipse: () => bump("ellipse"),
+    drawImage: () => bump("drawImage"),
     save: () => {}, restore: () => {},
     set strokeStyle(v) { strokeStyles.add(String(v)); },
     get strokeStyle() { return "#000"; },
+    set filter(_v) {}, get filter() { return "none"; },
     fillStyle: "", lineWidth: 1, lineCap: "", lineJoin: "",
-    globalCompositeOperation: "", filter: "", globalAlpha: 1,
+    globalCompositeOperation: "", globalAlpha: 1,
   };
 }
 
-window.HTMLCanvasElement.prototype.getContext = function getContext() {
-  return recordingContext();
-};
-// Size ONLY the canvases whose class list says they should fill their parent.
-// Blanket-stubbing every canvas to 800x800 is what hid a real bug: a wrapper
-// composed `relative` with `absolute inset-0`, Tailwind's `.relative` won, the
-// box collapsed to zero height, and the canvas was 0x0 in the browser while
-// this test happily reported 66,299 strokes.
-let sizedCanvases = 0;
-let unsizedCanvases = 0;
-window.HTMLCanvasElement.prototype.getBoundingClientRect = function rect() {
-  const cls = this.getAttribute("class") || "";
-  const fills = /\b(w-full|inset-0)\b/.test(cls);
-  if (fills) { sizedCanvases++; return { width: 800, height: 800, top: 0, left: 0, right: 800, bottom: 800, x: 0, y: 0 }; }
-  unsizedCanvases++;
-  return { width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0 };
-};
-window.matchMedia = (q) => ({
-  matches: false, media: q, addListener() {}, removeListener() {},
-  addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false,
-});
-window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
-window.IntersectionObserver = class {
-  constructor(cb) { this.cb = cb; }
-  observe(el) { this.cb([{ isIntersecting: true, target: el, intersectionRatio: 1 }], this); }
-  unobserve() {} disconnect() {} takeRecords() { return []; }
-};
-window.scrollTo = () => {};
-window.fetch = () => Promise.reject(new TypeError("Failed to fetch"));
+// A two-handed word with a decent number of trimmed frames, so tracks for
+// both hands exist and the path has enough points to actually curve.
+const [, sample] = entries.reduce((best, cur) =>
+  cur[1].frames.length > best[1].frames.length ? cur : best);
+const hands = sample.activeHands?.length ? sample.activeHands : ["l", "r"];
+const tracks = draw.buildTracks(sample.frames, hands);
+const box = draw.fitBox(tracks);
 
-try { window.eval(bundle); } catch (e) {
-  errors.push(`bundle threw: ${String(e.message || e).split("\n")[0]}`);
+check("sample word produced usable tracks", tracks.length > 0, `${tracks.length} tracks`);
+check("sample word produced a fit box", box != null);
+
+// Sweep head 0.05 -> 1, same range SignTrail.jsx's render loop passes through
+// on every play, and paint each step into the recording context — real
+// glow pass + core pass, exactly as the component calls it.
+const scratch = recordingContext();
+const ctx = recordingContext();
+let paintError = null;
+for (let i = 1; i <= 20 && !paintError; i++) {
+  const head = i / 20;
+  try {
+    draw.paint(ctx, scratch, { w: 800, h: 800, tracks, box, head, unitScale: 1 });
+  } catch (e) {
+    paintError = `head=${head}: ${e.message}`;
+  }
 }
-
-// Let the render loop run for a while.
-await new Promise((r) => setTimeout(r, 2200));
+check("paint() runs across the full head sweep without throwing", !paintError, paintError || "");
 
 console.log(`  draw calls: ${JSON.stringify(calls)}`);
 check("the canvas was cleared each frame", (calls.clearRect || 0) > 10,
   `${calls.clearRect || 0} clears`);
-check("strokes were drawn", (calls.stroke || 0) > 200, `${calls.stroke || 0} strokes`);
-check("paths were built", (calls.moveTo || 0) > 200 && (calls.lineTo || 0) > 200,
+check("strokes were drawn", (calls.stroke || 0) > 50, `${calls.stroke || 0} strokes`);
+check("paths were built", (calls.moveTo || 0) > 50 && (calls.lineTo || 0) > 50,
   `moveTo ${calls.moveTo || 0}, lineTo ${calls.lineTo || 0}`);
 check("glow heads were painted", (calls.gradient || 0) > 0 || (calls.arc || 0) > 0);
 check("more than one colour was used along the stroke", strokeStyles.size > 5,
@@ -200,15 +191,6 @@ check("stroke colours were parsed", rgbTriples.length > 5, `${rgbTriples.length}
 check("the stroke traverses a warm-to-cool ramp",
   rgbTriples.some(([r, , b]) => r > b) && rgbTriples.some(([r, , b]) => b > r),
   `warm ${rgbTriples.filter(([r, , b]) => r > b).length}, cool ${rgbTriples.filter(([r, , b]) => b > r).length}`);
-check("no unexpected page errors", errors.length === 0, errors.slice(0, 3).join(" | "));
-
-// The renderer warns rather than painting into a 0x0 buffer. If that warning
-// ever fires here, a container has collapsed.
-const collapsed = warnings.filter((w) => w.includes("[SignTrail]"));
-check("no canvas reported a collapsed container", collapsed.length === 0,
-  collapsed[0] || "");
-
-window.close();
 
 console.log(`\n${"=".repeat(56)}\n  ${pass} passed, ${fail} failed\n${"=".repeat(56)}`);
 process.exit(fail ? 1 : 0);

@@ -31,7 +31,7 @@ both have real limits, and this README states them plainly.
 |---|---|---|
 | `/` | **Real** | Sign in, create an account, or continue as a guest. A sign is written in light beside the form. |
 | `/home` | **Real** | Signs drawn as light trails from the trained landmark data; measured metrics pulled from the backend, not hardcoded. |
-| `/live` | **Real** | Webcam → MediaPipe → BiLSTM/CNN → predicted sign. Model switchable per request. |
+| `/live` | **Real** | Webcam → MediaPipe → BiLSTM/CNN → predicted sign, streamed over a persistent WebSocket (`/ws/frame`). Model switchable per request. Pause signing and the recognized words are stitched into one fluent sentence (`/api/sentence`). |
 | `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
 | `/reverse` | **Real** | English → ISL gloss → replays actual recorded landmarks. Switch between the signer and the motion trail. |
 | `/practice` | **Real** | Records your attempt, scores it against the reference recording — hand shape, placement and movement measured separately. |
@@ -237,11 +237,20 @@ doesn't.
 
 ### Vocabulary
 
-**261 isolated words.** No sentences, no fingerspelling. INCLUDE is a
-word-level corpus, so signs for `WATER`, `NEED`, `HELP` may simply not exist —
-the app reports unknown words instead of guessing. Fingerspelling would require
-ISL manual-alphabet recordings the dataset does not contain, and ISL uses a
+**261 isolated words, recognized one at a time.** INCLUDE is a word-level
+corpus, so signs for `WATER`, `NEED`, `HELP` may simply not exist — the app
+reports unknown words instead of guessing. Fingerspelling would require ISL
+manual-alphabet recordings the dataset does not contain, and ISL uses a
 **two-handed** alphabet, so ASL fingerspelling assets cannot be substituted.
+
+Recognition itself is still isolated-word — there's no segmentation model, so
+continuous signing isn't detected as such (`ml/ROADMAP.md` §3 Step 1 is the
+honest path to that: a sliding window + CTC head). What *is* built now
+(`backend/nlg.py`) is a layer on top: once a sequence of isolated words has
+been recognized, `POST /api/sentence` turns that word list into one fluent
+English sentence — a rule-based reordering pass by default, or Gemini if
+`GEMINI_API_KEY` is set. That's real, but it's stitching together isolated
+recognitions after the fact, not continuous ISL recognition.
 
 ### Grammar
 
@@ -276,9 +285,16 @@ have no hand detected at all and are skipped rather than faked.
 
 ### Deployment
 
-Runs on `localhost` only. No authentication, no HTTPS, no rate limiting, no
-persistence. `/practice` and `/transcripts` are UI shells. This is a working
-prototype, not a product.
+Runs on `localhost` by default, over plain HTTP/WS. Authentication (scrypt
+password hashing, hashed bearer tokens, per-username rate limiting),
+persistence (SQLite — accounts, saved transcripts, practice history), and
+connection-level rate limiting on `/ws/frame` are all real and implemented
+(see `backend/auth.py`, `backend/server.py`) — `/practice` and `/transcripts`
+are backed by real endpoints, not UI shells. What's genuinely missing for a
+real deployment is TLS: see `DEPLOY.md` for a Docker + nginx setup that adds
+it via a reverse proxy. Either way, this remains a 261-word isolated-sign
+prototype, not a continuous-ISL interpreter — see §3 above for what that
+would actually take.
 
 ---
 
@@ -447,9 +463,9 @@ Base URL `http://localhost:8000`.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/api/frame` | One webcam frame → landmarks + prediction. Body: `{image, record, mode, model}` |
-| `POST` | `/api/reset` | Clear the server-side landmark buffer |
+| `WS` | `/ws/frame` | Persistent stream: send `{image, record, mode, model}` per frame, receive `{landmarks, prediction, ...}` back. Recognition state (rolling buffer, in-progress recording) is per-connection — opening a new connection is the reset, so there's no separate `/api/reset` call. |
 | `GET` | `/api/status` | Loaded models, class count, vocabulary |
+| `POST` | `/api/sentence` | Ordered recognized-word list → one fluent English sentence. Body: `{words}`. Gemini if `GEMINI_API_KEY` is set, else a deterministic rule-based fallback — see `backend/nlg.py`. |
 | `GET` | `/api/comparison` | Measured metrics from `ml/logs/comparison.json` |
 | `POST` | `/api/text-to-sign` | English → gloss **+ animation frames** |
 | `POST` | `/api/text-to-gloss` | English → gloss only (no frames) |
@@ -519,6 +535,22 @@ and each would silently mislead.
    `val_acc` and `latency_ms`; `evaluate.py` writes `test_acc` and
    `latency_ms_mean`.
 8. **Six frontend API functions called endpoints that did not exist.** Removed.
+9. **`npm run verify`'s own route and trail checks never actually ran.**
+   `routecheck.mjs`/`trailcheck.mjs` looked for an unhashed `build/static/js/bundle.js`,
+   but `craco build` only ever emits a content-hashed `main.<hash>.js` — every
+   real run hit "No bundle found" and exited before checking anything. Worse,
+   `trailcheck.mjs` also loaded the app at `/` (the Gate page, whose only canvas
+   is the decorative `ConstellationField` starfield) rather than a page that
+   actually mounts `SignTrail` (`/reverse`, `/practice`) — so even a fixed bundle
+   path would have kept silently passing "does it draw" checks against the wrong
+   component. Now `trailcheck.mjs` drives `signTrailDraw.js`'s exported functions
+   directly with real bundled sample data, which is what its own header always
+   said it was built for.
+10. **The `/live` pipeline was HTTP long-polling, not the WebSocket it was
+    documented as**, with the recognition buffer as a module-level global shared
+    by every connected client — two people using the demo at once would corrupt
+    each other's in-progress recording. Now `/ws/frame` is a real persistent
+    WebSocket with per-connection state.
 
 ---
 
@@ -528,22 +560,33 @@ and each would silently mislead.
 
 ## 12. Tests
 
-Three suites, all runnable without a GPU, a camera or the internet.
+All runnable without a GPU, a camera or the internet. Wired into
+`.github/workflows/ci.yml` on every push/PR.
 
 ```powershell
 # Accounts: hashing, tokens, per-user isolation, rate limiting, expiry
 cd backend
 ..\nndl\Scripts\python.exe test_auth.py          # 38 assertions
 
-# 3-D hand kinematics: bone-length invariance, curl trajectory,
-# finger ordering, replay of real landmark frames
+# Gloss -> English sentence formation, rule-based path
+..\nndl\Scripts\python.exe test_nlg.py           # 14 assertions
+
 cd ..\frontend
-node scripts/handmodel.test.mjs                   # 51 assertions
+
+# Static: every className string actually exists in the Tailwind build.
+node scripts/classcheck.mjs
 
 # Every route, in jsdom, with the backend deliberately DOWN.
 # Fails on any console error or a page that renders nothing.
 npm run build
 node scripts/routecheck.mjs                       # 10 routes
+
+# The sign-trail renderer (signTrailDraw.js), driven directly with real
+# bundled landmark data — geometry, glow, and the copper->cyan colour ramp.
+node scripts/trailcheck.mjs                        # 19 assertions
+
+# Or all of the frontend checks above in one go:
+npm run verify
 ```
 
 `routecheck.mjs` is the one worth understanding. A successful webpack build only
@@ -551,8 +594,14 @@ proves the code parses and resolves; it says nothing about a hook called
 conditionally, a null dereference in an effect, or a route that renders an empty
 shell. Running the real bundle in jsdom with `fetch` stubbed to fail catches all
 three, and doubles as a check that every page degrades honestly when the server is
-not running rather than white-screening.
+not running rather than white-screening. It also asserts the route guard works: a
+deep link to `/transcripts` with no identity must land on the gate. A guard that
+silently lets you through is worse than no guard.
 
-It also asserts the route guard works: a deep link to `/transcripts` with no
-identity must land on the gate. A guard that silently lets you through is worse
-than no guard.
+`trailcheck.mjs` tests `signTrailDraw.js`'s exported functions directly, as its
+own header says it was built for — a compiled-bundle version of this check used
+to boot the whole app at `/` instead, which happened to draw *something* on
+canvas (the Gate page's decorative starfield, not the sign-trail renderer) and
+so passed the generic "did it draw" checks while silently never exercising
+`SignTrail` at all — the one check specific to its actual behavior (the
+copper->cyan colour ramp) was the only one that could catch that, and did.

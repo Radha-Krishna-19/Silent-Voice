@@ -18,13 +18,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Loader2, ShieldCheck, User, KeyRound, AlertCircle, Sparkles,
 } from "lucide-react";
-import SignTrailHero from "../components/SignTrailHero";
+import VocabularyWall from "../components/VocabularyWall";
 import ConstellationField from "../components/ConstellationField";
 import { Reveal, Stagger, StaggerItem, Magnetic, useRipple, EASE } from "../components/motion";
 import { FallingInput, Scramble, Typewriter } from "../components/motion/advanced";
 import { MaskReveal } from "../components/motion/text";
 import { login, register, continueAsGuest, getToken } from "../lib/auth";
-import { SAMPLE_WORDS } from "../lib/signs";
 
 export default function Gate() {
   const nav = useNavigate();
@@ -39,7 +38,6 @@ export default function Gate() {
   const isSignup = mode === "signup";
 
   const [word, setWord] = useState(null);
-  const [source, setSource] = useState(null);
   const [shake, setShake] = useState(0);
 
   useEffect(() => {
@@ -89,14 +87,13 @@ export default function Gate() {
         {/* concentric rings, slowly counter-rotating */}
         <RingHalo />
 
-        <SignTrailHero
+        <VocabularyWall
           className="absolute inset-0"
-          showCaption={false}
-          lineScale={1.05}
-          onWord={(w, src) => { setWord(w); setSource(src); }}
+          columns={3}
+          onWord={setWord}
         />
 
-        {/* floor glow under the hand */}
+        {/* floor glow */}
         <div
           className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
           style={{ background: "linear-gradient(to top, rgba(201,123,74,0.13), transparent)" }}
@@ -115,41 +112,10 @@ export default function Gate() {
           </div>
         </motion.div>
 
-        {/* what the hand is performing */}
-        <div className="absolute bottom-8 left-8 right-8">
-          <AnimatePresence mode="wait">
-            {word ? (
-              <motion.div
-                key={word}
-                initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -12, filter: "blur(6px)" }}
-                transition={{ duration: 0.34, ease: EASE }}
-              >
-                <div className="flex items-baseline gap-3">
-                  <span className="micro-caps text-copper">now signing</span>
-                  <span className="font-display text-3xl lg:text-4xl tracking-tight">
-                    {word.replace(/_/g, " ")}
-                  </span>
-                </div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-cream/30 mt-1.5">
-                  the path a real signer's hands travelled ·{" "}
-                  {source === "bundled" ? "bundled with the app" : "from the server"}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="hint"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-xs text-cream/30 leading-relaxed max-w-sm"
-              >
-                Drawn from the landmarks the recogniser reads. No avatar, no
-                animation — just where the hands went.
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div className="absolute bottom-8 left-8 right-8 pointer-events-none">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-cream/25 leading-relaxed max-w-sm">
+            261 word-level signs. Most published ISL work reports on twenty.
+          </div>
         </div>
       </div>
 

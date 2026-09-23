@@ -12,17 +12,31 @@
  * The backend is stubbed, so this also verifies that every page degrades
  * honestly when the server is down rather than white-screening.
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM, VirtualConsole } from "jsdom";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const bundleDir = process.argv[2] || join(here, "../build");
-const bundlePath = join(bundleDir, "static/js/bundle.js");
+const jsDir = join(bundleDir, "static/js");
 
-if (!existsSync(bundlePath)) {
-  console.error(`No bundle at ${bundlePath}\nBuild first, then re-run.`);
+// craco/CRA production builds emit a content-hashed entry file
+// (main.<hash>.js), never an unhashed bundle.js — this hardcoded name meant
+// `npm run verify` failed at this exact step on every real `npm run build`
+// output. Locate the actual entry file instead of assuming its name.
+function findBundle() {
+  if (!existsSync(jsDir)) return null;
+  const candidate = readdirSync(jsDir).find(
+    (f) => /^main\.[a-f0-9]+\.js$/.test(f) || f === "bundle.js"
+  );
+  return candidate ? join(jsDir, candidate) : null;
+}
+
+const bundlePath = findBundle();
+
+if (!bundlePath) {
+  console.error(`No built entry .js found under ${jsDir}\nBuild first, then re-run.`);
   process.exit(2);
 }
 

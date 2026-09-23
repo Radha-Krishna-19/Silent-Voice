@@ -10,37 +10,46 @@ import axios from "axios";
  * than left as traps.)
  */
 
-const BASE = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+// REACT_APP_BACKEND_URL unset -> local dev default (localhost:8000).
+// REACT_APP_BACKEND_URL="" (explicitly empty, set at Docker build time) ->
+// same-origin: the production nginx config proxies /api and /ws through to
+// the backend container, so the browser only ever talks to one origin.
+const BASE = process.env.REACT_APP_BACKEND_URL !== undefined
+  ? process.env.REACT_APP_BACKEND_URL
+  : "http://localhost:8000";
 export const API = `${BASE}/api`;
 
 export const api = axios.create({ baseURL: API, timeout: 15000 });
 
+/**
+ * WebSocket URL for /ws/frame — derived from REACT_APP_BACKEND_URL so a
+ * deployed build (https://) automatically gets wss:// rather than ws://.
+ */
+export function wsFrameUrl() {
+  const origin = BASE || window.location.origin;
+  const url = new URL(`${origin}/ws/frame`);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
+}
+
 // --------------------------------------------------------------------------- //
 // Forward: ISL -> English
 // --------------------------------------------------------------------------- //
-
-/**
- * Send one webcam frame for landmark extraction + classification.
- *
- * @param {string}  image   data URL or bare base64 JPEG
- * @param {boolean} record  true while the user holds the capture button
- * @param {"capture"|"continuous"} mode
- * @param {"bilstm"|"cnn"|null} model
- */
-export async function postFrame(image, { record = false, mode = "capture", model = null } = {}) {
-  const { data } = await api.post("/frame", { image, record, mode, model });
-  return data;
-}
-
-/** Clear the server-side rolling landmark buffer and recording state. */
-export async function resetSession() {
-  const { data } = await api.post("/reset", {});
-  return data;
-}
+// Per-frame recognition itself now streams over the WebSocket (see
+// hooks/useLiveCapture.js) rather than a REST call — postFrame/resetSession
+// used to live here but a persistent connection replaces both: there's no
+// separate "reset" call because opening a new connection already starts
+// from clean per-session state.
 
 /** Which checkpoints are loaded, and the label vocabulary they were trained on. */
 export async function fetchStatus() {
   const { data } = await api.get("/status");
+  return data;
+}
+
+/** Ordered recognized-word stream -> one fluent English sentence. */
+export async function formSentence(words) {
+  const { data } = await api.post("/sentence", { words });
   return data;
 }
 

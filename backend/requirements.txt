@@ -8,3 +8,7 @@ pydantic>=2.6
 numpy>=1.26,<3
 opencv-python>=4.9
 torch>=2.2.0
+
+# Optional: only imported if GEMINI_API_KEY is set (nlg.py, gloss->sentence
+# LLM path). The app runs fine without it — falls back to the rule-based path.
+google-genai>=0.3.0
