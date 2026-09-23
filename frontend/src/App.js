@@ -1,8 +1,8 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { CursorGlow, ScrollProgress } from "./components/motion";
-import { LandmarkCursor, ScrollSpine } from "./components/motion/advanced";
+import { ScrollProgress } from "./components/motion";
+import { ScrollSpine } from "./components/motion/advanced";
 import { Toaster } from "./components/ui/sonner";
 import GrainOverlay from "./components/GrainOverlay";
 import CommandPalette from "./components/CommandPalette";
@@ -35,7 +35,7 @@ function AnimatedRoutes() {
   const g = (el) => <Gated>{el}</Gated>;
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Gate />} />
         <Route path="/home" element={g(<Landing />)} />
@@ -59,12 +59,10 @@ function App() {
   return (
     <div className="App">
       <GrainOverlay />
-      <CursorGlow />
-      <LandmarkCursor />
       <ScrollProgress />
       <ScrollSpine />
       <MotionNotice />
-      <BrowserRouter>
+      <BrowserRouter basename={process.env.PUBLIC_URL}>
         <CommandPalette />
         <AnimatedRoutes />
       </BrowserRouter>

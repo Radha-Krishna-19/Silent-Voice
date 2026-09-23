@@ -10,6 +10,30 @@
     />
     <title>Silent Voice — Every gesture, heard.</title>
 
+    <!--
+      GitHub Pages has no server-side rewrite, so a deep link (e.g. /live)
+      404s on refresh. 404.html redirects here with the real path encoded in
+      the query string; this restores it via history.replaceState before
+      React Router mounts. https://github.com/rafgraph/spa-github-pages
+    -->
+    <script>
+      (function () {
+        var q = window.location.search;
+        if (q[1] === "/") {
+          var decoded = q
+            .slice(1)
+            .split("&")
+            .map(function (s) { return s.replace(/~and~/g, "&"); })
+            .join("?");
+          window.history.replaceState(
+            null,
+            null,
+            window.location.pathname.replace(/\/$/, "") + decoded + window.location.hash
+          );
+        }
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
