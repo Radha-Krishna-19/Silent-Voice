@@ -77,7 +77,7 @@ export default function VocabularyWall({
               <span
                 key={`${w}-${n}`}
                 className={`text-[11px] uppercase tracking-[0.28em] whitespace-nowrap transition-colors duration-500 ${
-                  w === word ? "text-copper" : "text-cream/[0.07]"
+                  w === word ? "text-copper" : "text-cream/[0.16]"
                 }`}
               >
                 {pretty(w)}
@@ -100,11 +100,11 @@ export default function VocabularyWall({
       <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
         <div className="micro-caps text-cream/35 mb-4">In the vocabulary</div>
 
-        <div className="relative h-[1.15em] overflow-hidden">
+        <div className="relative h-[1.15em] overflow-hidden font-display text-[13vw] lg:text-[6.5rem] leading-[1.05]">
           <AnimatePresence mode="wait">
             <motion.div
               key={word}
-              className="font-display text-[13vw] lg:text-[6.5rem] leading-[1.05] tracking-tight text-cream text-center whitespace-nowrap"
+              className="font-display leading-[1.05] tracking-tight text-cream text-center whitespace-nowrap"
               initial={reduced ? { opacity: 0 } : { y: "105%" }}
               animate={reduced ? { opacity: 1 } : { y: "0%" }}
               exit={reduced ? { opacity: 0 } : { y: "-105%" }}
