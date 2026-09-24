@@ -8,7 +8,7 @@ import ConfidenceChip from "../components/ConfidenceChip";
 import PrivacyBadge from "../components/PrivacyBadge";
 import Waveform from "../components/Waveform";
 import useLiveCapture from "../hooks/useLiveCapture";
-import { DOMAIN_PACKS, LIVE_CAPTION_QUEUE, RECENT_TRANSCRIPT } from "../lib/mockData";
+import { LIVE_CAPTION_QUEUE, RECENT_TRANSCRIPT } from "../lib/mockData";
 import { loadSettings } from "../lib/storage";
 import { saveSession } from "../lib/sessions";
 import { formSentence } from "../lib/api";
@@ -22,7 +22,6 @@ const mmss = (s) =>
 export default function Live() {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [domain, setDomain] = useState("everyday");
   const [model, setModel] = useState("bilstm");
   const [transcript, setTranscript] = useState([]);
   const [demoIdx, setDemoIdx] = useState(0);
@@ -282,21 +281,7 @@ export default function Live() {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-1 p-1 glass-card rounded-sm" data-testid="domain-switcher">
-                {DOMAIN_PACKS.map((p) => (
-                  <button
-                    key={p.id}
-                    data-testid={`domain-pill-${p.id}`}
-                    onClick={() => setDomain(p.id)}
-                    className={`focus-ring px-4 py-1.5 text-xs uppercase tracking-widest rounded-sm transition-colors ${
-                      domain === p.id ? "bg-copper text-ink" : "text-cream/60 hover:text-cream"
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
+            <div className="mt-4 flex items-center justify-end">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1 p-1 glass-card rounded-sm" data-testid="model-switcher">
                   {["bilstm", "cnn"].map((m) => (

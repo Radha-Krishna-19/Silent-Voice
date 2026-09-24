@@ -116,18 +116,18 @@ export default function VocabularyWall({
         </div>
 
         {/* ---- layer 3: position in the set ----------------------------- */}
-        <div className="flex items-center gap-3 mt-6">
-          <span className="font-mono text-[11px] text-copper tabular-nums">
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <span className="font-mono text-[11px] text-copper tabular-nums w-8 text-right">
             {String((i % ALL_WORDS.length) + 1).padStart(3, "0")}
           </span>
-          <div className="w-32 h-px bg-cream/12 relative overflow-hidden">
+          <div className="w-32 h-px bg-cream/30 relative overflow-hidden">
             <motion.div
               className="absolute inset-y-0 left-0 bg-copper"
               animate={{ width: `${(((i % ALL_WORDS.length) + 1) / VOCAB_SIZE) * 100}%` }}
               transition={{ duration: 0.5, ease: EASE_OUT }}
             />
           </div>
-          <span className="font-mono text-[11px] text-cream/30 tabular-nums">{VOCAB_SIZE}</span>
+          <span className="font-mono text-[11px] text-cream/40 tabular-nums w-8 text-left">{VOCAB_SIZE}</span>
         </div>
 
         <div className="text-[10px] uppercase tracking-[0.22em] text-cream/25 mt-4 text-center">

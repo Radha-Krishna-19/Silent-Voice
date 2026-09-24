@@ -2,7 +2,6 @@ import "./App.css";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { ScrollProgress } from "./components/motion";
-import { ScrollSpine } from "./components/motion/advanced";
 import { Toaster } from "./components/ui/sonner";
 import GrainOverlay from "./components/GrainOverlay";
 import CommandPalette from "./components/CommandPalette";
@@ -60,7 +59,6 @@ function App() {
     <div className="App">
       <GrainOverlay />
       <ScrollProgress />
-      <ScrollSpine />
       <MotionNotice />
       <BrowserRouter basename={process.env.PUBLIC_URL}>
         <CommandPalette />
