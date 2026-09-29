@@ -31,6 +31,8 @@ DEFAULT_ARCH = "bilstm"
 
 _state: dict = {a: None for a in ARCHS}
 _state["labels"] = None
+_state["mean"] = None
+_state["std"] = None
 
 
 def load_models() -> None:
@@ -51,6 +53,19 @@ def load_models() -> None:
     except Exception as exc:
         logger.warning("failed to load label_map: %s", exc)
         return
+
+    # Per-feature mean/std the models were trained with (ml/scripts/_train.py).
+    # Inputs must be standardised the same way at inference: without it the
+    # models get 1-2 of 261 reference recordings right instead of 256-261.
+    stats = MODELS_DIR / "preproc_stats.json"
+    if stats.exists():
+        import numpy as np
+        with open(stats) as f:
+            st = json.load(f)
+        _state["mean"] = np.array(st["mean"], dtype="float32")
+        _state["std"] = np.array(st["std"], dtype="float32")
+    else:
+        logger.warning("⚠ %s missing → predictions will be unreliable", stats)
 
     try:
         import sys
@@ -89,6 +104,8 @@ def predict(landmarks, model_name: str = DEFAULT_ARCH) -> dict:
             x = np.array(landmarks, dtype="float32")
             if x.ndim == 2:
                 x = x[None, ...]
+            if _state["mean"] is not None:
+                x = (x - _state["mean"]) / (_state["std"] + 1e-6)
             with torch.no_grad():
                 logits = model(torch.from_numpy(x))
                 probs = torch.softmax(logits, dim=-1)[0]
