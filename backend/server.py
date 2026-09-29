@@ -58,7 +58,10 @@ app = FastAPI(title="Silent Voice", version="1.2")
 # CORS_ORIGINS is a comma-separated allowlist. Previously this env var was
 # declared in .env but never actually read — the middleware below was
 # hardcoded to "*" regardless. Wired up for real now.
-_cors_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
+# The default covers both spellings of the local dev origin — opening the app
+# at 127.0.0.1:3000 instead of localhost:3000 used to fail every request.
+_cors_origins = [o.strip() for o in os.environ.get(
+    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware, allow_origins=_cors_origins, allow_methods=["*"], allow_headers=["*"],
 )

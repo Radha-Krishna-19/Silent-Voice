@@ -344,6 +344,14 @@ but is only the wrong Python.
 cd backend; python server.py            # → http://localhost:8000
 ```
 
+Moved the project folder? A virtualenv stores absolute paths, so activation
+and `pip` silently break after a move. `.\run.ps1` repairs this automatically;
+to do it by hand:
+
+```powershell
+.\nndl\Scripts\python.exe scripts\fix_moved_venv.py
+```
+
 ```powershell
 cd frontend; npm start                  # → http://localhost:3000   (Node; no venv needed)
 ```
@@ -447,7 +455,7 @@ silent_voice/
 │       ├── evaluate.py       test metrics + confusion matrices
 │       └── build_sign_bank.py   tensors → playable animations
 ├── CLASSES.md                the 261 words, with clip counts
-└── memory/PRD.md             original product requirements
+└── docs/                     literature survey worksheet
 ```
 
 Derived artefacts (tensors, checkpoints, `sign_bank.json`, logs) are gitignored —

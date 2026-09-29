@@ -60,6 +60,9 @@ if (-not (Test-Path $vpy)) {
     if (-not (Test-Path $vpy)) { Die "venv creation failed" }
     Ok "created nndl\"
 } else {
+    # A venv stores absolute paths; if the project folder was moved, its
+    # activate scripts and pip.exe point at the old location. Repair in place.
+    & $vpy (Join-Path $root "scripts\fix_moved_venv.py")
     Ok "nndl\ present"
 }
 

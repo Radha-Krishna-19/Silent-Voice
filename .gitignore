@@ -55,7 +55,6 @@ venv/
 .venv/
 nndl/
 .ruff_cache/
-.emergent/
 
 # Development tools
 chainlit.md
@@ -81,7 +80,6 @@ agenthub/agents/youtube/db
 # Build caches
 .cache/
 
-memory/test_credentials.md
 
 # Mobile development
 android-sdk/
@@ -120,8 +118,6 @@ ml/logs/*.png
 ml/logs/*.md
 ml/logs/*.html
 
-# Emergent platform scaffolding — not part of the product
-.emergent/
 .ruff_cache/
 __pycache__/
 *.pyc

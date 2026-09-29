@@ -11,7 +11,7 @@
  *      or to nothing. Vestibular disorders are not an edge case in an
  *      accessibility product.
  */
-import { useEffect, useRef, useState, useCallback } from "react";
+import { forwardRef, useEffect, useRef, useState, useCallback } from "react";
 import { motion, useInView, useSpring, useMotionValue, useTransform } from "framer-motion";
 import { useReducedMotionPref } from "./preference";
 import { cn } from "../../lib/utils";
@@ -162,12 +162,16 @@ export function SplitText({ text, className = "", delay = 0, stagger = 0.022, y 
  * string, so deleting text makes the tail fall while the rest stays put.
  * Keying by index+char keeps identity stable for unchanged characters.
  * ------------------------------------------------------------------ */
-export function FallingText({ text, className = "", charClass = "" }) {
+// forwardRef: AnimatePresence mode="popLayout" measures the exiting child
+// through a ref, so the component has to accept one.
+export const FallingText = forwardRef(function FallingText(
+  { text, className = "", charClass = "" }, ref,
+) {
   const reduced = useReducedMotionPref();
   const chars = String(text ?? "").split("");
 
   return (
-    <span className={`inline-flex flex-wrap ${className}`} aria-label={text}>
+    <span ref={ref} className={`inline-flex flex-wrap ${className}`} aria-label={text}>
       {chars.map((c, i) => (
         <motion.span
           key={`${i}-${c}`}
@@ -190,7 +194,7 @@ export function FallingText({ text, className = "", charClass = "" }) {
       ))}
     </span>
   );
-}
+});
 
 /* ------------------------------------------------------------------ *
  * CountUp — animates a number to its new value. Signals "this changed".

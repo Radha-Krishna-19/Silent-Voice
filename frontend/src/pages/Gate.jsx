@@ -12,7 +12,7 @@
  * failure mode: it is simply where the hand went, which is exactly what was
  * measured.
  */
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -147,8 +147,8 @@ export default function Gate() {
                 duration={0.55}
               >
                 {isSignup
-                  ? [<>Make it <span className="italic text-copper copper-glow">yours.</span></>]
-                  : [<>Sign in, or <span className="italic text-copper copper-glow">don't.</span></>]}
+                  ? [<Fragment key="up">Make it <span className="italic text-copper copper-glow">yours.</span></Fragment>]
+                  : [<Fragment key="in">Sign in, or <span className="italic text-copper copper-glow">don't.</span></Fragment>]}
               </MaskReveal>
               <p className="text-cream/45 text-sm leading-relaxed mb-9 min-h-[2.6rem]">
                 Translate{" "}

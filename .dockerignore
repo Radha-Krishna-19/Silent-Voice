@@ -16,11 +16,9 @@ frontend/build/
 # VCS / editor / docs not needed inside either image.
 .git/
 .vscode/
-.emergent/
 *.md
 *.pptx
 docs/
-memory/
 
 # Env files — never bake secrets into an image; pass them at `docker run` /
 # compose `environment:` instead.
