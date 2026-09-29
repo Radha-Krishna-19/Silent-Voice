@@ -148,7 +148,11 @@ if ($Check) {
 Step "Starting servers"
 Stop-Ports
 
-Start-Process powershell -ArgumentList @(
+# Full path, not "powershell": on some machines the WindowsPowerShell folder
+# is missing from PATH, and the server windows would silently never open.
+$ps = Join-Path $PSHOME "powershell.exe"
+
+Start-Process $ps -ArgumentList @(
     "-NoExit", "-Command",
     "`$Host.UI.RawUI.WindowTitle='Silent Voice - backend :8000'; Set-Location '$root\backend'; & '$vpy' server.py"
 )
@@ -156,7 +160,7 @@ Ok "backend  -> http://localhost:8000"
 
 Start-Sleep -Seconds 3
 
-Start-Process powershell -ArgumentList @(
+Start-Process $ps -ArgumentList @(
     "-NoExit", "-Command",
     "`$Host.UI.RawUI.WindowTitle='Silent Voice - frontend :3000'; Set-Location '$root\frontend'; npm start"
 )

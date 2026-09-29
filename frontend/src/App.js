@@ -17,6 +17,8 @@ import About from "./pages/About";
 import Research from "./pages/Research";
 import Rubric from "./pages/Rubric";
 import { needsGate } from "./lib/auth";
+import { useEffect } from "react";
+import { useReducedMotionPref } from "./components/motion/preference";
 
 /**
  * Everything past the gate requires a decision — signed in, or explicitly a
@@ -55,6 +57,14 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  // Mirror the motion setting onto <html> so the CSS in index.css follows the
+  // same decision as the framer-motion components.
+  const reduced = useReducedMotionPref();
+  useEffect(() => {
+    if (reduced) document.documentElement.dataset.motion = "reduced";
+    else delete document.documentElement.dataset.motion;
+  }, [reduced]);
+
   return (
     <div className="App">
       <GrainOverlay />

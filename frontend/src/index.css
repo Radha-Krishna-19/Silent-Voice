@@ -93,10 +93,14 @@
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
+/* Driven by the in-app motion setting (components/motion/preference.js), not
+   the prefers-reduced-motion media query directly: the query stopped every CSS
+   animation whenever Windows reported reduced motion, even with the app's
+   setting on "on". App.js sets data-motion="reduced" when motion is off. */
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
 }
