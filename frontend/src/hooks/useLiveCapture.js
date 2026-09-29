@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { wsFrameUrl, fetchStatus } from "../lib/api";
+import { wsFrameUrl, fetchStatus, SERVER_HINT } from "../lib/api";
 
 /**
  * Drives the real ISL→English loop on /live.
@@ -103,7 +103,7 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
     } catch {
       // Camera works; server does not. Report it rather than faking output.
       setStatus("offline");
-      setError("backend unreachable — start it with: cd backend && python server.py");
+      setError(`backend unreachable — ${SERVER_HINT}`);
       return;
     }
 
@@ -136,7 +136,7 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
       ws.onerror = () => {
         inFlight.current = false;
         setStatus("offline");
-        setError("backend unreachable — start it with: cd backend && python server.py");
+        setError(`backend unreachable — ${SERVER_HINT}`);
         resolve();
       };
 

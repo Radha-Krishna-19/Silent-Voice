@@ -3,6 +3,7 @@ import { GitCompare, Database, Cpu, Waves, MessageSquareQuote, Download, Externa
 import Nav from "../components/Nav";
 import { MODEL_COMPARISON, PIPELINE_STEPS, DATASET_BREAKDOWN, NLP_STEPS, DATA_WORKFLOW } from "../lib/researchData";
 import useComparison, { metric } from "../hooks/useComparison";
+import { IS_LOCAL_BACKEND } from "../lib/api";
 
 /** Renders a measured value, or an em-dash when nothing has been measured. */
 function Stat({ value, suffix, tone, label }) {
@@ -59,9 +60,13 @@ export default function Research() {
               </div>
               <div className="text-xs text-cream/50 mt-1 leading-relaxed">
                 {comparison.status === "offline" ? (
-                  <>
-                    Start the API with <code className="font-mono bg-cream/[0.05] px-1.5 py-0.5 rounded-sm">cd backend &amp;&amp; python server.py</code>.
-                  </>
+                  IS_LOCAL_BACKEND ? (
+                    <>
+                      Start the API with <code className="font-mono bg-cream/[0.05] px-1.5 py-0.5 rounded-sm">cd backend &amp;&amp; python server.py</code>.
+                    </>
+                  ) : (
+                    <>The online server is waking up — wait about a minute, then reload the page.</>
+                  )
                 ) : (
                   <>
                     Metrics below are intentionally blank. Run{" "}

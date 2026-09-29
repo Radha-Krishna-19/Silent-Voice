@@ -24,6 +24,7 @@ import { Reveal, Stagger, StaggerItem, Magnetic, useRipple, EASE } from "../comp
 import { FallingInput, Scramble, Typewriter } from "../components/motion/advanced";
 import { MaskReveal } from "../components/motion/text";
 import { login, register, continueAsGuest, getToken } from "../lib/auth";
+import { IS_LOCAL_BACKEND } from "../lib/api";
 
 export default function Gate() {
   const nav = useNavigate();
@@ -334,9 +335,19 @@ export default function Gate() {
                 <div className="flex items-start gap-2 mt-5 text-[11px] text-cream/28 leading-relaxed">
                   <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={1.5} />
                   <span>
-                    Passwords are stored as scrypt hashes in a SQLite file on your
-                    own machine. This server speaks plain HTTP on localhost, so do
-                    not expose it to the internet or reuse a password you care about.
+                    {IS_LOCAL_BACKEND ? (
+                      <>
+                        Passwords are stored as scrypt hashes in a SQLite file on your
+                        own machine. This server speaks plain HTTP on localhost, so do
+                        not expose it to the internet or reuse a password you care about.
+                      </>
+                    ) : (
+                      <>
+                        Passwords are stored as scrypt hashes on the demo server. This
+                        is a student project: do not reuse a password you care about,
+                        and expect accounts to be reset when the server restarts.
+                      </>
+                    )}
                   </span>
                 </div>
               </div>

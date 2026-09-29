@@ -19,7 +19,21 @@ const BASE = process.env.REACT_APP_BACKEND_URL !== undefined
   : "http://localhost:8000";
 export const API = `${BASE}/api`;
 
-export const api = axios.create({ baseURL: API, timeout: 15000 });
+/** True when the app talks to a server on this machine (run.ps1). */
+export const IS_LOCAL_BACKEND = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(BASE);
+
+/**
+ * What to tell the user when the server does not answer. Locally the fix is
+ * to start it; the hosted server sleeps when idle and takes up to a minute
+ * to wake, so the fix there is to wait.
+ */
+export const SERVER_HINT = IS_LOCAL_BACKEND
+  ? "start it with: cd backend && python server.py"
+  : "the online server is waking up — wait about a minute, then reload the page";
+
+// 60 s rather than 15 s: the first request to a sleeping hosted server is
+// what wakes it, and that request must not time out while it boots.
+export const api = axios.create({ baseURL: API, timeout: 60000 });
 
 /**
  * WebSocket URL for /ws/frame — derived from REACT_APP_BACKEND_URL so a

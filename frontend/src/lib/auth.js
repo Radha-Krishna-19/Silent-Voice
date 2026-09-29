@@ -15,7 +15,7 @@
  * If you sign out, both are removed.
  */
 import { useEffect, useState } from "react";
-import { API } from "./api";
+import { API, SERVER_HINT } from "./api";
 
 const TOKEN_KEY = "silentvoice.token.v1";
 const GUEST_KEY = "silentvoice.guest.v1";
@@ -81,9 +81,7 @@ async function post(path, body) {
       body: JSON.stringify(body),
     });
   } catch {
-    throw new Error(
-      "Cannot reach the server. Start it with: cd backend && python server.py"
-    );
+    throw new Error(`Cannot reach the server — ${SERVER_HINT}.`);
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.detail || `Request failed (${res.status})`);

@@ -6,7 +6,7 @@ import SignPlayer from "../components/SignPlayer";
 import SignTrail from "../components/SignTrail";
 import LandmarkOverlay from "../components/LandmarkOverlay";
 import useLiveCapture from "../hooks/useLiveCapture";
-import { textToSign, scorePractice, fetchPracticeWords } from "../lib/api";
+import { textToSign, scorePractice, fetchPracticeWords, SERVER_HINT } from "../lib/api";
 import { loadSettings } from "../lib/storage";
 import { savePracticeAttempt } from "../lib/sessions";
 import { DOMAIN_PACKS, pretty } from "../lib/vocabulary";
@@ -138,7 +138,7 @@ export default function Practice() {
             <div className="mb-6 rounded-sm border border-copper/40 bg-copper/[0.06] p-4 flex items-start gap-3">
               <AlertTriangle className="w-4 h-4 text-copper mt-0.5 shrink-0" strokeWidth={1.5} />
               <div className="text-sm text-cream/80">
-                {error ?? "Backend unreachable — start it with: cd backend && python server.py"}
+                {error ?? `Backend unreachable — ${SERVER_HINT}`}
               </div>
             </div>
           )}

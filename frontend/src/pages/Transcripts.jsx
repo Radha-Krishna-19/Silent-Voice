@@ -10,6 +10,7 @@ import { Scramble } from "../components/motion/advanced";
 import { sessionToTxt, sessionToSrt, download, fmtDuration } from "../lib/storage";
 import { listSessions, removeSession, clearAllSessions, subscribe } from "../lib/sessions";
 import { useAuth } from "../lib/auth";
+import { IS_LOCAL_BACKEND } from "../lib/api";
 
 export default function Transcripts() {
   const [sessions, setSessions] = useState([]);
@@ -70,7 +71,9 @@ export default function Transcripts() {
                   <span>
                     Signed in, but the server did not answer. Your saved sessions are
                     still on disk — this list is empty because it could not be read.
-                    Start the backend with <code className="font-mono">python server.py</code>.
+                    {IS_LOCAL_BACKEND
+                      ? <>Start the backend with <code className="font-mono">python server.py</code>.</>
+                      : "The online server may be waking up — reload in a minute."}
                   </span>
                 </>
               ) : state.persistent ? (

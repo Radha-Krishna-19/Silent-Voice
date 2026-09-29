@@ -5,7 +5,7 @@ import { Mic, Send, Pause, Play, AlertTriangle, Loader2, Box, User } from "lucid
 import Nav from "../components/Nav";
 import SignPlayer from "../components/SignPlayer";
 import SignTrail from "../components/SignTrail";
-import { textToSign, fetchVocabulary } from "../lib/api";
+import { textToSign, fetchVocabulary, IS_LOCAL_BACKEND, SERVER_HINT } from "../lib/api";
 import { Reveal, FallingText, PageTransition, EASE } from "../components/motion";
 import { FallingInput, Scramble } from "../components/motion/advanced";
 
@@ -160,7 +160,9 @@ export default function Reverse() {
             <div>
               <div className="text-sm text-cream/90">Backend unreachable — cannot translate.</div>
               <div className="text-xs text-cream/50 mt-1">
-                {error} · start it with <code className="font-mono">cd backend &amp;&amp; python server.py</code>
+                {error} · {IS_LOCAL_BACKEND
+                  ? <>start it with <code className="font-mono">cd backend &amp;&amp; python server.py</code></>
+                  : SERVER_HINT}
               </div>
             </div>
           </div>

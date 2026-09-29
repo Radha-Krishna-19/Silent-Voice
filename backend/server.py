@@ -400,4 +400,5 @@ def index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
+    # PORT is set by hosts such as Hugging Face Spaces (7860); 8000 locally.
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8000")), log_level="warning")

@@ -33,12 +33,17 @@ jobs:
         # PUBLIC_URL is set here, not in package.json's "homepage", so the
         # Docker/nginx build (which serves from "/") is unaffected — only
         # this Pages build is rooted at the "/Silent-Voice" subpath.
-        # No backend is deployed alongside a static Pages site, so pages
-        # under /live, /reverse, /practice etc. load and render but show an
-        # honest "can't reach the server" state instead of a dead app.
+        # The backend runs on a Hugging Face Space (scripts/deploy_space.py);
+        # its URL comes from the BACKEND_URL repository variable. Left unset,
+        # the build falls back to localhost:8000 — only exported when set,
+        # because an empty REACT_APP_BACKEND_URL means "same origin", which
+        # on Pages would point at github.io.
         env:
           PUBLIC_URL: /Silent-Voice
-        run: npm run build
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: |
+          if [ -n "$BACKEND_URL" ]; then export REACT_APP_BACKEND_URL="$BACKEND_URL"; fi
+          npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
