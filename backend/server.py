@@ -26,6 +26,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import sys
 import time
 from collections import deque
@@ -113,8 +114,9 @@ def _startup() -> None:
 class Frame(BaseModel):
     image: str                      # data URL or bare base64 JPEG
     record: bool = False
-    mode: str = "capture"           # "capture" | "continuous"
+    mode: str = "capture"           # "capture" | "continuous" | "contribute"
     model: Optional[str] = None
+    contribute_label: Optional[str] = None   # word being contributed, "contribute" mode only
 
 
 def _decode(data_url: str) -> Optional[np.ndarray]:
@@ -150,6 +152,44 @@ def _window(frames: list[np.ndarray]) -> np.ndarray:
     else:
         arr = np.tile(arr, (int(np.ceil(T / len(arr))), 1))[:T]
     return _normalize(arr)
+
+
+# --------------------------------------------------------------------------- #
+# "Contribute a sign" — lets a user add a new recording toward the dataset,
+# WITHOUT retraining anything automatically. A single untrusted clip is not
+# enough to safely retrain a 261-class model on the spot (no held-out split,
+# no review, one person's signing style could skew a class), so contributions
+# are only written to disk here, plus a manifest line for a human to review.
+# Turning a batch of these into a new training run is a deliberate, separate,
+# offline step (see ml/scripts/preprocess.py) — not something this endpoint
+# does for you.
+# --------------------------------------------------------------------------- #
+CONTRIB_DIR = ROOT.parent / "ml" / "data" / "contributed"
+
+
+def _slug(label: str) -> str:
+    s = re.sub(r"[^a-z0-9]+", "_", label.strip().lower()).strip("_")
+    return s or "unlabeled"
+
+
+def _save_contribution(label: str, frames: list[np.ndarray]) -> dict:
+    """Persist one raw (unnormalised) recording for later offline review/training."""
+    slug = _slug(label)
+    out_dir = CONTRIB_DIR / slug
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    arr = np.stack(frames)   # (n_frames, 225) — same per-frame feature layout as preprocess.py
+    stamp = time.strftime("%Y%m%dT%H%M%S")
+    fname = f"{stamp}_{len(frames)}f.npy"
+    np.save(out_dir / fname, arr)
+
+    with (out_dir / "manifest.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({
+            "file": fname, "label": label, "slug": slug,
+            "frame_count": len(frames), "collected_at": stamp,
+        }) + "\n")
+
+    return {"saved": True, "slug": slug, "file": fname, "frame_count": len(frames)}
 
 
 # --------------------------------------------------------------------------- #
@@ -232,6 +272,7 @@ async def ws_frame(websocket: WebSocket) -> None:
 
             prediction = None
             finished = False
+            contribution = None
 
             if f.mode == "capture":
                 if is_recording and not f.record:          # user released -> classify
@@ -246,6 +287,17 @@ async def ws_frame(websocket: WebSocket) -> None:
                         globals()["_last_window"] = win
                         finished = True
                     recording = []
+            elif f.mode == "contribute":
+                if is_recording and not f.record:          # user released -> persist, don't classify
+                    is_recording = False
+                    if not (f.contribute_label or "").strip():
+                        contribution = {"saved": False, "error": "no word label given"}
+                    elif len(recording) < 4:
+                        contribution = {"saved": False, "error": "too short — hold the sign a little longer"}
+                    else:
+                        contribution = _save_contribution(f.contribute_label, recording)
+                    finished = True
+                    recording = []
             else:                                            # continuous
                 if len(buffer) >= T // 2:
                     prediction = inference.predict(_window(list(buffer)).tolist(), f.model or "bilstm")
@@ -257,6 +309,7 @@ async def ws_frame(websocket: WebSocket) -> None:
             await websocket.send_json({
                 "landmarks": _overlay_points(res),
                 "prediction": prediction,
+                "contribution": contribution,
                 "recording": is_recording,
                 "recorded_frames": len(recording),
                 "hands_visible": hands_visible,
@@ -388,6 +441,20 @@ def vocabulary():
     """Every word the system can actually sign back."""
     v = gloss.vocabulary()
     return {"count": len(v), "words": v}
+
+
+@app.get("/api/contributions")
+def contributions():
+    """Counts of user-contributed clips awaiting offline review/retraining."""
+    if not CONTRIB_DIR.exists():
+        return {"total": 0, "words": {}}
+    words = {}
+    for word_dir in sorted(CONTRIB_DIR.iterdir()):
+        if word_dir.is_dir():
+            n = len(list(word_dir.glob("*.npy")))
+            if n:
+                words[word_dir.name] = n
+    return {"total": sum(words.values()), "words": words}
 
 
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")

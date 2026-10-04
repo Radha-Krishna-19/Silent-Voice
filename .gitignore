@@ -90,6 +90,7 @@ archive*/
 ml/data/include/*
 ml/data/custom/*
 ml/data/processed/*
+ml/data/contributed/*
 !ml/data/**/.gitkeep
 ml/models/*.pt
 ml/models/*.json

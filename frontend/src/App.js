@@ -11,6 +11,7 @@ import Landing from "./pages/Landing";
 import Live from "./pages/Live";
 import Reverse from "./pages/Reverse";
 import Practice from "./pages/Practice";
+import Contribute from "./pages/Contribute";
 import Transcripts from "./pages/Transcripts";
 import Settings from "./pages/Settings";
 import About from "./pages/About";
@@ -43,6 +44,7 @@ function AnimatedRoutes() {
         <Route path="/live" element={g(<Live />)} />
         <Route path="/reverse" element={g(<Reverse />)} />
         <Route path="/practice" element={g(<Practice />)} />
+        <Route path="/contribute" element={g(<Contribute />)} />
         <Route path="/transcripts" element={g(<Transcripts />)} />
         <Route path="/settings" element={g(<Settings />)} />
         <Route path="/about" element={g(<About />)} />

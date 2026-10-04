@@ -1,14 +1,14 @@
 # =====================================================================
 #  Silent Voice — ONE COMMAND.
 #
-#      .\run.ps1
+#      .\run-windows.ps1
 #
 #  Checks the environment, installs anything missing, rebuilds any
 #  derived artefact that is absent, starts both servers and opens the
 #  browser. Safe to run every time: it skips whatever is already done.
 #
-#      .\run.ps1 -Check     verify only, start nothing
-#      .\run.ps1 -Stop      stop anything already running on 3000/8000
+#      .\run-windows.ps1 -Check     verify only, start nothing
+#      .\run-windows.ps1 -Stop      stop anything already running on 3000/8000
 # =====================================================================
 param([switch]$Check, [switch]$Stop)
 
@@ -194,4 +194,4 @@ Write-Host "  /practice   record an attempt, get scored"       -ForegroundColor 
 Write-Host "  /research   BiLSTM vs 1D CNN, measured"          -ForegroundColor Gray
 Write-Host "  /rubric     Review 2 rubric, scored honestly"    -ForegroundColor Gray
 Write-Host "`n  Ctrl+K anywhere opens the command palette."    -ForegroundColor Gray
-Write-Host "`n  Stop everything with:  .\run.ps1 -Stop" -ForegroundColor Gray
+Write-Host "`n  Stop everything with:  .\run-windows.ps1 -Stop" -ForegroundColor Gray

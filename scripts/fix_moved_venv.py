@@ -9,7 +9,7 @@ is run with it:
 
     nndl\Scripts\python.exe scripts\fix_moved_venv.py
 
-It is idempotent and needs no network. run.ps1 calls it automatically.
+It is idempotent and needs no network. run-windows.ps1 calls it automatically.
 """
 import re
 import sys

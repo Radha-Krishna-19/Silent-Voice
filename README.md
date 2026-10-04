@@ -313,25 +313,35 @@ would actually take.
 
 ### One command
 
+**Windows:**
 ```powershell
-.\run.ps1
+.\run-windows.ps1
+```
+Or double-click **`run-windows.bat`** if PowerShell's execution policy gets in the way.
+
+**macOS / Linux:**
+```bash
+./run-mac.sh
 ```
 
-Or double-click **`run.bat`** if PowerShell's execution policy gets in the way.
-
-That single command checks Python and Node, creates the `nndl` virtualenv and
+Either one checks Python and Node, creates the `nndl` virtualenv and
 installs packages if they are missing, rebuilds any derived artefact that is
 absent (sign bank, practice references, UI vocabulary), starts both servers,
 waits for the frontend to compile and opens the browser. Safe to run every
 time — it skips whatever is already done.
 
 ```powershell
-.\run.ps1 -Check    # verify the environment, start nothing
-.\run.ps1 -Stop     # stop whatever is running on :3000 and :8000
+.\run-windows.ps1 -Check    # verify the environment, start nothing
+.\run-windows.ps1 -Stop     # stop whatever is running on :3000 and :8000
+```
+```bash
+./run-mac.sh --check    # verify the environment, start nothing
+./run-mac.sh --stop     # stop whatever is running on :3000 and :8000
 ```
 
-It invokes `nndl\Scripts\python.exe` by full path, so **you never need to
-activate the virtualenv**.
+It invokes the venv's Python by full path (`nndl\Scripts\python.exe` on
+Windows, `nndl/bin/python` on macOS/Linux), so **you never need to activate
+the virtualenv**.
 
 ### Manually
 
@@ -343,17 +353,28 @@ but is only the wrong Python.
 .\nndl\Scripts\Activate.ps1
 cd backend; python server.py            # → http://localhost:8000
 ```
+```bash
+source nndl/bin/activate
+cd backend && python server.py          # → http://localhost:8000
+```
 
 Moved the project folder? A virtualenv stores absolute paths, so activation
-and `pip` silently break after a move. `.\run.ps1` repairs this automatically;
-to do it by hand:
+and `pip` silently break after a move. On Windows, `.\run-windows.ps1` repairs this
+automatically; to do it by hand:
 
 ```powershell
 .\nndl\Scripts\python.exe scripts\fix_moved_venv.py
 ```
 
+(`scripts/fix_moved_venv.py` only patches Windows' `.exe` launchers — on
+macOS/Linux, if you move the folder, it's simplest to just delete `nndl/`
+and re-run `./run-mac.sh`, which recreates it in seconds.)
+
 ```powershell
 cd frontend; npm start                  # → http://localhost:3000   (Node; no venv needed)
+```
+```bash
+cd frontend && npm start                # → http://localhost:3000   (Node; no venv needed)
 ```
 
 ### In VS Code
@@ -433,7 +454,8 @@ biggest gap in INCLUDE, so recording those adds the most value.
 
 ```
 silent_voice/
-├── setup.ps1 / start.ps1     one-time setup · start both servers
+├── run-windows.ps1 / run-windows.bat  one-command setup + start (Windows)
+├── run-mac.sh                 one-command setup + start (macOS/Linux)
 ├── frontend/                 React app (CRA + craco + Tailwind)
 │   └── src/
 │       ├── pages/            9 routes

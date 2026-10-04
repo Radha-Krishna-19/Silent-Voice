@@ -41,7 +41,7 @@ if (!bundlePath) {
 }
 
 const ROUTES = [
-  "/", "/home", "/live", "/reverse", "/practice",
+  "/", "/home", "/live", "/reverse", "/practice", "/contribute",
   "/transcripts", "/research", "/rubric", "/settings", "/about",
 ];
 
@@ -53,6 +53,7 @@ const EXPECT = {
   "/live": ["live-page"],
   "/reverse": ["reverse-page"],
   "/practice": ["practice-page"],
+  "/contribute": ["contribute-page"],
   "/transcripts": ["transcripts-page"],
   "/research": ["research-page"],
   "/rubric": ["rubric-page"],

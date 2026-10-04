@@ -19,7 +19,7 @@ const BASE = process.env.REACT_APP_BACKEND_URL !== undefined
   : "http://localhost:8000";
 export const API = `${BASE}/api`;
 
-/** True when the app talks to a server on this machine (run.ps1). */
+/** True when the app talks to a server on this machine (run-windows.ps1). */
 export const IS_LOCAL_BACKEND = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(BASE);
 
 /**

@@ -25,7 +25,7 @@ const FPS = 12;
 const JPEG_QUALITY = 0.7;
 const CAPTURE_W = 640;
 
-export default function useLiveCapture({ model = null, mode = "continuous" } = {}) {
+export default function useLiveCapture({ model = null, mode = "continuous", contributeLabel = null } = {}) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -33,11 +33,14 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
   const wsRef = useRef(null);
   const inFlight = useRef(false);
   const recordRef = useRef(false);
+  const contributeLabelRef = useRef(contributeLabel);
+  contributeLabelRef.current = contributeLabel;
 
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState(null);
   const [landmarks, setLandmarks] = useState(null);
   const [prediction, setPrediction] = useState(null);
+  const [contribution, setContribution] = useState(null);   // {saved, slug, file, frame_count} | {saved:false, error}
   const [handsVisible, setHandsVisible] = useState(false);
   const [serverMs, setServerMs] = useState(null);
   const [backend, setBackend] = useState(null);   // /api/status payload
@@ -75,7 +78,10 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
     if (!image) return;
 
     inFlight.current = true;
-    ws.send(JSON.stringify({ image, record: recordRef.current, mode, model }));
+    ws.send(JSON.stringify({
+      image, record: recordRef.current, mode, model,
+      contribute_label: contributeLabelRef.current,
+    }));
   }, [grabFrame, mode, model]);
 
   const start = useCallback(async () => {
@@ -130,6 +136,7 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
         setHandsVisible(Boolean(r.hands_visible));
         setServerMs(r.server_ms ?? null);
         if (r.prediction) setPrediction(r.prediction);
+        if (r.contribution) setContribution(r.contribution);
         setStatus((s) => (s === "offline" ? "streaming" : s));
       };
 
@@ -160,6 +167,7 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
     setStatus("idle");
     setLandmarks(null);
     setPrediction(null);
+    setContribution(null);
     setHandsVisible(false);
   }, []);
 
@@ -171,7 +179,7 @@ export default function useLiveCapture({ model = null, mode = "continuous" } = {
 
   return {
     videoRef, canvasRef,
-    status, error, landmarks, prediction, handsVisible, serverMs, backend, elapsed,
+    status, error, landmarks, prediction, contribution, handsVisible, serverMs, backend, elapsed,
     start, stop, setRecording,
     isLive: status === "streaming",
   };

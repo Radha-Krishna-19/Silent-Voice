@@ -1,5 +1,15 @@
 # Deploying Silent Voice
 
+**Current status:** the frontend is live on GitHub Pages
+(https://radha-krishna-19.github.io/Silent-Voice/, auto-deployed by
+`.github/workflows/pages.yml`). The backend is **not** hosted anywhere —
+its MediaPipe + PyTorch + OpenCV footprint (~500–700 MB RAM at idle) doesn't
+fit any free tier evaluated (Render's 512 MB cap included), and a paid tier
+isn't "free and reliable." It runs locally via `run.bat` /
+`python backend/server.py`, which is also exactly what everything below
+documents. A host with enough RAM is the one prerequisite for making the
+rest of this guide (Docker Compose + TLS) apply to a from-anywhere deployment.
+
 ## Quick start (Docker Compose)
 
 ```bash

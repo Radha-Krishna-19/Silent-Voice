@@ -3,7 +3,7 @@ import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Radio, MessageSquare, GraduationCap, ScrollText, Settings2, Info,
-  FlaskConical, ClipboardList, LogOut, UserRound, Command,
+  FlaskConical, ClipboardList, LogOut, UserRound, Command, Database,
 } from "lucide-react";
 import { useAuth, signOut } from "../lib/auth";
 import { Magnetic } from "./motion";
@@ -12,6 +12,7 @@ const items = [
   { to: "/live", label: "Live", icon: Radio, testId: "nav-live" },
   { to: "/reverse", label: "Reverse", icon: MessageSquare, testId: "nav-reverse" },
   { to: "/practice", label: "Practice", icon: GraduationCap, testId: "nav-practice" },
+  { to: "/contribute", label: "Contribute", icon: Database, testId: "nav-contribute" },
   { to: "/transcripts", label: "Transcripts", icon: ScrollText, testId: "nav-transcripts" },
   { to: "/research", label: "Research", icon: FlaskConical, testId: "nav-research" },
   { to: "/rubric", label: "Rubric", icon: ClipboardList, testId: "nav-rubric" },
