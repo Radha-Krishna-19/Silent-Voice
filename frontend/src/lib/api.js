@@ -114,3 +114,14 @@ export async function fetchComparison() {
   const { data } = await api.get("/comparison");
   return data;
 }
+
+// --------------------------------------------------------------------------- //
+// Contribute — user-recorded clips saved to disk for later offline review and
+// retraining. Nothing here retrains the model automatically (see Contribute.jsx).
+// --------------------------------------------------------------------------- //
+
+/** Per-word counts of clips contributed so far, awaiting offline review. */
+export async function fetchContributions() {
+  const { data } = await api.get("/contributions");
+  return data;
+}

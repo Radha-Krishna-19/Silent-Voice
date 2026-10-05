@@ -35,6 +35,7 @@ both have real limits, and this README states them plainly.
 | `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
 | `/reverse` | **Real** | English → ISL gloss → replays actual recorded landmarks. Switch between the signer and the motion trail. |
 | `/practice` | **Real** | Records your attempt, scores it against the reference recording — hand shape, placement and movement measured separately. |
+| `/contribute` | **Real** | Records a new clip for a word and saves it under `ml/data/contributed/`, queued for human review. Does **not** retrain anything automatically — see §7. |
 | `/transcripts` | **Real** | Sessions from Live. Server-side when signed in; not stored at all as a guest. |
 | `/rubric` | **Real** | The Review 2 rubric, scored against evidence the project can actually point at. |
 | `/settings` | **Real** | Preferences persist in this browser, signed in or not. |
@@ -285,16 +286,32 @@ have no hand detected at all and are skipped rather than faked.
 
 ### Deployment
 
-Runs on `localhost` by default, over plain HTTP/WS. Authentication (scrypt
-password hashing, hashed bearer tokens, per-username rate limiting),
-persistence (SQLite — accounts, saved transcripts, practice history), and
-connection-level rate limiting on `/ws/frame` are all real and implemented
-(see `backend/auth.py`, `backend/server.py`) — `/practice` and `/transcripts`
-are backed by real endpoints, not UI shells. What's genuinely missing for a
-real deployment is TLS: see `DEPLOY.md` for a Docker + nginx setup that adds
-it via a reverse proxy. Either way, this remains a 261-word isolated-sign
-prototype, not a continuous-ISL interpreter — see §3 above for what that
-would actually take.
+The **frontend** is live on GitHub Pages: https://radha-krishna-19.github.io/Silent-Voice/
+(built and deployed automatically by `.github/workflows/pages.yml` on every
+push to `main`).
+
+The **backend** is intentionally not hosted anywhere public. It loads
+MediaPipe Holistic + PyTorch + OpenCV + two model checkpoints in one process,
+which sits at roughly 500–700 MB of RAM at idle — over the 512 MB ceiling of
+the free hosting tier evaluated (Render), so it would get OOM-killed rather
+than run reliably. Paid tiers would fit, but that's a recurring cost, not a
+"free and reliable" option, so the honest choice for this project is: **run
+the backend locally** with `run-windows.bat` / `run-mac.sh` (or
+`python backend/server.py`). The live frontend's `/live`, `/practice`,
+`/reverse` and `/contribute` pages detect a missing backend and report
+"backend unreachable" rather than faking a result — that degrade-honestly
+behaviour is tested (`frontend/scripts/routecheck.mjs`, §12).
+
+Authentication (scrypt password hashing, hashed bearer tokens, per-username
+rate limiting), persistence (SQLite — accounts, saved transcripts, practice
+history), and connection-level rate limiting on `/ws/frame` are all real and
+implemented (see `backend/auth.py`, `backend/server.py`) — `/practice` and
+`/transcripts` are backed by real endpoints, not UI shells. What's genuinely
+missing for a from-anywhere deployment is TLS plus a backend host with enough
+RAM: see `DEPLOY.md` for a Docker + nginx setup that adds TLS via a reverse
+proxy once a suitable host is picked. Either way, this remains a 261-word
+isolated-sign prototype, not a continuous-ISL interpreter — see §3 above for
+what that would actually take.
 
 ---
 
@@ -448,6 +465,22 @@ python -u scripts/preprocess.py --videos data/custom_videos --out data/processed
 Aim for ≥6 clips per sign from more than one signer. Multi-sign phrases are the
 biggest gap in INCLUDE, so recording those adds the most value.
 
+#### The in-app alternative: `/contribute`
+
+Filming and running `preprocess.py` is the path above. `/contribute` is a
+lighter way to add a *single* clip from the browser: click record, get both
+hands up during the short "get ready" countdown, and the page captures the same
+per-frame landmark features the models train on, writing one `.npy` file plus a
+`manifest.jsonl` line under `ml/data/contributed/<word>/`.
+
+Deliberately **not** included: automatic retraining on submission. A single,
+unreviewed clip from one contributor has no held-out split, no quality check,
+and can quietly skew a whole class — the normal failure mode of
+"upload-and-retrain" features. Turning a batch of reviewed clips into a new
+training run stays a deliberate offline step: feed the reviewed `.npy` files
+into `preprocess.py` and rerun training as usual. `GET /api/contributions`
+reports how many clips are waiting, per word.
+
 ---
 
 ## 8. Repository layout
@@ -458,7 +491,7 @@ silent_voice/
 ├── run-mac.sh                 one-command setup + start (macOS/Linux)
 ├── frontend/                 React app (CRA + craco + Tailwind)
 │   └── src/
-│       ├── pages/            9 routes
+│       ├── pages/            10 routes
 │       ├── components/       SignPlayer (reverse playback), LandmarkOverlay, …
 │       ├── hooks/            useLiveCapture (webcam), useComparison (metrics)
 │       └── lib/api.js        every function maps to a real endpoint
@@ -502,6 +535,7 @@ Base URL `http://localhost:8000`.
 | `GET` | `/api/vocabulary` | The 261 signable words |
 | `POST` | `/api/practice/score` | Score a recorded attempt against the reference |
 | `GET` | `/api/practice/words` | Words that have a reference recording |
+| `GET` | `/api/contributions` | Per-word counts of `/contribute` clips awaiting offline review |
 | `POST` | `/api/auth/register` | Create an account. Body: `{username, password, displayName}` |
 | `POST` | `/api/auth/login` | Exchange credentials for a bearer token |
 | `POST` | `/api/auth/logout` | Revoke the current token |
@@ -609,7 +643,7 @@ node scripts/classcheck.mjs
 # Every route, in jsdom, with the backend deliberately DOWN.
 # Fails on any console error or a page that renders nothing.
 npm run build
-node scripts/routecheck.mjs                       # 10 routes
+node scripts/routecheck.mjs                       # 11 routes
 
 # The sign-trail renderer (signTrailDraw.js), driven directly with real
 # bundled landmark data — geometry, glow, and the copper->cyan colour ramp.

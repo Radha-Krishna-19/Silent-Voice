@@ -1,7 +1,8 @@
-# Deps for test_auth.py / test_nlg.py only. Neither imports server.py, so
-# neither needs torch/mediapipe/opencv (the heavy deps in requirements.txt) —
+# Deps for the backend test_*.py scripts. None of them import server.py, so
+# needs torch/mediapipe/opencv (the heavy deps in requirements.txt) —
 # keeps CI fast. The Docker build step is what actually exercises the full
 # server stack.
 fastapi>=0.110
 pydantic>=2.6
 httpx>=0.27
+numpy>=1.26

@@ -23,6 +23,12 @@ jobs:
       - name: test_nlg.py
         working-directory: backend
         run: python test_nlg.py
+      - name: test_gloss.py
+        working-directory: backend
+        run: python test_gloss.py
+      - name: test_contrib.py
+        working-directory: backend
+        run: python test_contrib.py
 
   frontend-checks:
     runs-on: ubuntu-latest

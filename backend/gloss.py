@@ -116,7 +116,7 @@ def _normalise(token: str, vocab: set[str]) -> str | None:
         return SYNONYMS[w]
     # crude morphology: plurals and common verb endings
     for suf in ("ing", "ed", "es", "s"):
-        if w.endswith(suf) and len(w) - len(suf) >= 3:
+        if w.endswith(suf) and len(w) - len(suf) >= 2:
             stem = w[: -len(suf)]
             if stem in vocab:
                 return stem

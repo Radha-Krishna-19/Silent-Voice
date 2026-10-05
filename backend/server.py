@@ -53,6 +53,7 @@ import gloss  # noqa: E402
 import nlg  # noqa: E402
 import practice  # noqa: E402
 import auth  # noqa: E402
+import contrib  # noqa: E402
 
 app = FastAPI(title="Silent Voice", version="1.2")
 
@@ -168,28 +169,12 @@ CONTRIB_DIR = ROOT.parent / "ml" / "data" / "contributed"
 
 
 def _slug(label: str) -> str:
-    s = re.sub(r"[^a-z0-9]+", "_", label.strip().lower()).strip("_")
-    return s or "unlabeled"
+    return contrib.slug(label)
 
 
 def _save_contribution(label: str, frames: list[np.ndarray]) -> dict:
     """Persist one raw (unnormalised) recording for later offline review/training."""
-    slug = _slug(label)
-    out_dir = CONTRIB_DIR / slug
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    arr = np.stack(frames)   # (n_frames, 225) — same per-frame feature layout as preprocess.py
-    stamp = time.strftime("%Y%m%dT%H%M%S")
-    fname = f"{stamp}_{len(frames)}f.npy"
-    np.save(out_dir / fname, arr)
-
-    with (out_dir / "manifest.jsonl").open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps({
-            "file": fname, "label": label, "slug": slug,
-            "frame_count": len(frames), "collected_at": stamp,
-        }) + "\n")
-
-    return {"saved": True, "slug": slug, "file": fname, "frame_count": len(frames)}
+    return contrib.save_contribution(CONTRIB_DIR, label, frames)
 
 
 # --------------------------------------------------------------------------- #
