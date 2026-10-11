@@ -1,0 +1,59 @@
+# backend/test_auth.py run at 2026-10-08T04:33:07+00:00
+
+=== hashing ===
+  PASS  verify accepts the right password
+  PASS  verify rejects a wrong password
+  PASS  same password, different salt -> different hash
+  PASS  hash is 32 bytes
+  PASS  plaintext is not recoverable from the hash
+
+=== register ===
+  PASS  register returns 200
+  PASS  register returns a token
+  PASS  register echoes the display name
+  PASS  register never returns the password hash
+  PASS  duplicate username is rejected (409)
+  PASS  short username is rejected (400)
+  PASS  short password is rejected (400)
+  PASS  username with spaces/punctuation is rejected
+
+=== login ===
+  PASS  correct password logs in
+  PASS  a second login issues a different token
+  PASS  username is case-insensitive
+  PASS  wrong password is rejected (401)
+  PASS  unknown user gives the same error as a wrong password (no enumeration)
+
+=== tokens ===
+  PASS  a valid token identifies the user
+  PASS  no token -> 401
+  PASS  forged token -> 401
+  PASS  token without the Bearer prefix -> 401
+  PASS  the raw token is NOT stored in the database
+
+=== per-user storage ===
+  PASS  a signed-in user can save a transcript
+  PASS  the transcript comes back
+  PASS  the transcript round-trips intact
+  PASS  another user CANNOT see it
+  PASS  another user CANNOT delete it
+  PASS  a guest cannot save a transcript (401)
+  PASS  practice attempts are stored
+  PASS  best-per-word is computed
+  PASS  stats reflect real rows
+
+=== logout ===
+  PASS  logout returns ok
+  PASS  the token is dead after logout
+  PASS  the OTHER session is still alive (per-token logout)
+
+=== rate limiting ===
+  PASS  repeated failures eventually return 429
+  PASS  the lockout is per-username, not global
+
+=== expiry ===
+  PASS  an expired token is rejected
+
+====================================================
+  38 passed, 0 failed
+====================================================

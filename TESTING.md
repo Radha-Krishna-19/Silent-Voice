@@ -55,8 +55,30 @@ Run everything: `cd backend && python test_auth.py && python test_nlg.py && pyth
 
 ## 6. Known gaps (not hidden)
 
-- No automated browser/UI test of the live webcam flow; this was checked by hand.
-- The WebSocket endpoint and MediaPipe path are not unit-tested in CI (they need the heavy dependencies); the Docker build only proves they install and import.
+- The live webcam flow is tested end to end in a real browser (`tests/e2e/test_e2e_system.py`), but with Chromium's synthetic camera, so it proves the integration, not recognition of a real signer; that is covered by the manual test plan.
+- The WebSocket endpoint and MediaPipe path run in the end-to-end tests, not in CI (they need the heavy dependencies and a running server).
 - The train/serve consistency check uses the reference recordings, so it is a consistency check, not an accuracy measurement.
-- Accuracy is measured on INCLUDE, recorded by a limited set of signers; real-world accuracy with new signers, lighting and cameras is untested.
+- Accuracy is measured on INCLUDE, recorded by a limited set of signers; real-world accuracy with new signers, lighting and cameras is untested beyond the manual test plan.
 - Irregular verbs ("went") are not lemmatised by the gloss rules.
+
+## 7. Full test and evaluation suite
+
+The tests above are the quick, CI-run checks. The full evaluation, structured
+after the CDAO *Test and Evaluation of AI Models* framework, is documented in
+`docs/testing/`:
+
+| Document | What it contains |
+|---|---|
+| `TEST_EVALUATION_REPORT.md` | Every test suite, framework coverage matrix, all quantitative and qualitative results (generated from the result files by `ml/scripts/tne/make_report.py`) |
+| `MANUAL_TEST_PLAN.md` | 16 manual test cases with an execution record, plus qualitative usability questions |
+| `MODEL_CARD.md`, `DATA_CARD.md` | Model and dataset documentation |
+
+| Suite | Type | Script | Evidence |
+|---|---|---|---|
+| Model internals | White-box, automated (CI) | `ml/tests/test_models_whitebox.py` | `ml/logs/tne/tests/` |
+| Model behaviour and acceptance | Black-box, automated | `ml/tests/test_models_blackbox.py` | `ml/logs/tne/tests/` |
+| Robustness, explainability, k-means, calibration, adversarial, metamorphic, bias, drift, resilience, qualitative | Automated | `ml/scripts/tne/run_all.py` | `ml/logs/tne/*.json`, `*.png`, `run_*.log` |
+| Cross-validation | Automated (retrains) | `ml/scripts/tne/crossval.py` | `ml/logs/tne/crossval.json` |
+| End-to-end browser + backend + models | Black-box system, automated | `tests/e2e/test_e2e_system.py` | `ml/logs/tne/e2e/` (results + screenshots) |
+| Backend code coverage | White-box metric | coverage.py over the backend suites | `ml/logs/tne/tests/backend_coverage.txt` |
+| Real user with a real webcam | Manual | `docs/testing/MANUAL_TEST_PLAN.md` | `docs/testing/evidence/manual/` |

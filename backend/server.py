@@ -54,6 +54,7 @@ import nlg  # noqa: E402
 import practice  # noqa: E402
 import auth  # noqa: E402
 import contrib  # noqa: E402
+from monitor import monitor  # noqa: E402
 
 app = FastAPI(title="Silent Voice", version="1.2")
 
@@ -290,6 +291,8 @@ async def ws_frame(websocket: WebSocket) -> None:
                         prediction = None
 
             hands_visible = bool(res.left_hand_landmarks or res.right_hand_landmarks)
+            monitor.record_frame(hands_visible)
+            monitor.record_prediction(prediction)
 
             await websocket.send_json({
                 "landmarks": _overlay_points(res),
@@ -303,6 +306,12 @@ async def ws_frame(websocket: WebSocket) -> None:
             })
     except WebSocketDisconnect:
         pass
+
+
+@app.get("/api/monitor")
+def monitor_report():
+    """Live-recognition health: frames, hand visibility, confidence, drift alarm (see monitor.py)."""
+    return monitor.report()
 
 
 @app.get("/api/status")

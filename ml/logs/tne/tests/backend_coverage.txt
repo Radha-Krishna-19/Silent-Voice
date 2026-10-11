@@ -1,0 +1,10 @@
+# backend unit+integration tests, statement+branch coverage (coverage.py), run at 2026-10-08T04:33:07+00:00
+Name         Stmts   Miss Branch BrPart  Cover
+----------------------------------------------
+auth.py        171      0     20      1    99%
+contrib.py      24      0      2      0   100%
+gloss.py        75      4     36      3    92%
+monitor.py      45      1      4      0    98%
+nlg.py          97     21     30      7    76%
+----------------------------------------------
+TOTAL          412     26     92     11    92%

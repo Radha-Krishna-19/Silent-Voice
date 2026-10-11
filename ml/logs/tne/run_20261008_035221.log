@@ -1,0 +1,110 @@
+T&E run started 2026-10-08T03:52:21+00:00
+python 3.11.15 | torch 2.14.1+cu130 | Linux-6.18.44-fc-v80-x86_64-with-glibc2.39
+
+=== robustness ===
+bilstm noise 0: 0.9174
+bilstm noise 0.05: 0.9169
+bilstm noise 0.1: 0.9169
+bilstm noise 0.2: 0.9180
+bilstm noise 0.5: 0.9195
+bilstm noise 1.0: 0.9195
+bilstm noise 2.0: 0.8785
+bilstm drop 0: 0.9174
+bilstm drop 0.1: 0.9071
+bilstm drop 0.2: 0.8603
+bilstm drop 0.3: 0.7830
+bilstm drop 0.5: 0.4528
+cnn noise 0: 0.9455
+cnn noise 0.05: 0.9465
+cnn noise 0.1: 0.9470
+cnn noise 0.2: 0.9470
+cnn noise 0.5: 0.9460
+cnn noise 1.0: 0.9367
+cnn noise 2.0: 0.7965
+cnn drop 0: 0.9455
+cnn drop 0.1: 0.5613
+cnn drop 0.2: 0.1807
+cnn drop 0.3: 0.0623
+cnn drop 0.5: 0.0239
+-> wrote logs/tne/robustness.json
+
+=== explainability ===
+bilstm {'none': {'acc': 0.9174454828660437, 'p_true': 0.8479730486869812}, 'left_hand': {'acc': 0.7492211838006231, 'p_true': 0.5897391438484192}, 'right_hand': {'acc': 0.3956386292834891, 'p_true': 0.2876683473587036}, 'pose': {'acc': 0.2383177570093458, 'p_true': 0.13449175655841827}} {'left_hand': 0.2279696785761653, 'right_hand': 0.33899170910704696, 'pose': 0.4330386123167877}
+cnn {'none': {'acc': 0.9454828660436138, 'p_true': 0.8802164196968079}, 'left_hand': {'acc': 0.7928348909657321, 'p_true': 0.6209011077880859}, 'right_hand': {'acc': 0.3660436137071651, 'p_true': 0.2451833337545395}, 'pose': {'acc': 0.16355140186915887, 'p_true': 0.08086882531642914}} {'left_hand': 0.20441059446281004, 'right_hand': 0.36847715768817857, 'pose': 0.42711224784901136}
+-> wrote logs/tne/explainability.json
+
+=== clustering ===
+raw_pooled_landmarks {'dim': 450, 'test_vote_acc': 0.09657320872274143, 'nmi_test': 0.8174571458856442, 'ari_test': 0.07779844707420414, 'train_purity': 0.28700300701637155}
+bilstm_embedding {'dim': 512, 'test_vote_acc': 0.881619937694704, 'nmi_test': 0.9670732182427978, 'ari_test': 0.7836128627785038, 'train_purity': 0.9552288673571667}
+cnn_embedding {'dim': 512, 'test_vote_acc': 0.8520249221183801, 'nmi_test': 0.9606841719144058, 'ari_test': 0.7030240218044788, 'train_purity': 0.9121282993651855}
+-> wrote logs/tne/clustering.json
+
+=== calibration ===
+bilstm: ECE 0.0337 -> 0.0270 (T=0.846); conf correct 0.915 wrong 0.595
+cnn: ECE 0.0345 -> 0.0239 (T=0.820); conf correct 0.925 wrong 0.698
+-> wrote logs/tne/calibration.json
+
+=== adversarial ===
+bilstm eps 0.0: FGSM 0.9174  PGD 0.9174
+bilstm eps 0.01: FGSM 0.9065  PGD 0.8988
+bilstm eps 0.02: FGSM 0.8754  PGD 0.8676
+bilstm eps 0.05: FGSM 0.8193  PGD 0.7399
+bilstm eps 0.1: FGSM 0.7181  PGD 0.4377
+bilstm eps 0.2: FGSM 0.5374  PGD 0.0966
+cnn eps 0.0: FGSM 0.9455  PGD 0.9455
+cnn eps 0.01: FGSM 0.9361  PGD 0.9361
+cnn eps 0.02: FGSM 0.9112  PGD 0.9050
+cnn eps 0.05: FGSM 0.7695  PGD 0.7274
+cnn eps 0.1: FGSM 0.4502  PGD 0.2321
+cnn eps 0.2: FGSM 0.0607  PGD 0.0062
+-> wrote logs/tne/adversarial.json
+
+=== metamorphic ===
+bilstm MR1_noise_0.1std: violations 0.003, acc 0.9159
+bilstm MR2_time_shift_pm2: violations 0.009, acc 0.9198
+bilstm MR3_speed_pm10pct: violations 0.020, acc 0.9213
+bilstm MR4_camera_shift_5pct: violations 0.516, acc 0.4704
+bilstm MR5_mirror_left_handed: violations 0.776, acc 0.2196
+cnn MR1_noise_0.1std: violations 0.005, acc 0.9470
+cnn MR2_time_shift_pm2: violations 0.005, acc 0.9431
+cnn MR3_speed_pm10pct: violations 0.011, acc 0.9439
+cnn MR4_camera_shift_5pct: violations 0.206, acc 0.7726
+cnn MR5_mirror_left_handed: violations 0.783, acc 0.2118
+-> wrote logs/tne/metamorphic.json
+
+=== bias ===
+bilstm {'few_clips': {'n_test': 223, 'acc': 0.9147982062780269}, 'medium_clips': {'n_test': 249, 'acc': 0.9156626506024096}, 'many_clips': {'n_test': 170, 'acc': 0.9235294117647059}, 'two_handed': {'n_test': 561, 'acc': 0.9251336898395722}, 'one_handed': {'n_test': 81, 'acc': 0.8641975308641975}}
+cnn {'few_clips': {'n_test': 223, 'acc': 0.9327354260089686}, 'medium_clips': {'n_test': 249, 'acc': 0.9518072289156626}, 'many_clips': {'n_test': 170, 'acc': 0.9529411764705882}, 'two_handed': {'n_test': 561, 'acc': 0.9500891265597148}, 'one_handed': {'n_test': 81, 'acc': 0.9135802469135802}}
+-> wrote logs/tne/bias.json
+
+=== drift ===
+bilstm no_drift_heldout {'feature_drift_score': 0.0, 'mean_confidence': 0.889327883720398, 'confidence_drop': 0.09404969215393066, 'alarm': False, 'accuracy': 0.92}
+bilstm sensor_noise_0.5std {'feature_drift_score': 0.0, 'mean_confidence': 0.8858439922332764, 'confidence_drop': 0.09753358364105225, 'alarm': False, 'accuracy': 0.9233333333333333}
+bilstm dropped_frames_20pct {'feature_drift_score': 0.639269406392694, 'mean_confidence': 0.7410810589790344, 'confidence_drop': 0.2422965168952942, 'alarm': True, 'accuracy': 0.8833333333333333}
+bilstm camera_shift_10pct {'feature_drift_score': 0.1506849315068493, 'mean_confidence': 0.3218309283256531, 'confidence_drop': 0.6615466475486755, 'alarm': True, 'accuracy': 0.14666666666666667}
+bilstm left_handed_signers {'feature_drift_score': 0.5342465753424658, 'mean_confidence': 0.403799444437027, 'confidence_drop': 0.5795781314373016, 'alarm': True, 'accuracy': 0.22666666666666666}
+cnn no_drift_heldout {'feature_drift_score': 0.0, 'mean_confidence': 0.9142100214958191, 'confidence_drop': 0.06703847646713257, 'alarm': False, 'accuracy': 0.9433333333333334}
+cnn sensor_noise_0.5std {'feature_drift_score': 0.0, 'mean_confidence': 0.8973382711410522, 'confidence_drop': 0.08391022682189941, 'alarm': False, 'accuracy': 0.9366666666666666}
+cnn dropped_frames_20pct {'feature_drift_score': 0.639269406392694, 'mean_confidence': 0.1970944106578827, 'confidence_drop': 0.784154087305069, 'alarm': True, 'accuracy': 0.16333333333333333}
+cnn camera_shift_10pct {'feature_drift_score': 0.1506849315068493, 'mean_confidence': 0.3911261260509491, 'confidence_drop': 0.5901223719120026, 'alarm': True, 'accuracy': 0.2633333333333333}
+cnn left_handed_signers {'feature_drift_score': 0.5342465753424658, 'mean_confidence': 0.3575919270515442, 'confidence_drop': 0.6236565709114075, 'alarm': True, 'accuracy': 0.23}
+-> wrote logs/tne/drift.json
+
+=== resilience ===
+bilstm 15 {'median_recovery_frames': 0.0, 'p90_recovery_frames': 43.099999999999994, 'median_recovery_seconds_at_12fps': 0.0, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.9746666666666667, 'n_streams': 200}
+bilstm 30 {'median_recovery_frames': 26.0, 'p90_recovery_frames': 42.0, 'median_recovery_seconds_at_12fps': 2.1666666666666665, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.9013333333333334, 'n_streams': 200}
+cnn 15 {'median_recovery_frames': 54.0, 'p90_recovery_frames': 56.0, 'median_recovery_seconds_at_12fps': 4.5, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.3710000000000001, 'n_streams': 200}
+cnn 30 {'median_recovery_frames': 54.0, 'p90_recovery_frames': 56.0, 'median_recovery_seconds_at_12fps': 4.5, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.21116666666666667, 'n_streams': 200}
+-> wrote logs/tne/resilience.json
+
+Summary:
+  robustness      OK (143s)
+  explainability  OK (39s)
+  clustering      OK (98s)
+  calibration     OK (12s)
+  adversarial     OK (660s)
+  metamorphic     OK (27s)
+  bias            OK (4s)
+  drift           OK (20s)
+  resilience      OK (169s)
+T&E run finished 2026-10-08T04:11:54+00:00

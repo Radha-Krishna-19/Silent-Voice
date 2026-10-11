@@ -1,0 +1,69 @@
+{
+ "run_at": "2026-10-08T04:32:52+00:00",
+ "frontend": "http://localhost:3000",
+ "backend": "http://localhost:8765",
+ "passed": 10,
+ "failed": 0,
+ "cases": [
+  {
+   "id": "E2E-01",
+   "name": "backend /api/status reports both models loaded",
+   "passed": true,
+   "detail": "models=['bilstm', 'cnn'], labels=261"
+  },
+  {
+   "id": "E2E-02",
+   "name": "gate: 'Continue as guest' opens the home page",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-03",
+   "name": "live: webcam frames stream over the WebSocket and the server answers",
+   "passed": true,
+   "detail": "sent 71, received 70, server_ms 84.9"
+  },
+  {
+   "id": "E2E-04",
+   "name": "live: no caption is invented for an empty scene (fake camera shows no person)",
+   "passed": true,
+   "detail": "hands_visible=False"
+  },
+  {
+   "id": "E2E-10",
+   "name": "monitor: /api/monitor counts the streamed frames (production monitoring is live)",
+   "passed": true,
+   "detail": "frames_processed 77, hand_visible_rate 0.0"
+  },
+  {
+   "id": "E2E-05",
+   "name": "reverse: 'where is the doctor tomorrow' is glossed TOMORROW DOCTOR WHERE",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-06",
+   "name": "research: page shows the measured accuracy from comparison.json",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-07",
+   "name": "practice: page loads the list of practisable words from the backend",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-08",
+   "name": "contribute: page renders with the review queue",
+   "passed": true,
+   "detail": ""
+  },
+  {
+   "id": "E2E-09",
+   "name": "no uncaught JavaScript errors on any page",
+   "passed": true,
+   "detail": ""
+  }
+ ]
+}

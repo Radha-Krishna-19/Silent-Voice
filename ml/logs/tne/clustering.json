@@ -1,0 +1,35 @@
+{
+ "meta": {
+  "script": "scripts/tne/clustering.py",
+  "run_at": "2026-10-08T03:57:01+00:00",
+  "git_commit": "unknown",
+  "python": "3.11.15",
+  "torch": "2.14.1+cu130",
+  "platform": "Linux-6.18.44-fc-v80-x86_64-with-glibc2.39",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "raw_pooled_landmarks": {
+   "dim": 450,
+   "test_vote_acc": 0.09657320872274143,
+   "nmi_test": 0.8174571458856442,
+   "ari_test": 0.07779844707420414,
+   "train_purity": 0.28700300701637155
+  },
+  "bilstm_embedding": {
+   "dim": 512,
+   "test_vote_acc": 0.881619937694704,
+   "nmi_test": 0.9670732182427978,
+   "ari_test": 0.7836128627785038,
+   "train_purity": 0.9552288673571667
+  },
+  "cnn_embedding": {
+   "dim": 512,
+   "test_vote_acc": 0.8520249221183801,
+   "nmi_test": 0.9606841719144058,
+   "ari_test": 0.7030240218044788,
+   "train_purity": 0.9121282993651855
+  }
+ }
+}

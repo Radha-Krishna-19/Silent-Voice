@@ -1,0 +1,20 @@
+# backend/test_gloss.py run at 2026-10-08T04:33:07+00:00
+  PASS  vocabulary comes from the bank
+  PASS  articles and copula are dropped
+  PASS  dropped words are reported
+  PASS  time word is fronted
+  PASS  question word goes last
+  PASS  time first AND question last
+  PASS  synonym maps onto the vocabulary
+  PASS  pronoun forms collapse (my -> i)
+  PASS  inflection removed (going -> go)
+  PASS  two-word phrase joined (thank you)
+  PASS  three-word phrase joined (how are you)
+  PASS  punctuation and case ignored
+  PASS  unknown word is reported, not invented
+  PASS  empty and None input are safe
+  PASS  gloss is upper-case labels
+  PASS  build_sequence marks every item available with frames
+  PASS  fps and quant carried through
+
+17 passed, 0 failed

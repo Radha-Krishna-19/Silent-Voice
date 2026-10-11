@@ -94,8 +94,7 @@ ml/data/contributed/*
 !ml/data/**/.gitkeep
 ml/models/*.pt
 ml/models/*.json
-ml/logs/*
-!ml/logs/.gitkeep
+# ml/logs is committed (small JSON/PNG evidence read by the Results page and the T&E report).
 backend/models/*.pt
 backend/models/*.json
 *.MOV
@@ -114,10 +113,6 @@ ml/data/processed/**/norm_stats.json
 # Trained checkpoints and training artefacts
 ml/models/*.pt
 backend/models/*.pt
-ml/logs/*.json
-ml/logs/*.png
-ml/logs/*.md
-ml/logs/*.html
 
 .ruff_cache/
 __pycache__/

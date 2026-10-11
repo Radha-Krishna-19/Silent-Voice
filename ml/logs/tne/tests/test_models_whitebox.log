@@ -1,0 +1,20 @@
+# tests/test_models_whitebox.py run at 2026-10-08T04:16:58+00:00
+  PASS  [WB-01] BiLSTM has 2,665,477 trainable parameters  (2665477)
+  PASS  [WB-02] 1D CNN has 736,773 trainable parameters  (736773)
+  PASS  [WB-03] BiLSTM maps (4, 60, 225) to (4, 261) logits
+  PASS  [WB-03] 1D CNN maps (4, 60, 225) to (4, 261) logits
+  PASS  [WB-04] BiLSTM: gradient reaches every parameter
+  PASS  [WB-04] 1D CNN: gradient reaches every parameter
+  PASS  [WB-05] BiLSTM: eval mode deterministic, train mode stochastic (dropout)
+  PASS  [WB-05] 1D CNN: eval mode deterministic, train mode stochastic (dropout)
+  PASS  [WB-06] 1D CNN BatchNorm running stats unchanged by eval-mode inference
+  PASS  [WB-07] dataset._mirror applied twice returns the original clip
+  PASS  [WB-07b] dataset._mirror moves left-hand features into the right-hand block
+  PASS  [WB-08] make_splits is deterministic (seed 42)
+  PASS  [WB-08b] train/val/test are disjoint and cover every clip
+  PASS  [WB-08c] split sizes are 70/15/15  (280/60/60)
+  PASS  [WB-08d] every class appears in the test split (stratified)
+  PASS  [WB-09] compute_stats uses exactly the files it is given
+  PASS  [WB-09b] saved preproc_stats.json equals statistics of the TRAIN split alone (no val/test leakage)
+
+17 passed, 0 failed
