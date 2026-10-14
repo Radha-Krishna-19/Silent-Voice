@@ -90,18 +90,25 @@ class LandmarkDataset(Dataset):
             # Gaussian jitter on coordinates
             x = x + np.random.normal(0, 0.01, x.shape).astype(np.float32)
 
-            # Random frame drop (simulates dropped webcam frames / MediaPipe misses)
+            # Random hand drop (simulates MediaPipe missing the hands for a frame).
+            # Only the hand blocks (cols 0:126) are zeroed — that is what a miss
+            # looks like at inference, and hands are wrist-relative so 0 is an
+            # in-distribution value. Pose (cols 126:225) is raw image coords
+            # around 0.5; zeroing it put |z| = 4-27 spikes into ~15% of frames
+            # after standardisation and kept every model at chance accuracy.
             drop = np.random.random(x.shape[0]) < 0.10
-            x[drop] = 0
+            x[drop, :126] = 0
 
-            # Random temporal shift (sign may start slightly early/late in the window)
+            # Random temporal shift (sign may start slightly early/late in the
+            # window). Edge-pad by repeating the first/last frame rather than
+            # inserting all-zero frames, for the same reason as above.
             shift = np.random.randint(-4, 5)
             if shift:
                 x = np.roll(x, shift, axis=0)
                 if shift > 0:
-                    x[:shift] = 0
+                    x[:shift] = x[shift]
                 else:
-                    x[shift:] = 0
+                    x[shift:] = x[shift - 1]
 
             # Horizontal mirror — left- vs right-handed signers
             if np.random.random() < 0.5:

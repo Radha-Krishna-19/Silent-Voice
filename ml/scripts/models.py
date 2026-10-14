@@ -1,4 +1,4 @@
-"""BiLSTM and Transformer encoders for landmark-tensor classification."""
+"""BiLSTM, 1D CNN and Transformer encoders for landmark-tensor classification."""
 from __future__ import annotations
 
 import torch
@@ -36,8 +36,37 @@ class BiLSTMClassifier(nn.Module):
         return self.head(self.dropout(pooled))
 
 
+def _sinusoidal(max_len: int, d_model: int) -> torch.Tensor:
+    """Fixed sin/cos positional table (Vaswani et al., 2017), shape (1, max_len, d)."""
+    pos = torch.arange(max_len, dtype=torch.float32)[:, None]
+    div = torch.exp(torch.arange(0, d_model, 2, dtype=torch.float32)
+                    * (-torch.log(torch.tensor(10000.0)) / d_model))
+    pe = torch.zeros(max_len, d_model)
+    pe[:, 0::2] = torch.sin(pos * div)
+    pe[:, 1::2] = torch.cos(pos * div)
+    return pe[None]
+
+
 class TransformerClassifier(nn.Module):
-    """Transformer encoder with a learned CLS token → dense → softmax.
+    """Transformer encoder over frames, CLS token → LayerNorm → dense → softmax.
+
+    The third answer to "how should the time axis be read?":
+      * BiLSTM  — recurrence: information crosses the clip one step at a time.
+      * 1D CNN  — convolution: each unit sees a fixed ~29-frame window.
+      * this    — self-attention: every frame attends to every other frame in
+                  ONE layer, so the receptive field is the whole clip from the
+                  start and the model learns which frames matter.
+
+    Sized for INCLUDE, not for NLP. With ~3,000 training clips a "standard"
+    d_model=512 / 6-layer encoder overfits immediately, so this is deliberately
+    small (d_model 128, 3 layers, ~0.6M params — the same order as the CNN):
+      * Fixed sinusoidal positions instead of learned ones — 60 learned position
+        vectors are 60 more things to fit from very little data.
+      * Pre-norm layers (norm_first) and a linear warm-up of the learning rate
+        (see TRAIN_DEFAULTS) — post-norm transformers trained at 1e-3 with no
+        warm-up routinely diverge or collapse to predicting one class.
+      * The input is projected 225 → d_model with a LayerNorm + dropout, so the
+        attention layers never see raw per-landmark scale differences.
 
     Input:  (B, T=60, 225)
     Output: (B, num_classes) logits
@@ -47,39 +76,46 @@ class TransformerClassifier(nn.Module):
         self,
         num_classes: int,
         feat_dim: int = 225,
-        d_model: int = 256,
+        d_model: int = 128,
         nhead: int = 4,
-        num_layers: int = 4,
-        dropout: float = 0.1,
-        max_len: int = 61,  # T + 1 for CLS
+        num_layers: int = 3,
+        dim_ff: int = 256,
+        dropout: float = 0.2,
+        max_len: int = 128,  # >= T + 1 for CLS; fixed table, so headroom is free
     ):
         super().__init__()
-        self.proj = nn.Linear(feat_dim, d_model)
+        self.proj = nn.Sequential(
+            nn.Linear(feat_dim, d_model),
+            nn.LayerNorm(d_model),
+            nn.Dropout(dropout),
+        )
         self.cls = nn.Parameter(torch.zeros(1, 1, d_model))
-        self.pos = nn.Parameter(torch.zeros(1, max_len, d_model))
         nn.init.trunc_normal_(self.cls, std=0.02)
-        nn.init.trunc_normal_(self.pos, std=0.02)
+        self.register_buffer("pos", _sinusoidal(max_len, d_model), persistent=False)
 
         enc_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
-            dim_feedforward=d_model * 4,
+            dim_feedforward=dim_ff,
             dropout=dropout,
             batch_first=True,
             activation="gelu",
             norm_first=True,
         )
-        self.encoder = nn.TransformerEncoder(enc_layer, num_layers=num_layers)
+        # enable_nested_tensor only applies to post-norm layers; turning it off
+        # silences a warning and changes nothing for norm_first=True.
+        self.encoder = nn.TransformerEncoder(enc_layer, num_layers=num_layers,
+                                             enable_nested_tensor=False)
         self.norm = nn.LayerNorm(d_model)
         self.head = nn.Linear(d_model, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # (B, T, 225)
         b, t, _ = x.shape
-        z = self.proj(x)                                     # (B, T, d)
-        cls = self.cls.expand(b, -1, -1)                     # (B, 1, d)
+        z = self.proj(x)                                       # (B, T, d)
+        cls = self.cls.expand(b, -1, -1)                       # (B, 1, d)
         z = torch.cat([cls, z], dim=1) + self.pos[:, : t + 1]  # (B, T+1, d)
         z = self.encoder(z)
-        return self.head(self.norm(z[:, 0]))                 # CLS token
+        return self.head(self.norm(z[:, 0]))                   # CLS token
 
 
 class CNN1DClassifier(nn.Module):
@@ -126,6 +162,20 @@ class CNN1DClassifier(nn.Module):
         z = self.features(x.transpose(1, 2))             # (B, C, T')
         pooled = torch.cat([z.mean(dim=2), z.amax(dim=2)], dim=1)
         return self.head(self.dropout(pooled))
+
+
+# Per-architecture optimiser defaults. Everything else in _train.run() — split,
+# normalisation stats, augmentation, epochs, batch size, loss, early stopping —
+# is identical for every model. BiLSTM and CNN keep exactly the settings their
+# published results were produced with (lr 1e-3, no warm-up); only the
+# Transformer differs, because attention layers need a lower peak LR and a
+# warm-up to train stably. Each run records the values it actually used in
+# logs/<arch>_history.json, so the comparison states its own conditions.
+TRAIN_DEFAULTS = {
+    "bilstm": {"lr": 1e-3, "warmup_epochs": 0},
+    "cnn": {"lr": 1e-3, "warmup_epochs": 0},
+    "transformer": {"lr": 5e-4, "warmup_epochs": 5},
+}
 
 
 def build(name: str, num_classes: int) -> nn.Module:

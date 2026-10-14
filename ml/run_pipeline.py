@@ -10,7 +10,7 @@ Flags worth knowing:
     --classes scripts/classes_isl20.txt   which words to train on (default: ISL-20)
     --max-per-class 10                    takes per word; more = better, slower
     --epochs 60                           training epochs per model
-    --models bilstm cnn                   skip the transformer if a teammate owns it
+    --models bilstm cnn                   train a subset (default: all three)
     --skip-preprocess                     go straight to training on existing tensors
 """
 from __future__ import annotations
@@ -70,10 +70,11 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--batch", type=int, default=16)
-    ap.add_argument("--models", nargs="+", default=["bilstm", "cnn"],
+    ap.add_argument("--models", nargs="+", default=["bilstm", "cnn", "transformer"],
                     choices=["bilstm", "cnn", "transformer"])
     ap.add_argument("--skip-preprocess", action="store_true")
-    ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--lr", type=float, default=None,
+                    help="Override every model's LR. Default: per-architecture (models.TRAIN_DEFAULTS).")
     ap.add_argument("--no-augment", action="store_true",
                     help="Passed through to every trainer. With ~11 clips per class the "
                          "default augmentation prevents the models from fitting at all.")
@@ -107,8 +108,9 @@ def main() -> None:
     for m in args.models:
         cmd = [py, f"scripts/train_{m}.py",
                "--epochs", str(args.epochs),
-               "--batch", str(args.batch),
-               "--lr", str(args.lr)]
+               "--batch", str(args.batch)]
+        if args.lr is not None:
+            cmd += ["--lr", str(args.lr)]
         if args.no_augment:
             cmd.append("--no-augment")
         sh(cmd)

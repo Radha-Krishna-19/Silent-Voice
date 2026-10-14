@@ -22,7 +22,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from dataset import LandmarkDataset, compute_stats, save_stats
-from models import build, param_count
+from models import TRAIN_DEFAULTS, build, param_count
 
 DATA_ROOTS = [Path("data/processed/include"), Path("data/processed/custom")]
 MODEL_DIR = Path("models")
@@ -62,9 +62,12 @@ def make_splits(paths: list[Path], label_list: list[str]):
     return train_p, val_p, test_p
 
 
-def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str,
-        patience: int = 20, augment: bool = True):
+def run(model_name: str, epochs: int, batch: int, lr: float | None, out_name: str,
+        patience: int = 20, augment: bool = True, warmup_epochs: int | None = None):
     set_seed()
+    defaults = TRAIN_DEFAULTS.get(model_name, {})
+    lr = lr if lr is not None else defaults.get("lr", 1e-3)
+    warmup_epochs = warmup_epochs if warmup_epochs is not None else defaults.get("warmup_epochs", 0)
     MODEL_DIR.mkdir(exist_ok=True)
     LOG_DIR.mkdir(exist_ok=True)
 
@@ -96,7 +99,16 @@ def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str,
     print(f"-> {model_name}: {param_count(model):,} trainable params")
 
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
-    sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
+    if warmup_epochs > 0:
+        # Linear warm-up to the peak LR, then the same cosine decay as the
+        # other models over the remaining epochs.
+        sched = torch.optim.lr_scheduler.SequentialLR(opt, [
+            torch.optim.lr_scheduler.LinearLR(opt, start_factor=0.1, total_iters=warmup_epochs),
+            torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=max(1, epochs - warmup_epochs)),
+        ], milestones=[warmup_epochs])
+    else:
+        sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
+    print(f"-> lr {lr:g}, warm-up {warmup_epochs} epochs")
     loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=0.05)
 
     best_val, best_epoch, history = 0.0, 0, []
@@ -169,6 +181,10 @@ def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str,
             "params": param_count(model),
             "train_wall_seconds": time.time() - wall0,
             "epochs_ran": len(history),
+            "lr": lr,
+            "warmup_epochs": warmup_epochs,
+            "batch": batch,
+            "augment": augment,
             "history": history,
         }, f, indent=2)
 
@@ -180,11 +196,14 @@ def cli(default_name: str, out_name: str):
     ap = argparse.ArgumentParser()
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--batch", type=int, default=32)
-    ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--lr", type=float, default=None,
+                    help="Peak learning rate. Default: models.TRAIN_DEFAULTS for this architecture.")
+    ap.add_argument("--warmup", type=int, default=None,
+                    help="Linear warm-up epochs. Default: models.TRAIN_DEFAULTS for this architecture.")
     ap.add_argument("--patience", type=int, default=20)
     ap.add_argument("--no-augment", action="store_true",
                     help="Disable jitter/frame-drop/shift/mirror. With few clips per "
                          "class the augmentation can stop the model fitting at all.")
     args = ap.parse_args()
     run(default_name, args.epochs, args.batch, args.lr, out_name, args.patience,
-        augment=not args.no_augment)
+        augment=not args.no_augment, warmup_epochs=args.warmup)

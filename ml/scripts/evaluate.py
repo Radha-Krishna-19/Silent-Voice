@@ -1,6 +1,6 @@
 """Side-by-side evaluation of every trained model on the held-out test split.
 
-Compares BiLSTM (mine), CNN (baseline / control), and Transformer (teammate's)
+Compares BiLSTM, 1D CNN (baseline / control) and Transformer
 on the *same* test split produced by _train.make_splits, so the numbers are
 directly comparable.
 
@@ -139,6 +139,8 @@ def main() -> None:
             "latency_ms_p95": float(np.percentile(latencies, 95)),
             "train_wall_seconds": hist.get("train_wall_seconds"),
             "best_epoch": state.get("epoch"),
+            "lr": hist.get("lr"),
+            "warmup_epochs": hist.get("warmup_epochs"),
             "per_class_f1": {l: rep[l]["f1-score"] for l in label_list},
         }
 

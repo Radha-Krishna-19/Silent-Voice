@@ -94,9 +94,9 @@ export const FEATURE_CARDS = [
     icon: "MessageSquare",
   },
   {
-    kicker: "Two models, measured",
-    title: "The smaller one won.",
-    body: "BiLSTM and 1D CNN trained on identical splits. The CNN reached 94.55% against 91.74% — with 3.6x fewer parameters and 5.6x lower latency.",
+    kicker: "Three models, measured",
+    title: "Recurrence came last.",
+    body: "BiLSTM, 1D CNN and Transformer trained on identical splits. CNN 94.2% and Transformer 94.0% tie within one test clip; the BiLSTM reached 88.0% with 3.6x the CNN's parameters and 7x its latency.",
     icon: "Sparkles",
   },
 ];

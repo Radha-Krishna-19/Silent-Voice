@@ -31,8 +31,8 @@ both have real limits, and this README states them plainly.
 |---|---|---|
 | `/` | **Real** | Sign in, create an account, or continue as a guest. A sign is written in light beside the form. |
 | `/home` | **Real** | Signs drawn as light trails from the trained landmark data; measured metrics pulled from the backend, not hardcoded. |
-| `/live` | **Real** | Webcam → MediaPipe → BiLSTM/CNN → predicted sign, streamed over a persistent WebSocket (`/ws/frame`). Model switchable per request. Pause signing and the recognized words are stitched into one fluent sentence (`/api/sentence`). |
-| `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
+| `/live` | **Real** | Webcam → MediaPipe → BiLSTM/CNN/Transformer → predicted sign, streamed over a persistent WebSocket (`/ws/frame`). Model switchable per request. Pause signing and the recognized words are stitched into one fluent sentence (`/api/sentence`). |
+| `/research` | **Real** | Measured BiLSTM vs CNN vs Transformer comparison, read live from `ml/logs/comparison.json`. |
 | `/reverse` | **Real** | English → ISL gloss → replays actual recorded landmarks. Switch between the signer and the motion trail. |
 | `/practice` | **Real** | Records your attempt, scores it against the reference recording — hand shape, placement and movement measured separately. |
 | `/contribute` | **Real** | Records a new clip for a word and saves it under `ml/data/contributed/`, queued for human review. Does **not** retrain anything automatically — see §7. |
@@ -158,6 +158,79 @@ here. That may change for continuous signing, where context spans many signs.
 tensors reaches 82% across all 261 classes. Both deep models clear it
 comfortably, so they are earning their complexity rather than riding separable
 features.
+
+### Adding a third model: the Transformer
+
+A third way to read the time axis was added: **self-attention**
+(`TransformerClassifier` in `ml/scripts/models.py`). Every frame attends to
+every other frame in one layer, so the receptive field is the whole clip from
+the start, where the CNN sees ~29 frames and the BiLSTM carries information
+step by step.
+
+It is deliberately small for this dataset: 128-dim, 3 pre-norm encoder layers,
+4 heads, fixed sinusoidal positions, a CLS token, and **460,677 parameters**,
+the fewest of the three. Split, normalisation stats, epochs, batch size, loss
+and early stopping are identical for all three models. Only the Transformer's
+optimiser differs (peak LR 5e-4 with a 5-epoch linear warm-up, versus 1e-3 and
+no warm-up). Attention layers trained at 1e-3 from step one are unstable. Each
+run records the values it used in `ml/logs/<arch>_history.json`
+(`models.TRAIN_DEFAULTS`).
+
+All three were retrained together on a **reduced intake**: all 261 classes,
+capped at 10 clips per class (2,546 clips), the same 70/15/15 split at seed 42,
+60 epochs, batch 32, augmentation off, on CPU (Apple silicon). They were
+evaluated on 382 held-out clips:
+
+| Metric | BiLSTM | 1D CNN | Transformer |
+|---|---|---|---|
+| Test accuracy | 87.96% | **94.24%** | 93.98% |
+| Top-5 accuracy | 96.07% | 97.91% | **98.17%** |
+| Macro F1 | 0.8627 | 0.9289 | **0.9326** |
+| Weighted F1 | 0.8643 | **0.9339** | 0.9317 |
+| Latency (mean / p95) | 3.26 / 3.41 ms | **0.44** / 0.84 ms | 0.64 / **0.76** ms |
+| Parameters | 2,665,477 | 736,773 | **460,677** |
+| Best epoch / epochs run | 34 / 54 | 58 / 60 | **25** / 45 |
+| Training time (CPU)* | 512 s | 357 s | **225 s** |
+
+\* The three trained in parallel with 3 CPU threads each, so these are
+comparable to one another but not to the 1,953 s / 287 s above.
+
+**CNN and Transformer are a statistical tie.** 94.24% vs 93.98% is a single
+test clip out of 382, and the Transformer edges ahead on top-5 and macro F1.
+The Transformer reaches that accuracy with 37% fewer parameters than the CNN
+and converges in under half the epochs. The **BiLSTM is clearly last** here,
+6 points behind. Both the CNN and the Transformer process all frames in
+parallel, and both beat recurrence.
+
+The interpretation extends the one above. Isolated signs do not need step-by-step
+temporal state. The cheap local window (CNN) and the global all-pairs view
+(Transformer) both work, so the deciding factors are size and latency, not
+accuracy. For continuous signing, the Transformer is the more natural base:
+attention over long windows plus a CTC head is the standard continuous-recognition
+design (see `ml/ROADMAP.md` §3).
+
+Caveats: with 10 clips per class, most classes have only one or two test clips,
+so per-class F1 is noisy and a one-clip gap is not a ranking. These numbers are
+not directly comparable to the full-corpus table above (fewer clips, 382 vs 642
+test clips, augmentation off). Rerunning all three on the full corpus is one
+command (below, without `--max-per-class`).
+
+**Augmentation bug found while doing this.** With augmentation on, all three
+models stayed at chance (0.3%, loss stuck at ln 261 ≈ 5.56). Frame-drop and
+time-shift zeroed *whole* frames, including pose. Pose is stored in raw image
+coordinates (≈0.5), so after standardisation a zeroed pose value is a spike 4–27
+standard deviations out, in ~15% of frames. `dataset.py` now drops only the hand
+blocks, which are wrist-relative so 0 is in-distribution, and edge-pads shifts
+by repeating the boundary frame. The table above was trained with
+`--no-augment`; the fixed augmentation has not yet been benchmarked.
+
+Reproduce the three-way run:
+
+```
+cd ml
+python run_pipeline.py --videos "../archive (3)" --classes all --max-per-class 10 \
+    --sample-frames 32 --epochs 60 --batch 32 --no-augment
+```
 
 Regenerate everything with `cd ml && python scripts/evaluate.py`.
 

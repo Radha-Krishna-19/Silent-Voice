@@ -19,10 +19,13 @@ const SENTENCE_PAUSE_MS = 1600;   // hands-not-visible pause before auto-forming
 const mmss = (s) =>
   `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
+const MODEL_LABELS = [["bilstm", "BiLSTM"], ["cnn", "CNN"], ["transformer", "Transformer"]];
+
 export default function Live() {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [model, setModel] = useState("bilstm");
+  // Start on the model chosen in Settings; the switcher below can override it per session.
+  const [model, setModel] = useState(() => loadSettings().model || "bilstm");
   const [transcript, setTranscript] = useState([]);
   const [demoIdx, setDemoIdx] = useState(0);
   const [sentence, setSentence] = useState(null);       // { sentence, source }
@@ -73,7 +76,7 @@ export default function Live() {
         ts: mmss(cap.elapsed),
         text: gloss,
         confidence: p.confidence ?? 0,
-        corrections: (p.topk ?? []).slice(1, 4).map((c) => c.label ?? c[0]).filter(Boolean),
+        corrections: (p.alternatives ?? []).slice(0, 3).map((c) => c.label).filter(Boolean),
       },
     ]);
   }, [cap.prediction, cap.elapsed, paused]);
@@ -284,17 +287,23 @@ export default function Live() {
             <div className="mt-4 flex items-center justify-end">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1 p-1 glass-card rounded-sm" data-testid="model-switcher">
-                  {["bilstm", "cnn"].map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setModel(m)}
-                      className={`focus-ring px-3 py-1.5 text-xs uppercase tracking-widest rounded-sm transition-colors ${
-                        model === m ? "bg-cyan/20 text-cyan" : "text-cream/50 hover:text-cream"
-                      }`}
-                    >
-                      {m === "bilstm" ? "BiLSTM" : "CNN"}
-                    </button>
-                  ))}
+                  {MODEL_LABELS.map(([m, name]) => {
+                    // Once the backend has answered, only offer checkpoints it actually loaded.
+                    const unavailable = !!cap.backend?.models && !cap.backend.models.includes(m);
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => setModel(m)}
+                        disabled={unavailable}
+                        title={unavailable ? `${name} checkpoint not loaded on the server` : undefined}
+                        className={`focus-ring px-3 py-1.5 text-xs uppercase tracking-widest rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                          model === m ? "bg-cyan/20 text-cyan" : "text-cream/50 hover:text-cream"
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="text-xs text-cream/40">Session · {mmss(live ? cap.elapsed : 0)}</div>
               </div>

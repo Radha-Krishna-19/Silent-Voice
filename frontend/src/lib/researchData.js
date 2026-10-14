@@ -1,5 +1,5 @@
 /**
- * The two architectures under comparison.
+ * The three architectures under comparison.
  *
  * IMPORTANT: `valAcc`, `latencyMs` and `params` are deliberately null.
  * They are populated at runtime from GET /api/comparison, which reads
@@ -60,16 +60,43 @@ export const MODEL_COMPARISON = [
       "Pooling can discard precise timing information",
     ],
   },
+  {
+    id: "transformer",
+    name: "Transformer",
+    kicker: "Model C · Self-attention",
+    tagline: "Reads the gesture as frames that all look at each other.",
+    architecture: [
+      "Linear 225 → 128 · LayerNorm · CLS token",
+      "Fixed sinusoidal positions over T",
+      "3× pre-norm encoder layers (4 heads, FF 256)",
+      "CLS → LayerNorm → softmax · LR warm-up 5 epochs",
+    ],
+    params: null,
+    valAcc: null,
+    latencyMs: null,
+    hypothesis:
+      "Attention gives every frame a view of the whole clip in one layer. If a sign is defined by how its start relates to its end, attention should find that link directly rather than carrying it step by step.",
+    strengths: [
+      "Global receptive field from the first layer",
+      "Fully parallel over time, like the CNN",
+      "Learns which frames matter, so rest frames can be ignored",
+    ],
+    weaknesses: [
+      "Data-hungry — few inductive biases about locality or order",
+      "Needs warm-up and a lower learning rate to train stably",
+      "Attention cost grows with T² (small at T = 60)",
+    ],
+  },
 ];
 
 /** Which architecture keys the backend may report in comparison.json. */
-export const ARCH_IDS = ["bilstm", "cnn"];
+export const ARCH_IDS = ["bilstm", "cnn", "transformer"];
 
 export const PIPELINE_STEPS = [
-  { n: "01", t: "Frame capture", b: "Webcam → canvas → JPEG, throttled to 12 fps, POSTed to the local server." },
+  { n: "01", t: "Frame capture", b: "Webcam → canvas → JPEG, throttled to 12 fps, streamed to the server over a WebSocket." },
   { n: "02", t: "MediaPipe Holistic", b: "21+21 hand and 33 pose landmarks, extracted SERVER-side in Python — the same code that built the training data." },
   { n: "03", t: "Preprocess", b: "Wrist-origin normalise · shoulder-scale · resample to T=60 · z-score with train-split stats." },
-  { n: "04", t: "Model inference", b: "BiLSTM or 1D CNN (chosen by the model field on /api/frame) → softmax over 261 classes." },
+  { n: "04", t: "Model inference", b: "BiLSTM, 1D CNN or Transformer (chosen by the model field on /ws/frame) → softmax over 261 classes." },
   { n: "05", t: "Label → caption", b: "The predicted class name is shown directly. No LLM: the model outputs one word, not a sentence." },
   { n: "06", t: "TTS", b: "Web Speech reads the predicted word aloud in the browser." },
 ];

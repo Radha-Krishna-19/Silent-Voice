@@ -32,7 +32,7 @@ export default function Research() {
           <div className="lg:col-span-5">
             <div className="micro-caps mb-3">Research · Phase 3 preview</div>
             <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.05]">
-              Two models, <span className="italic text-copper">one honest comparison.</span>
+              Three models, <span className="italic text-copper">one honest comparison.</span>
             </h1>
           </div>
           <div className="lg:col-span-7 text-cream/70 text-lg leading-relaxed space-y-4">
@@ -40,7 +40,7 @@ export default function Research() {
               Sign recognition here operates on <span className="text-cream">landmark tensors</span>, not pixels &mdash; a clip becomes a 60&times;225 array of joint coordinates. The architectural question is therefore how best to read the <span className="text-cream">time axis</span> of that array.
             </p>
             <p>
-              Two answers, trained on identical inputs and identical splits: <span className="text-cream">recurrence</span> (BiLSTM) and <span className="text-cream">convolution</span> (1D CNN). Neither sees raw video. Only the architecture differs, so any gap between them is attributable to that choice alone.
+              Three answers, trained on identical inputs and identical splits: <span className="text-cream">recurrence</span> (BiLSTM), <span className="text-cream">convolution</span> (1D CNN) and <span className="text-cream">self-attention</span> (Transformer). None sees raw video. Data, split, augmentation, epochs and loss are shared; the Transformer alone gets a lower learning rate with warm-up, which attention layers need to train stably.
             </p>
           </div>
         </div>
@@ -85,7 +85,7 @@ export default function Research() {
             <GitCompare className="w-4 h-4 text-copper" strokeWidth={1.5} />
             <span className="micro-caps">Architecture comparison</span>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {MODEL_COMPARISON.map((m, i) => {
               // Key names must match what ml/scripts/evaluate.py actually writes
               // into comparison.json: test_acc, macro_f1, latency_ms_mean, params,
@@ -205,10 +205,10 @@ export default function Research() {
               <Cpu className="w-4 h-4 text-copper mt-0.5 flex-shrink-0" strokeWidth={1.5} />
               <div>
                 <div className="text-sm text-cream/90">
-                  A/B swap via the <code className="font-mono text-xs bg-cream/[0.05] px-1.5 py-0.5 rounded-sm">model: &quot;bilstm&quot; | &quot;cnn&quot;</code> field on <code className="font-mono text-xs bg-cream/[0.05] px-1.5 py-0.5 rounded-sm">POST /api/frame</code>.
+                  Swap via the <code className="font-mono text-xs bg-cream/[0.05] px-1.5 py-0.5 rounded-sm">model: &quot;bilstm&quot; | &quot;cnn&quot; | &quot;transformer&quot;</code> field on <code className="font-mono text-xs bg-cream/[0.05] px-1.5 py-0.5 rounded-sm">/ws/frame</code>.
                 </div>
                 <div className="text-xs text-cream/50 mt-1">
-                  Both checkpoints load at boot and live behind one endpoint, so switching architectures is a request field, not a redeploy.
+                  Every checkpoint loads at boot and lives behind one endpoint, so switching architectures is a request field, not a redeploy.
                 </div>
               </div>
             </div>

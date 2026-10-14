@@ -28,7 +28,7 @@ Run everything: `cd backend && python test_auth.py && python test_nlg.py && pyth
 
 | Requirement | Test |
 |---|---|
-| Recognise 261 signs, compare BiLSTM vs 1D CNN | `evaluate.py` (BiLSTM 91.74 % top-1, CNN 94.55 %) |
+| Recognise 261 signs, compare BiLSTM vs 1D CNN vs Transformer | `evaluate.py` (full corpus: BiLSTM 91.74 %, CNN 94.55 %; three-way reduced run: BiLSTM 87.96 %, CNN 94.24 %, Transformer 93.98 %) |
 | Live recognition identical to training pipeline | `verify_setup.py` skew check |
 | English → ISL: drop articles/copula; time first; question last; remove inflection | `test_gloss.py` |
 | Gloss → fluent English | `test_nlg.py` |
@@ -45,13 +45,16 @@ Run everything: `cd backend && python test_auth.py && python test_nlg.py && pyth
 | test_gloss.py | 17 / 17 pass |
 | test_contrib.py | 12 / 12 pass |
 | routecheck / classcheck / trailcheck | 11 / 11 routes; 0 problems in 1027 classNames over 94 files; 19 / 19 |
-| Model, 642 held-out clips | BiLSTM 91.74 % (top-5 97.66 %, F1 0.9140, 4.12 ms); 1D CNN 94.55 % (top-5 98.44 %, F1 0.9433, 0.74 ms) |
+| Model, 642 held-out clips (full corpus) | BiLSTM 91.74 % (top-5 97.66 %, F1 0.9140, 4.12 ms); 1D CNN 94.55 % (top-5 98.44 %, F1 0.9433, 0.74 ms) |
+| Model, 382 held-out clips (10/class, three-way) | BiLSTM 87.96 % (top-5 96.07 %, F1 0.8627, 3.26 ms); 1D CNN 94.24 % (top-5 97.91 %, F1 0.9289, 0.44 ms); Transformer 93.98 % (top-5 98.17 %, F1 0.9326, 0.64 ms) |
 
 ## 5. Defects found by testing
 
 1. `test_gloss.py`: "going"/"goes" were not reduced to GO (stems shorter than 3 letters were rejected). Fixed in `gloss.py`.
 2. `test_contrib.py` design review: two clips saved in the same second got the same filename and the second overwrote the first. Fixed in `contrib.py`.
 3. `npm run verify`: a missing `fetchContributions` export broke the production build. Fixed.
+4. Three-way training run: with augmentation on, every model stayed at chance (0.3 %). Frame-drop/shift zeroed the raw-coordinate pose block, producing |z| = 4–27 outliers after standardisation. Fixed in `dataset.py` (drop hands only, edge-pad shifts).
+5. `/live` correction chips read `prediction.topk`, which the backend never sends (it sends `alternatives`), so no correction was ever shown. Fixed in `Live.jsx`.
 
 ## 6. Known gaps (not hidden)
 
