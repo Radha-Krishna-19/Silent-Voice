@@ -1,0 +1,15 @@
+# backend/test_contrib.py run at 2026-10-08T04:33:07+00:00
+  PASS  slug lowercases and joins words
+  PASS  slug strips punctuation
+  PASS  slug blocks path traversal
+  PASS  slug of empty/symbols is 'unlabeled'
+  PASS  returns saved=True with slug and frame count
+  PASS  clip file exists on disk
+  PASS  clip has shape (30, 225)
+  PASS  clip data round-trips exactly
+  PASS  manifest has one line with label/file/frame_count
+  PASS  three saves in one second give three distinct files
+  PASS  manifest records every save
+  PASS  different word goes to its own folder
+
+12 passed, 0 failed

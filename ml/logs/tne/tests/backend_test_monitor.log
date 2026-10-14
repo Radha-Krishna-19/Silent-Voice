@@ -1,0 +1,13 @@
+# backend/test_monitor.py run at 2026-10-08T04:33:07+00:00
+  PASS  empty monitor reports no frames and no alarm
+  PASS  hand-visibility rate is the share of frames with a hand
+  PASS  missing and mock predictions are not counted
+  PASS  no alarm before the minimum number of predictions, even if confidence is low
+  PASS  alarm once mean confidence is more than 0.10 below the reference
+  PASS  below-floor rate counts confidences under 0.5
+  PASS  no alarm for a small, normal drop in confidence (0.05)
+  PASS  window keeps only the most recent predictions
+  PASS  below-floor rate rises when confidence collapses
+  PASS  no reference -> no alarm (never guesses)
+
+10 passed, 0 failed

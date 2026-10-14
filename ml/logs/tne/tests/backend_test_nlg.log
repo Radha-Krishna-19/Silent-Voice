@@ -1,0 +1,35 @@
+# backend/test_nlg.py run at 2026-10-08T04:33:07+00:00
+
+=== empty / degenerate input never raises ===
+  PASS  empty list returns empty sentence, not an error
+  PASS  junk-only list returns empty sentence, not an error
+
+=== pronoun + go + place ===
+  PASS  time-fronted 'go to hospital' forms a past-tense sentence
+  PASS  time word is fronted
+  PASS  source is rule-based with no API key
+  PASS  present-tense 'go to school'
+
+=== pronoun + state/noun (copula insertion) ===
+  PASS  'i sick' -> copula inserted
+  PASS  'you doctor' -> 'you are a doctor.'
+
+=== question fronting ===
+  PASS  question word moves to the front
+  PASS  sentence ends with a question mark
+
+=== pronoun 'I' is always capitalized, not just at sentence-start ===
+  PASS  'I' capitalized mid-sentence
+
+=== synonym mapping stays in sync with gloss.py ===
+  PASS  synonym table is reused, not duplicated
+
+=== unrecognised words never crash the pipeline ===
+  PASS  garbage input degrades to an empty sentence rather than raising
+
+=== fallback join for anything the templates don't cover ===
+  PASS  untemplated word pairs still produce a capitalized, punctuated sentence
+
+====================================================
+  14 passed, 0 failed
+====================================================

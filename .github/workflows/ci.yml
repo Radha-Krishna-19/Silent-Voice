@@ -29,6 +29,27 @@ jobs:
       - name: test_contrib.py
         working-directory: backend
         run: python test_contrib.py
+      - name: test_monitor.py
+        working-directory: backend
+        run: python test_monitor.py
+
+  ml-whitebox-tests:
+    # White-box tests of the model code: parameter counts, shapes, gradient
+    # flow, dropout/BatchNorm behaviour, split determinism and no-leakage.
+    # Needs no dataset or checkpoints, so it runs on every push.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU-only PyTorch and test deps
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install numpy scikit-learn
+      - name: test_models_whitebox.py
+        working-directory: ml
+        run: python tests/test_models_whitebox.py
 
   frontend-checks:
     runs-on: ubuntu-latest
@@ -48,7 +69,7 @@ jobs:
 
   docker-build:
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-checks]
+    needs: [backend-tests, frontend-checks, ml-whitebox-tests]
     steps:
       - uses: actions/checkout@v4
       - name: Build backend image

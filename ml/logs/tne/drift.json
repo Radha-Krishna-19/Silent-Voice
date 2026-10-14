@@ -1,0 +1,90 @@
+{
+ "meta": {
+  "script": "scripts/tne/drift.py",
+  "run_at": "2026-10-08T04:16:28+00:00",
+  "git_commit": "unknown",
+  "python": "3.11.15",
+  "torch": "2.14.1+cu130",
+  "platform": "Linux-6.18.44-fc-v80-x86_64-with-glibc2.39",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "bilstm": {
+   "reference_confidence": 0.8875826597213745,
+   "no_drift_heldout": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8817629218101501,
+    "confidence_drop": 0.005819737911224365,
+    "alarm": false,
+    "accuracy": 0.9133333333333333
+   },
+   "sensor_noise_0.5std": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8781511187553406,
+    "confidence_drop": 0.009431540966033936,
+    "alarm": false,
+    "accuracy": 0.92
+   },
+   "dropped_frames_20pct": {
+    "feature_drift_score": 0.7214611872146118,
+    "mean_confidence": 0.7494113445281982,
+    "confidence_drop": 0.13817131519317627,
+    "alarm": true,
+    "accuracy": 0.86
+   },
+   "camera_shift_10pct": {
+    "feature_drift_score": 0.1506849315068493,
+    "mean_confidence": 0.32831767201423645,
+    "confidence_drop": 0.5592649877071381,
+    "alarm": true,
+    "accuracy": 0.13666666666666666
+   },
+   "left_handed_signers": {
+    "feature_drift_score": 0.5570776255707762,
+    "mean_confidence": 0.3789919912815094,
+    "confidence_drop": 0.5085906684398651,
+    "alarm": true,
+    "accuracy": 0.22
+   }
+  },
+  "cnn": {
+   "reference_confidence": 0.8990035057067871,
+   "no_drift_heldout": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.9063586592674255,
+    "confidence_drop": -0.007355153560638428,
+    "alarm": false,
+    "accuracy": 0.9433333333333334
+   },
+   "sensor_noise_0.5std": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8921374678611755,
+    "confidence_drop": 0.006866037845611572,
+    "alarm": false,
+    "accuracy": 0.9466666666666667
+   },
+   "dropped_frames_20pct": {
+    "feature_drift_score": 0.7214611872146118,
+    "mean_confidence": 0.20774009823799133,
+    "confidence_drop": 0.6912634074687958,
+    "alarm": true,
+    "accuracy": 0.19333333333333333
+   },
+   "camera_shift_10pct": {
+    "feature_drift_score": 0.1506849315068493,
+    "mean_confidence": 0.41167932748794556,
+    "confidence_drop": 0.48732417821884155,
+    "alarm": true,
+    "accuracy": 0.31666666666666665
+   },
+   "left_handed_signers": {
+    "feature_drift_score": 0.5570776255707762,
+    "mean_confidence": 0.34875625371932983,
+    "confidence_drop": 0.5502472519874573,
+    "alarm": true,
+    "accuracy": 0.21333333333333335
+   }
+  }
+ }
+}

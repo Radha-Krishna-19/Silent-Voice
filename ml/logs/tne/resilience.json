@@ -1,0 +1,50 @@
+{
+ "meta": {
+  "script": "scripts/tne/resilience.py",
+  "run_at": "2026-10-08T04:11:54+00:00",
+  "git_commit": "unknown",
+  "python": "3.11.15",
+  "torch": "2.14.1+cu130",
+  "platform": "Linux-6.18.44-fc-v80-x86_64-with-glibc2.39",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "bilstm": {
+   "blackout_15": {
+    "median_recovery_frames": 0.0,
+    "p90_recovery_frames": 43.099999999999994,
+    "median_recovery_seconds_at_12fps": 0.0,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.9746666666666667,
+    "n_streams": 200
+   },
+   "blackout_30": {
+    "median_recovery_frames": 26.0,
+    "p90_recovery_frames": 42.0,
+    "median_recovery_seconds_at_12fps": 2.1666666666666665,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.9013333333333334,
+    "n_streams": 200
+   }
+  },
+  "cnn": {
+   "blackout_15": {
+    "median_recovery_frames": 54.0,
+    "p90_recovery_frames": 56.0,
+    "median_recovery_seconds_at_12fps": 4.5,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.3710000000000001,
+    "n_streams": 200
+   },
+   "blackout_30": {
+    "median_recovery_frames": 54.0,
+    "p90_recovery_frames": 56.0,
+    "median_recovery_seconds_at_12fps": 4.5,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.21116666666666667,
+    "n_streams": 200
+   }
+  }
+ }
+}

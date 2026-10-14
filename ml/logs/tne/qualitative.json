@@ -1,0 +1,510 @@
+{
+ "meta": {
+  "script": "scripts/tne/qualitative.py",
+  "run_at": "2026-10-08T04:16:32+00:00",
+  "git_commit": "unknown",
+  "python": "3.11.15",
+  "torch": "2.14.1+cu130",
+  "platform": "Linux-6.18.44-fc-v80-x86_64-with-glibc2.39",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "bilstm": {
+   "n_errors": 53,
+   "near_miss_in_top5": 38,
+   "far_miss": 15,
+   "most_confused_pairs": [
+    {
+     "true": "bicycle",
+     "predicted": "fish",
+     "count": 2
+    },
+    {
+     "true": "he",
+     "predicted": "she",
+     "count": 2
+    },
+    {
+     "true": "skirt",
+     "predicted": "pant",
+     "count": 2
+    },
+    {
+     "true": "boat",
+     "predicted": "bicycle",
+     "count": 1
+    },
+    {
+     "true": "bathroom",
+     "predicted": "pencil",
+     "count": 1
+    },
+    {
+     "true": "thursday",
+     "predicted": "yesterday",
+     "count": 1
+    },
+    {
+     "true": "blue",
+     "predicted": "orange",
+     "count": 1
+    },
+    {
+     "true": "wife",
+     "predicted": "husband",
+     "count": 1
+    }
+   ],
+   "sample_predictions": [
+    {
+     "true": "boat",
+     "correct": false,
+     "top3": [
+      [
+       "bicycle",
+       0.435
+      ],
+      [
+       "fish",
+       0.222
+      ],
+      [
+       "boat",
+       0.202
+      ]
+     ]
+    },
+    {
+     "true": "bathroom",
+     "correct": false,
+     "top3": [
+      [
+       "pencil",
+       0.957
+      ],
+      [
+       "pen",
+       0.01
+      ],
+      [
+       "medicine",
+       0.002
+      ]
+     ]
+    },
+    {
+     "true": "thursday",
+     "correct": false,
+     "top3": [
+      [
+       "yesterday",
+       0.663
+      ],
+      [
+       "yellow",
+       0.028
+      ],
+      [
+       "pen",
+       0.024
+      ]
+     ]
+    },
+    {
+     "true": "blue",
+     "correct": false,
+     "top3": [
+      [
+       "orange",
+       0.922
+      ],
+      [
+       "queen",
+       0.014
+      ],
+      [
+       "good_afternoon",
+       0.007
+      ]
+     ]
+    },
+    {
+     "true": "bicycle",
+     "correct": false,
+     "top3": [
+      [
+       "fish",
+       0.868
+      ],
+      [
+       "bicycle",
+       0.067
+      ],
+      [
+       "brown",
+       0.014
+      ]
+     ]
+    },
+    {
+     "true": "bicycle",
+     "correct": false,
+     "top3": [
+      [
+       "fish",
+       0.301
+      ],
+      [
+       "bicycle",
+       0.245
+      ],
+      [
+       "brown",
+       0.244
+      ]
+     ]
+    },
+    {
+     "true": "hot",
+     "correct": true,
+     "top3": [
+      [
+       "hot",
+       0.967
+      ],
+      [
+       "short",
+       0.002
+      ],
+      [
+       "bus",
+       0.002
+      ]
+     ]
+    },
+    {
+     "true": "house",
+     "correct": true,
+     "top3": [
+      [
+       "house",
+       0.769
+      ],
+      [
+       "extra",
+       0.129
+      ],
+      [
+       "ground",
+       0.007
+      ]
+     ]
+    },
+    {
+     "true": "red",
+     "correct": true,
+     "top3": [
+      [
+       "red",
+       0.822
+      ],
+      [
+       "pink",
+       0.033
+      ],
+      [
+       "black",
+       0.022
+      ]
+     ]
+    },
+    {
+     "true": "black",
+     "correct": true,
+     "top3": [
+      [
+       "black",
+       0.962
+      ],
+      [
+       "man",
+       0.004
+      ],
+      [
+       "saturday",
+       0.002
+      ]
+     ]
+    }
+   ]
+  },
+  "cnn": {
+   "n_errors": 35,
+   "near_miss_in_top5": 25,
+   "far_miss": 10,
+   "most_confused_pairs": [
+    {
+     "true": "dress",
+     "predicted": "clothing",
+     "count": 2
+    },
+    {
+     "true": "card",
+     "predicted": "gift",
+     "count": 1
+    },
+    {
+     "true": "bathroom",
+     "predicted": "pencil",
+     "count": 1
+    },
+    {
+     "true": "blue",
+     "predicted": "orange",
+     "count": 1
+    },
+    {
+     "true": "wife",
+     "predicted": "husband",
+     "count": 1
+    },
+    {
+     "true": "soap",
+     "predicted": "book",
+     "count": 1
+    },
+    {
+     "true": "doctor",
+     "predicted": "soldier",
+     "count": 1
+    },
+    {
+     "true": "market",
+     "predicted": "store_or_shop",
+     "count": 1
+    }
+   ],
+   "sample_predictions": [
+    {
+     "true": "card",
+     "correct": false,
+     "top3": [
+      [
+       "gift",
+       0.685
+      ],
+      [
+       "card",
+       0.225
+      ],
+      [
+       "train_ticket",
+       0.009
+      ]
+     ]
+    },
+    {
+     "true": "bathroom",
+     "correct": false,
+     "top3": [
+      [
+       "pencil",
+       0.956
+      ],
+      [
+       "minute",
+       0.026
+      ],
+      [
+       "money",
+       0.007
+      ]
+     ]
+    },
+    {
+     "true": "blue",
+     "correct": false,
+     "top3": [
+      [
+       "orange",
+       0.92
+      ],
+      [
+       "blue",
+       0.015
+      ],
+      [
+       "yellow",
+       0.015
+      ]
+     ]
+    },
+    {
+     "true": "wife",
+     "correct": false,
+     "top3": [
+      [
+       "husband",
+       0.889
+      ],
+      [
+       "wife",
+       0.081
+      ],
+      [
+       "marriage",
+       0.011
+      ]
+     ]
+    },
+    {
+     "true": "soap",
+     "correct": false,
+     "top3": [
+      [
+       "book",
+       0.756
+      ],
+      [
+       "letter",
+       0.044
+      ],
+      [
+       "school",
+       0.041
+      ]
+     ]
+    },
+    {
+     "true": "doctor",
+     "correct": false,
+     "top3": [
+      [
+       "soldier",
+       0.158
+      ],
+      [
+       "doctor",
+       0.086
+      ],
+      [
+       "tomorrow",
+       0.063
+      ]
+     ]
+    },
+    {
+     "true": "boat",
+     "correct": true,
+     "top3": [
+      [
+       "boat",
+       0.75
+      ],
+      [
+       "bicycle",
+       0.09
+      ],
+      [
+       "fish",
+       0.07
+      ]
+     ]
+    },
+    {
+     "true": "hot",
+     "correct": true,
+     "top3": [
+      [
+       "hot",
+       0.897
+      ],
+      [
+       "new",
+       0.014
+      ],
+      [
+       "wet",
+       0.009
+      ]
+     ]
+    },
+    {
+     "true": "house",
+     "correct": true,
+     "top3": [
+      [
+       "house",
+       0.661
+      ],
+      [
+       "extra",
+       0.152
+      ],
+      [
+       "ground",
+       0.053
+      ]
+     ]
+    },
+    {
+     "true": "red",
+     "correct": true,
+     "top3": [
+      [
+       "red",
+       0.971
+      ],
+      [
+       "pink",
+       0.02
+      ],
+      [
+       "clothing",
+       0.002
+      ]
+     ]
+    }
+   ]
+  },
+  "agreement": {
+   "both_wrong": 27,
+   "only_bilstm_wrong": 26,
+   "only_cnn_wrong": 8,
+   "both_right": 581,
+   "oracle_either_right_acc": 0.9579439252336449,
+   "both_wrong_classes": [
+    "bathroom",
+    "bedroom",
+    "big_large",
+    "blue",
+    "extra",
+    "gift",
+    "hat",
+    "hot",
+    "kitchen",
+    "lawyer",
+    "market",
+    "page",
+    "pencil",
+    "priest",
+    "sister",
+    "soap",
+    "soldier",
+    "telephone",
+    "thursday",
+    "today",
+    "tool",
+    "truck",
+    "university",
+    "wife"
+   ]
+  },
+  "saliency_examples": [
+   "hot",
+   "house",
+   "red"
+  ]
+ }
+}

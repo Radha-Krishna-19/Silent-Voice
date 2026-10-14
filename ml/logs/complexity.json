@@ -1,0 +1,56 @@
+{
+  "shapes": {
+    "T": 60,
+    "F": 225,
+    "H": 256,
+    "layers": 2,
+    "W": 256,
+    "K": 5,
+    "classes": 261
+  },
+  "bilstm": {
+    "params": {
+      "lstm_layer1": 989184,
+      "lstm_layer2": 1576960,
+      "head": 99333,
+      "total": 2665477
+    },
+    "macs": {
+      "lstm_layer1": 59105280,
+      "lstm_layer2": 94371840,
+      "head": 98944,
+      "total": 153576064
+    },
+    "activations_per_sample": 61440,
+    "time": "O(L \u00b7 T \u00b7 H \u00b7 (F + H))",
+    "time_note": "Sequential in T: timestep t cannot start until t-1 finishes, so the critical path is \u0398(L\u00b7T) regardless of how many cores are available.",
+    "space_params": "O(L \u00b7 H \u00b7 (F + H))",
+    "space_activations": "O(L \u00b7 T \u00b7 H)"
+  },
+  "cnn": {
+    "params": {
+      "block1": 144384,
+      "block2": 164608,
+      "block3": 328448,
+      "head": 99333,
+      "total": 736773
+    },
+    "macs": {
+      "block1": 8640000,
+      "block2": 4915200,
+      "block3": 4915200,
+      "head": 98944,
+      "total": 18569344
+    },
+    "activations_per_sample": 19200,
+    "time": "O(K \u00b7 \u03a3_b T_b \u00b7 C_in,b \u00b7 C_out,b)",
+    "time_note": "Every timestep is independent, so the critical path is \u0398(number of blocks) \u2014 constant in T. This is why it parallelises and the LSTM does not.",
+    "space_params": "O(K \u00b7 W\u00b2)",
+    "space_activations": "O(T \u00b7 W)"
+  },
+  "ratios": {
+    "params_bilstm_over_cnn": 3.62,
+    "macs_bilstm_over_cnn": 8.27
+  },
+  "verified_against_checkpoints": true
+}

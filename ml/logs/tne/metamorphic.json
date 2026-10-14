@@ -1,0 +1,60 @@
+{
+ "meta": {
+  "script": "scripts/tne/metamorphic.py",
+  "run_at": "2026-10-08T04:08:41+00:00",
+  "git_commit": "unknown",
+  "python": "3.11.15",
+  "torch": "2.14.1+cu130",
+  "platform": "Linux-6.18.44-fc-v80-x86_64-with-glibc2.39",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "bilstm": {
+   "base_acc": 0.9174454828660437,
+   "MR1_noise_0.1std": {
+    "violation_rate": 0.003115264797507788,
+    "acc_after": 0.9158878504672897
+   },
+   "MR2_time_shift_pm2": {
+    "violation_rate": 0.009345794392523364,
+    "acc_after": 0.9197819314641744
+   },
+   "MR3_speed_pm10pct": {
+    "violation_rate": 0.020249221183800622,
+    "acc_after": 0.9213395638629284
+   },
+   "MR4_camera_shift_5pct": {
+    "violation_rate": 0.5155763239875389,
+    "acc_after": 0.470404984423676
+   },
+   "MR5_mirror_left_handed": {
+    "violation_rate": 0.7757009345794392,
+    "acc_after": 0.21962616822429906
+   }
+  },
+  "cnn": {
+   "base_acc": 0.9454828660436138,
+   "MR1_noise_0.1std": {
+    "violation_rate": 0.004672897196261682,
+    "acc_after": 0.9470404984423676
+   },
+   "MR2_time_shift_pm2": {
+    "violation_rate": 0.004672897196261682,
+    "acc_after": 0.9431464174454829
+   },
+   "MR3_speed_pm10pct": {
+    "violation_rate": 0.010903426791277258,
+    "acc_after": 0.9439252336448598
+   },
+   "MR4_camera_shift_5pct": {
+    "violation_rate": 0.205607476635514,
+    "acc_after": 0.7725856697819314
+   },
+   "MR5_mirror_left_handed": {
+    "violation_rate": 0.7834890965732088,
+    "acc_after": 0.2118380062305296
+   }
+  }
+ }
+}

@@ -1,0 +1,42 @@
+{
+ "meta": {
+  "script": "scripts/tne/gan.py",
+  "run_at": "2026-10-08T04:50:36+00:00",
+  "git_commit": "unknown",
+  "python": "3.11.15",
+  "torch": "2.14.1+cu130",
+  "platform": "Linux-6.18.44-fc-v80-x86_64-with-glibc2.39",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "fidelity": {
+   "synthetic_clips": 2871,
+   "feature_mean_abs_diff": 0.20645664632320404,
+   "feature_std_ratio": 1.0814850330352783,
+   "frame_to_frame_change_synthetic": 0.5634004473686218,
+   "frame_to_frame_change_real": 0.25770577788352966,
+   "bilstm_recognises_conditioned_class": 0.1988854057819575,
+   "bilstm_top5_conditioned_class": 0.3991640543364681,
+   "cnn_recognises_conditioned_class": 0.16927899686520376,
+   "cnn_top5_conditioned_class": 0.38627655869035177
+  },
+  "cnn_real_only": {
+   "train_clips": 2993,
+   "best_val_acc": 0.9516380655226209,
+   "best_epoch": 43,
+   "test_acc": 0.940809968847352,
+   "macro_f1": 0.9342851061241866,
+   "seconds": 452.2864842414856
+  },
+  "cnn_real_plus_gan": {
+   "train_clips": 5864,
+   "best_val_acc": 0.9360374414976599,
+   "best_epoch": 54,
+   "test_acc": 0.9330218068535826,
+   "macro_f1": 0.93356443471386,
+   "seconds": 798.5079414844513
+  },
+  "delta_test_acc_points": -0.7788161993769416
+ }
+}
