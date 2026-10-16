@@ -92,7 +92,7 @@ export function download(filename, text) {
 /* ----------------------------- settings ----------------------------- */
 
 export const DEFAULT_SETTINGS = {
-  model: "cnn",            // top-1 on the three-way run (94.2%, Transformer 94.0%, BiLSTM 88.0%)
+  model: "cnn",            // fastest of the two tied leaders (CNN 95.2%, Transformer 95.3%, BiLSTM 91.3%)
   speakCaptions: true,
   speechRate: 1.0,
   voiceURI: null,

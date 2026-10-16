@@ -28,7 +28,7 @@ Run everything: `cd backend && python test_auth.py && python test_nlg.py && pyth
 
 | Requirement | Test |
 |---|---|
-| Recognise 261 signs, compare BiLSTM vs 1D CNN vs Transformer | `evaluate.py` (full corpus: BiLSTM 91.74 %, CNN 94.55 %; three-way reduced run: BiLSTM 87.96 %, CNN 94.24 %, Transformer 93.98 %) |
+| Recognise 261 signs, compare BiLSTM vs 1D CNN vs Transformer | `evaluate.py` (full corpus: BiLSTM 91.74 %, CNN 94.55 %; three-way full-corpus run: BiLSTM 91.28 %, CNN 95.17 %, Transformer 95.33 %) |
 | Live recognition identical to training pipeline | `verify_setup.py` skew check |
 | English → ISL: drop articles/copula; time first; question last; remove inflection | `test_gloss.py` |
 | Gloss → fluent English | `test_nlg.py` |
@@ -46,7 +46,7 @@ Run everything: `cd backend && python test_auth.py && python test_nlg.py && pyth
 | test_contrib.py | 12 / 12 pass |
 | routecheck / classcheck / trailcheck | 11 / 11 routes; 0 problems in 1027 classNames over 94 files; 19 / 19 |
 | Model, 642 held-out clips (full corpus) | BiLSTM 91.74 % (top-5 97.66 %, F1 0.9140, 4.12 ms); 1D CNN 94.55 % (top-5 98.44 %, F1 0.9433, 0.74 ms) |
-| Model, 382 held-out clips (10/class, three-way) | BiLSTM 87.96 % (top-5 96.07 %, F1 0.8627, 3.26 ms); 1D CNN 94.24 % (top-5 97.91 %, F1 0.9289, 0.44 ms); Transformer 93.98 % (top-5 98.17 %, F1 0.9326, 0.64 ms) |
+| Model, 642 held-out clips, three-way (macOS re-extraction) | BiLSTM 91.28 % (top-5 98.13 %, F1 0.9083, 3.36 ms); 1D CNN 95.17 % (top-5 98.44 %, F1 0.9505, 0.35 ms); Transformer 95.33 % (top-5 97.82 %, F1 0.9513, 0.61 ms) |
 
 ## 5. Defects found by testing
 

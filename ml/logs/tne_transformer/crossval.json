@@ -1,0 +1,52 @@
+{
+ "meta": {
+  "script": "scripts/tne/crossval.py",
+  "run_at": "2026-10-15T09:37:02+05:30",
+  "git_commit": "d707d40",
+  "python": "3.12.7",
+  "torch": "2.14.1",
+  "platform": "macOS-15.7.2-arm64-arm-64bit",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "folds": 3,
+  "epochs": 20,
+  "per_fold": {
+   "transformer": [
+    {
+     "fold": 1,
+     "acc": 0.923562412342216,
+     "macro_f1": 0.9245505758859376,
+     "train_seconds": 119.99498915672302,
+     "n_train": 2850,
+     "n_test": 1426
+    },
+    {
+     "fold": 2,
+     "acc": 0.9291228070175439,
+     "macro_f1": 0.9294461517247185,
+     "train_seconds": 126.42838311195374,
+     "n_train": 2851,
+     "n_test": 1425
+    },
+    {
+     "fold": 3,
+     "acc": 0.9417543859649122,
+     "macro_f1": 0.9424564686058939,
+     "train_seconds": 124.68701696395874,
+     "n_train": 2851,
+     "n_test": 1425
+    }
+   ]
+  },
+  "summary": {
+   "transformer": {
+    "acc_mean": 0.9314798684415573,
+    "acc_std": 0.009322219692200347,
+    "f1_mean": 0.9321510654055167,
+    "f1_std": 0.009254332338968243
+   }
+  }
+ }
+}

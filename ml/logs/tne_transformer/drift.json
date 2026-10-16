@@ -1,0 +1,128 @@
+{
+ "meta": {
+  "script": "scripts/tne/drift.py",
+  "run_at": "2026-10-15T09:28:32+05:30",
+  "git_commit": "d707d40",
+  "python": "3.12.7",
+  "torch": "2.14.1",
+  "platform": "macOS-15.7.2-arm64-arm-64bit",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "bilstm": {
+   "reference_confidence": 0.8820757269859314,
+   "no_drift_heldout": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8794734477996826,
+    "confidence_drop": 0.0026022791862487793,
+    "alarm": false,
+    "accuracy": 0.9166666666666666
+   },
+   "sensor_noise_0.5std": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8725482225418091,
+    "confidence_drop": 0.009527504444122314,
+    "alarm": false,
+    "accuracy": 0.9166666666666666
+   },
+   "dropped_frames_20pct": {
+    "feature_drift_score": 0.7214611872146118,
+    "mean_confidence": 0.742594301700592,
+    "confidence_drop": 0.13948142528533936,
+    "alarm": true,
+    "accuracy": 0.8566666666666667
+   },
+   "camera_shift_10pct": {
+    "feature_drift_score": 0.1506849315068493,
+    "mean_confidence": 0.3356567621231079,
+    "confidence_drop": 0.5464189648628235,
+    "alarm": true,
+    "accuracy": 0.13333333333333333
+   },
+   "left_handed_signers": {
+    "feature_drift_score": 0.5525114155251142,
+    "mean_confidence": 0.38544559478759766,
+    "confidence_drop": 0.49663013219833374,
+    "alarm": true,
+    "accuracy": 0.2
+   }
+  },
+  "cnn": {
+   "reference_confidence": 0.8996058106422424,
+   "no_drift_heldout": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8927971124649048,
+    "confidence_drop": 0.0068086981773376465,
+    "alarm": false,
+    "accuracy": 0.9566666666666667
+   },
+   "sensor_noise_0.5std": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8798002004623413,
+    "confidence_drop": 0.019805610179901123,
+    "alarm": false,
+    "accuracy": 0.9533333333333334
+   },
+   "dropped_frames_20pct": {
+    "feature_drift_score": 0.7214611872146118,
+    "mean_confidence": 0.20408764481544495,
+    "confidence_drop": 0.6955181658267975,
+    "alarm": true,
+    "accuracy": 0.19
+   },
+   "camera_shift_10pct": {
+    "feature_drift_score": 0.1506849315068493,
+    "mean_confidence": 0.41070792078971863,
+    "confidence_drop": 0.4888978898525238,
+    "alarm": true,
+    "accuracy": 0.2966666666666667
+   },
+   "left_handed_signers": {
+    "feature_drift_score": 0.5525114155251142,
+    "mean_confidence": 0.354836106300354,
+    "confidence_drop": 0.5447697043418884,
+    "alarm": true,
+    "accuracy": 0.22
+   }
+  },
+  "transformer": {
+   "reference_confidence": 0.9219166040420532,
+   "no_drift_heldout": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.9257635474205017,
+    "confidence_drop": -0.0038469433784484863,
+    "alarm": false,
+    "accuracy": 0.9733333333333334
+   },
+   "sensor_noise_0.5std": {
+    "feature_drift_score": 0.0,
+    "mean_confidence": 0.8868852853775024,
+    "confidence_drop": 0.03503131866455078,
+    "alarm": false,
+    "accuracy": 0.97
+   },
+   "dropped_frames_20pct": {
+    "feature_drift_score": 0.7214611872146118,
+    "mean_confidence": 0.8072262406349182,
+    "confidence_drop": 0.11469036340713501,
+    "alarm": true,
+    "accuracy": 0.9333333333333333
+   },
+   "camera_shift_10pct": {
+    "feature_drift_score": 0.1506849315068493,
+    "mean_confidence": 0.6893680095672607,
+    "confidence_drop": 0.23254859447479248,
+    "alarm": true,
+    "accuracy": 0.84
+   },
+   "left_handed_signers": {
+    "feature_drift_score": 0.5525114155251142,
+    "mean_confidence": 0.38056594133377075,
+    "confidence_drop": 0.5413506627082825,
+    "alarm": true,
+    "accuracy": 0.23333333333333334
+   }
+  }
+ }
+}

@@ -1,0 +1,98 @@
+{
+ "meta": {
+  "script": "scripts/tne/bias.py",
+  "run_at": "2026-10-15T09:28:17+05:30",
+  "git_commit": "d707d40",
+  "python": "3.12.7",
+  "torch": "2.14.1",
+  "platform": "macOS-15.7.2-arm64-arm-64bit",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "representativeness": {
+   "clips_per_class": {
+    "min": 8,
+    "max": 27,
+    "mean": 16.38314176245211,
+    "median": 15.0
+   },
+   "max_abs_share_diff_train_vs_test": 0.0015529485726300096,
+   "classes_present_in_test": 261,
+   "frames_with_left_hand": 0.7897022139070783,
+   "frames_with_right_hand": 0.6980823199251637,
+   "two_handed_classes": 233,
+   "one_handed_classes": 28,
+   "tier_thresholds_clips": [
+    14.0,
+    20.0
+   ]
+  },
+  "bilstm": {
+   "few_clips": {
+    "n_test": 223,
+    "acc": 0.905829596412556
+   },
+   "medium_clips": {
+    "n_test": 249,
+    "acc": 0.9116465863453815
+   },
+   "many_clips": {
+    "n_test": 170,
+    "acc": 0.9176470588235294
+   },
+   "two_handed": {
+    "n_test": 576,
+    "acc": 0.9114583333333334
+   },
+   "one_handed": {
+    "n_test": 66,
+    "acc": 0.9090909090909091
+   }
+  },
+  "cnn": {
+   "few_clips": {
+    "n_test": 223,
+    "acc": 0.9506726457399103
+   },
+   "medium_clips": {
+    "n_test": 249,
+    "acc": 0.9558232931726908
+   },
+   "many_clips": {
+    "n_test": 170,
+    "acc": 0.9470588235294117
+   },
+   "two_handed": {
+    "n_test": 576,
+    "acc": 0.953125
+   },
+   "one_handed": {
+    "n_test": 66,
+    "acc": 0.9393939393939394
+   }
+  },
+  "transformer": {
+   "few_clips": {
+    "n_test": 223,
+    "acc": 0.9461883408071748
+   },
+   "medium_clips": {
+    "n_test": 249,
+    "acc": 0.9598393574297188
+   },
+   "many_clips": {
+    "n_test": 170,
+    "acc": 0.9588235294117647
+   },
+   "two_handed": {
+    "n_test": 576,
+    "acc": 0.953125
+   },
+   "one_handed": {
+    "n_test": 66,
+    "acc": 0.9696969696969697
+   }
+  }
+ }
+}

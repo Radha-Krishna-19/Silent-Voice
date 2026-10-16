@@ -15,7 +15,7 @@ from collections import Counter
 import numpy as np
 import torch
 
-from common import ARCHS, NAMES, data, load_model, norm, plt, predict, save
+from common import OUT, ARCHS, NAMES, data, load_model, norm, plt, predict, save
 
 
 def main():
@@ -41,23 +41,39 @@ def main():
                   "most_confused_pairs": [{"true": t, "predicted": q, "count": c} for (t, q), c in pairs],
                   "sample_predictions": samples}
         print(a, res[a]["n_errors"], "errors;", len(near), "near misses;", pairs[:4])
-    eb = probs["bilstm"].argmax(1) != y
-    ec = probs["cnn"].argmax(1) != y
-    res["agreement"] = {"both_wrong": int((eb & ec).sum()), "only_bilstm_wrong": int((eb & ~ec).sum()),
-                        "only_cnn_wrong": int((~eb & ec).sum()), "both_right": int((~eb & ~ec).sum()),
-                        "oracle_either_right_acc": float(1 - (eb & ec).mean()),
-                        "both_wrong_classes": sorted({labels[y[i]] for i in np.where(eb & ec)[0]})}
-    print("agreement", {k: v for k, v in res["agreement"].items() if k != "both_wrong_classes"})
-    # saliency over time for 3 clips (first correct clips of 3 different classes)
+    err = {a: probs[a].argmax(1) != y for a in ARCHS}
+    if "bilstm" in err and "cnn" in err:        # keys the committed two-model report reads
+        eb, ec = err["bilstm"], err["cnn"]
+        res["agreement"] = {"both_wrong": int((eb & ec).sum()), "only_bilstm_wrong": int((eb & ~ec).sum()),
+                            "only_cnn_wrong": int((~eb & ec).sum()), "both_right": int((~eb & ~ec).sum()),
+                            "oracle_either_right_acc": float(1 - (eb & ec).mean()),
+                            "both_wrong_classes": sorted({labels[y[i]] for i in np.where(eb & ec)[0]})}
+        print("agreement", {k: v for k, v in res["agreement"].items() if k != "both_wrong_classes"})
+    # Every pair of models, and all models at once.
+    pairs = {}
+    for i, a in enumerate(ARCHS):
+        for b in ARCHS[i + 1:]:
+            ea, eb_ = err[a], err[b]
+            pairs[f"{a}_vs_{b}"] = {"both_wrong": int((ea & eb_).sum()), f"only_{a}_wrong": int((ea & ~eb_).sum()),
+                                    f"only_{b}_wrong": int((~ea & eb_).sum()),
+                                    "oracle_either_right_acc": float(1 - (ea & eb_).mean())}
+    all_wrong = np.logical_and.reduce([err[a] for a in ARCHS])
+    res["agreement_pairwise"] = pairs
+    res["agreement_all"] = {"all_wrong": int(all_wrong.sum()), "oracle_any_right_acc": float(1 - all_wrong.mean()),
+                            "all_wrong_classes": sorted({labels[y[i]] for i in np.where(all_wrong)[0]})}
+    print("pairwise agreement", pairs)
+    print("all models wrong on", int(all_wrong.sum()), "clips")
+    # saliency over time for 3 clips (first clips every model gets right, 3 different classes)
+    any_wrong = np.logical_or.reduce([err[a] for a in ARCHS])
     pick, seen = [], set()
-    for i in np.where(~eb & ~ec)[0]:
+    for i in np.where(~any_wrong)[0]:
         if y[i] not in seen:
             pick.append(i)
             seen.add(y[i])
         if len(pick) == 3:
             break
     p_ = plt()
-    f, axes = p_.subplots(len(ARCHS), 1, figsize=(3.4, 2.4), sharex=True)
+    f, axes = p_.subplots(len(ARCHS), 1, figsize=(3.4, 1.2 * len(ARCHS)), sharex=True)
     for ax, a in zip(axes, ARCHS):
         m = load_model(a)
         rows = []
@@ -72,7 +88,7 @@ def main():
         ax.set_title(NAMES[a], fontsize=7, loc="left")
     axes[-1].set_xlabel("Frame")
     f.tight_layout()
-    f.savefig("logs/tne/qualitative_saliency_examples.png", dpi=300)
+    f.savefig(OUT / "qualitative_saliency_examples.png", dpi=300)
     res["saliency_examples"] = [labels[y[i]] for i in pick]
     save("qualitative", res)
     return res

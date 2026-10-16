@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from common import ARCHS, COLORS, NAMES, data, load_model, norm, plt, save
+from common import OUT, ARCHS, COLORS, NAMES, data, load_model, norm, plt, save
 
 EPS = [0.0, 0.01, 0.02, 0.05, 0.1, 0.2]
 
@@ -63,7 +63,7 @@ def main():
     ax.set_ylim(0, 100)
     ax.legend(frameon=False, fontsize=6, ncol=2)
     f.tight_layout()
-    f.savefig("logs/tne/adversarial.png", dpi=300)
+    f.savefig(OUT / "adversarial.png", dpi=300)
     save("adversarial", res)
     return res
 

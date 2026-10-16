@@ -11,7 +11,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from common import ARCHS, COLORS, NAMES, data, load_model, norm, plt, save
+from common import OUT, ARCHS, COLORS, NAMES, data, load_model, norm, plt, save
 
 BINS = 15
 
@@ -86,7 +86,7 @@ def main():
     ax.set_ylabel("Accuracy in bin")
     ax.legend(frameon=False, fontsize=6.5)
     f.tight_layout()
-    f.savefig("logs/tne/calibration_reliability.png", dpi=300)
+    f.savefig(OUT / "calibration_reliability.png", dpi=300)
     save("calibration", res)
     return res
 

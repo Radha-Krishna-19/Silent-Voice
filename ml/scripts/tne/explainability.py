@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from common import ARCHS, COLORS, NAMES, data, load_model, norm, plt, predict, save
+from common import bar_offsets, OUT, ARCHS, COLORS, NAMES, data, load_model, norm, plt, predict, save
 
 GROUPS = {"left_hand": slice(0, 63), "right_hand": slice(63, 126), "pose": slice(126, 225)}
 
@@ -59,8 +59,9 @@ def main():
         ("xai_saliency_group.png", {a: [res["saliency_group"][a][k] * 100 for k in GROUPS] for a in ARCHS}, "Share of saliency (%)", labels[1:], None)):
         f, ax = p.subplots(figsize=(3.4, 1.95))
         x = np.arange(len(xt))
+        bw, offs = bar_offsets(len(ARCHS))
         for i, a in enumerate(ARCHS):
-            b = ax.bar(x + (i - .5) * .36, vals[a], .36, color=COLORS[a], label=NAMES[a])
+            b = ax.bar(x + offs[i], vals[a], bw, color=COLORS[a], label=NAMES[a])
             for r, v in zip(b, vals[a]):
                 ax.text(r.get_x() + r.get_width() / 2, v, f"{v:.1f}", ha="center", va="bottom", fontsize=6)
         ax.set_xticks(x)
@@ -69,9 +70,9 @@ def main():
         if xl:
             ax.set_xlabel(xl)
         ax.set_ylim(0, max(max(v) for v in vals.values()) * 1.18)
-        ax.legend(frameon=False, fontsize=7, ncol=2, loc="upper center", bbox_to_anchor=(.5, 1.15))
+        ax.legend(frameon=False, fontsize=7, ncol=len(ARCHS), loc="upper center", bbox_to_anchor=(.5, 1.15))
         f.tight_layout()
-        f.savefig(f"logs/tne/{fn}", dpi=300)
+        f.savefig(OUT / fn, dpi=300)
     save("explainability", res)
     return res
 

@@ -61,6 +61,28 @@ with torch.no_grad():
     cn(x * 10)
 check("WB-06", "1D CNN BatchNorm running stats unchanged by eval-mode inference", torch.equal(before, cn.features[0][1].running_mean))
 
+# WB-10 Transformer internals (the third architecture)
+tf = build("transformer", 261)
+check("WB-10", "Transformer has 460,677 trainable parameters", param_count(tf) == 460677, str(param_count(tf)))
+tf.eval()
+check("WB-10b", "Transformer maps (4, 60, 225) to (4, 261) logits", tuple(tf(x).shape) == (4, 261))
+check("WB-10c", "positional table is a fixed buffer, not a trained parameter",
+      "pos" in dict(tf.named_buffers()) and "pos" not in dict(tf.named_parameters()))
+tf.train()
+tf.zero_grad()
+tf(x).sum().backward()
+dead = [n for n, p in tf.named_parameters() if p.grad is None or p.grad.abs().sum() == 0]
+check("WB-10d", "Transformer: gradient reaches every parameter (incl. CLS token)", not dead, ",".join(dead[:3]))
+tf.eval()
+with torch.no_grad():
+    same = torch.equal(tf(x), tf(x))
+    batch_vs_single = torch.allclose(tf(x)[1:2], tf(x[1:2]), atol=1e-5)
+    # Positions matter: reversing time must change the output (the model is not a bag of frames).
+    order_sensitive = not torch.allclose(tf(x), tf(torch.flip(x, dims=[1])), atol=1e-4)
+check("WB-10e", "Transformer: eval mode deterministic", same)
+check("WB-10f", "Transformer: a clip's output does not depend on the rest of the batch", batch_vs_single)
+check("WB-10g", "Transformer: output depends on frame order (positional encoding in effect)", order_sensitive)
+
 # WB-07 mirror augmentation is an involution and swaps the hands
 a = np.random.RandomState(1).rand(60, 225).astype(np.float32)
 mm = _mirror(_mirror(a))

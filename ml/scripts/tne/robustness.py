@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from common import ARCHS, COLORS, NAMES, acc, data, load_model, norm, plt, predict, save
+from common import OUT, ARCHS, COLORS, NAMES, acc, data, load_model, norm, plt, predict, save
 
 NOISE = [0, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0]
 DROP = [0, 0.1, 0.2, 0.3, 0.5]
@@ -59,7 +59,7 @@ def main():
         ax.set_ylim(0, 100)
         ax.legend(frameon=False, fontsize=7)
         f.tight_layout()
-        f.savefig(f"logs/tne/{fn}", dpi=300)
+        f.savefig(OUT / fn, dpi=300)
     save("robustness", res)
     return res
 

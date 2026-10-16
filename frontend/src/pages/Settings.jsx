@@ -74,13 +74,13 @@ export default function Settings() {
             <Section title="Recognition">
               <Choice
                 label="Model"
-                hint="All three are trained on the identical split. CNN and Transformer are tied within one test clip; the BiLSTM trails."
+                hint="All three are trained on the identical split. CNN and Transformer are tied within one test clip; the BiLSTM trails by about 4 points."
                 value={s.model}
                 onChange={(v) => update({ model: v })}
                 options={[
-                  { value: "cnn", label: "1D CNN", meta: "94.2% · 0.44 ms" },
-                  { value: "transformer", label: "Transformer", meta: "94.0% · 0.64 ms" },
-                  { value: "bilstm", label: "BiLSTM", meta: "88.0% · 3.26 ms" },
+                  { value: "transformer", label: "Transformer", meta: "95.3% · 0.61 ms" },
+                  { value: "cnn", label: "1D CNN", meta: "95.2% · 0.35 ms" },
+                  { value: "bilstm", label: "BiLSTM", meta: "91.3% · 3.36 ms" },
                 ]}
               />
               <Slider

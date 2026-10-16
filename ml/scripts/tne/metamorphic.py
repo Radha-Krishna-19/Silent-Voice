@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from common import ARCHS, NAMES, _mirror, data, load_model, norm, plt, predict, save
+from common import bar_offsets, COLORS, OUT, ARCHS, NAMES, _mirror, data, load_model, norm, plt, predict, save
 
 
 def shift(X, k):
@@ -68,9 +68,10 @@ def main():
     names = list(MRS)
     f, ax = p.subplots(figsize=(3.4, 2.0))
     x = np.arange(len(names))
+    bw, offs = bar_offsets(len(ARCHS))
     for i, a in enumerate(ARCHS):
         v = [res[a][n]["violation_rate"] * 100 for n in names]
-        b = ax.bar(x + (i - .5) * .36, v, .36, color={"bilstm": "#1f6fb2", "cnn": "#d97a1c"}[a], label=NAMES[a])
+        b = ax.bar(x + offs[i], v, bw, color=COLORS[a], label=NAMES[a])
         for rr, vv in zip(b, v):
             ax.text(rr.get_x() + rr.get_width() / 2, vv, f"{vv:.1f}", ha="center", va="bottom", fontsize=5.5)
     ax.set_xticks(x)
@@ -78,7 +79,7 @@ def main():
     ax.set_ylabel("Predictions changed (%)")
     ax.legend(frameon=False, fontsize=7)
     f.tight_layout()
-    f.savefig("logs/tne/metamorphic.png", dpi=300)
+    f.savefig(OUT / "metamorphic.png", dpi=300)
     save("metamorphic", res)
     return res
 

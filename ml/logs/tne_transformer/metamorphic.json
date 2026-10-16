@@ -1,0 +1,83 @@
+{
+ "meta": {
+  "script": "scripts/tne/metamorphic.py",
+  "run_at": "2026-10-15T09:28:14+05:30",
+  "git_commit": "d707d40",
+  "python": "3.12.7",
+  "torch": "2.14.1",
+  "platform": "macOS-15.7.2-arm64-arm-64bit",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "bilstm": {
+   "base_acc": 0.9112149532710281,
+   "MR1_noise_0.1std": {
+    "violation_rate": 0.001557632398753894,
+    "acc_after": 0.9096573208722741
+   },
+   "MR2_time_shift_pm2": {
+    "violation_rate": 0.003894080996884735,
+    "acc_after": 0.9135514018691588
+   },
+   "MR3_speed_pm10pct": {
+    "violation_rate": 0.02102803738317757,
+    "acc_after": 0.9158878504672897
+   },
+   "MR4_camera_shift_5pct": {
+    "violation_rate": 0.5264797507788161,
+    "acc_after": 0.46261682242990654
+   },
+   "MR5_mirror_left_handed": {
+    "violation_rate": 0.7897196261682243,
+    "acc_after": 0.2071651090342679
+   }
+  },
+  "cnn": {
+   "base_acc": 0.9517133956386293,
+   "MR1_noise_0.1std": {
+    "violation_rate": 0.0,
+    "acc_after": 0.9517133956386293
+   },
+   "MR2_time_shift_pm2": {
+    "violation_rate": 0.007009345794392522,
+    "acc_after": 0.9478193146417446
+   },
+   "MR3_speed_pm10pct": {
+    "violation_rate": 0.016355140186915886,
+    "acc_after": 0.9454828660436138
+   },
+   "MR4_camera_shift_5pct": {
+    "violation_rate": 0.2087227414330218,
+    "acc_after": 0.7725856697819314
+   },
+   "MR5_mirror_left_handed": {
+    "violation_rate": 0.780373831775701,
+    "acc_after": 0.21339563862928349
+   }
+  },
+  "transformer": {
+   "base_acc": 0.9548286604361371,
+   "MR1_noise_0.1std": {
+    "violation_rate": 0.003115264797507788,
+    "acc_after": 0.9548286604361371
+   },
+   "MR2_time_shift_pm2": {
+    "violation_rate": 0.00778816199376947,
+    "acc_after": 0.9517133956386293
+   },
+   "MR3_speed_pm10pct": {
+    "violation_rate": 0.005451713395638629,
+    "acc_after": 0.9532710280373832
+   },
+   "MR4_camera_shift_5pct": {
+    "violation_rate": 0.021806853582554516,
+    "acc_after": 0.940809968847352
+   },
+   "MR5_mirror_left_handed": {
+    "violation_rate": 0.7601246105919003,
+    "acc_after": 0.2383177570093458
+   }
+  }
+ }
+}

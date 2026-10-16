@@ -176,60 +176,70 @@ no warm-up). Attention layers trained at 1e-3 from step one are unstable. Each
 run records the values it used in `ml/logs/<arch>_history.json`
 (`models.TRAIN_DEFAULTS`).
 
-All three were retrained together on a **reduced intake**: all 261 classes,
-capped at 10 clips per class (2,546 clips), the same 70/15/15 split at seed 42,
-60 epochs, batch 32, augmentation off, on CPU (Apple silicon). They were
-evaluated on 382 held-out clips:
+**Full-corpus three-way comparison.** The Transformer was trained on the same
+4,276 clips and the same 70/15/15 split (seed 42) as the BiLSTM and CNN above:
+60 epochs, batch 32, augmentation off, CPU (Apple silicon). All three were then
+evaluated together on the same 642 held-out clips:
 
 | Metric | BiLSTM | 1D CNN | Transformer |
 |---|---|---|---|
-| Test accuracy | 87.96% | **94.24%** | 93.98% |
-| Top-5 accuracy | 96.07% | 97.91% | **98.17%** |
-| Macro F1 | 0.8627 | 0.9289 | **0.9326** |
-| Weighted F1 | 0.8643 | **0.9339** | 0.9317 |
-| Latency (mean / p95) | 3.26 / 3.41 ms | **0.44** / 0.84 ms | 0.64 / **0.76** ms |
+| Test accuracy | 91.28% | 95.17% | **95.33%** |
+| Top-5 accuracy | 98.13% | **98.44%** | 97.82% |
+| Macro F1 | 0.9083 | 0.9505 | **0.9513** |
+| Weighted F1 | 0.9065 | 0.9477 | **0.9493** |
+| Best validation accuracy | 93.76% | 95.32% | **97.19%** |
+| Latency (mean / p95) | 3.36 / 3.59 ms | **0.35 / 0.42 ms** | 0.61 / 0.73 ms |
 | Parameters | 2,665,477 | 736,773 | **460,677** |
-| Best epoch / epochs run | 34 / 54 | 58 / 60 | **25** / 45 |
-| Training time (CPU)* | 512 s | 357 s | **225 s** |
+| Best epoch | 41 | 45 | **39** |
+| Training time (CPU) | 1,953 s | 287 s | 269 s* |
 
-\* The three trained in parallel with 3 CPU threads each, so these are
-comparable to one another but not to the 1,953 s / 287 s above.
+\* Different machine from the BiLSTM/CNN runs (those were trained on Windows),
+so training times are indicative only. Latencies were all measured in the same
+evaluation run on the same machine.
 
-**CNN and Transformer are a statistical tie.** 94.24% vs 93.98% is a single
-test clip out of 382, and the Transformer edges ahead on top-5 and macro F1.
-The Transformer reaches that accuracy with 37% fewer parameters than the CNN
-and converges in under half the epochs. The **BiLSTM is clearly last** here,
-6 points behind. Both the CNN and the Transformer process all frames in
-parallel, and both beat recurrence.
+**CNN and Transformer are tied; the BiLSTM is last.** The Transformer has the
+highest top-1 accuracy and macro F1, but 95.33% vs 95.17% is **one clip out of
+642**, which is not a ranking. The CNN leads on top-5 and latency. The
+Transformer matches the CNN with 37% fewer parameters, and has the best
+validation accuracy by ~2 points. The BiLSTM trails both by about 4 points,
+with 3.6–5.8× their parameters and 5–10× their latency. Both models that see
+all frames in parallel beat recurrence.
 
-The interpretation extends the one above. Isolated signs do not need step-by-step
-temporal state. The cheap local window (CNN) and the global all-pairs view
-(Transformer) both work, so the deciding factors are size and latency, not
-accuracy. For continuous signing, the Transformer is the more natural base:
-attention over long windows plus a CTC head is the standard continuous-recognition
-design (see `ml/ROADMAP.md` §3).
+The interpretation extends the one above. Isolated signs do not need
+step-by-step temporal state. A cheap local window (CNN) and a global all-pairs
+view (Transformer) both reach the same accuracy ceiling on this data, so the
+deciding factors are size and latency. For continuous signing, the Transformer
+is the more natural base: attention over long windows plus a CTC head is the
+standard continuous-recognition design (`ml/ROADMAP.md` §3).
 
-Caveats: with 10 clips per class, most classes have only one or two test clips,
-so per-class F1 is noisy and a one-clip gap is not a ranking. These numbers are
-not directly comparable to the full-corpus table above (fewer clips, 382 vs 642
-test clips, augmentation off). Rerunning all three on the full corpus is one
-command (below, without `--max-per-class`).
+**Why the BiLSTM/CNN numbers moved slightly from the table above.** This
+evaluation re-extracted every clip with MediaPipe on macOS. The published
+91.74% / 94.55% came from tensors extracted on Windows. The same checkpoints
+score 91.28% / 95.17% on the macOS tensors (a 3–4 clip shift each way), and the
+normalisation statistics of the two extractions differ by at most 0.4%. Small
+cross-platform differences in landmark extraction are expected. The three-way
+table uses one extraction for all three models, so it is internally consistent.
 
 **Augmentation bug found while doing this.** With augmentation on, all three
 models stayed at chance (0.3%, loss stuck at ln 261 ≈ 5.56). Frame-drop and
 time-shift zeroed *whole* frames, including pose. Pose is stored in raw image
-coordinates (≈0.5), so after standardisation a zeroed pose value is a spike 4–27
-standard deviations out, in ~15% of frames. `dataset.py` now drops only the hand
-blocks, which are wrist-relative so 0 is in-distribution, and edge-pads shifts
-by repeating the boundary frame. The table above was trained with
-`--no-augment`; the fixed augmentation has not yet been benchmarked.
+coordinates (≈0.5), so after standardisation a zeroed pose value is a spike
+4–27 standard deviations out, in ~15% of frames. `dataset.py` now drops only the
+hand blocks, which are wrist-relative so 0 is in-distribution, and edge-pads
+shifts by repeating the boundary frame. The Transformer above was trained with
+`--no-augment`; the fixed augmentation has not been benchmarked yet.
 
-Reproduce the three-way run:
+A first, quicker run capped at 10 clips per class (2,546 clips, 382 test clips)
+gave the same ordering: CNN 94.24%, Transformer 93.98%, BiLSTM 87.96%.
+
+Train the Transformer on the full corpus and compare it with the others:
 
 ```
 cd ml
-python run_pipeline.py --videos "../archive (3)" --classes all --max-per-class 10 \
-    --sample-frames 32 --epochs 60 --batch 32 --no-augment
+python scripts/preprocess.py --videos "../archive (3)" --out data/processed/include \
+    --sample-frames 32 --min-per-class 6
+python scripts/train_transformer.py --epochs 60 --batch 32 --no-augment
+python scripts/evaluate.py && python scripts/make_report.py
 ```
 
 Regenerate everything with `cd ml && python scripts/evaluate.py`.

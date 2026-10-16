@@ -1,0 +1,32 @@
+  PASS  [BB-01] BiLSTM: output is a probability distribution over 261 classes
+  PASS  [BB-02] BiLSTM: top-1 accuracy on 642 held-out clips >= 90%  (0.9112)
+  PASS  [BB-03] BiLSTM: top-5 accuracy >= 95%  (0.9813)
+  PASS  [BB-04] BiLSTM: all-zero clip (nobody in frame) gives a valid, finite output  (top confidence 0.246)
+  PASS  [BB-04b] BiLSTM: empty-scene confidence is below the 0.5 floor the live app uses, so nothing is captioned  (0.246)
+  PASS  [BB-05] BiLSTM: clips with the left hand missing still give valid outputs
+  PASS  [BB-06] BiLSTM: accepts 30- and 90-frame sequences (variable length)
+  PASS  [BB-07] BiLSTM: input with 224 features instead of 225 is rejected
+  PASS  [BB-08] BiLSTM: same clip gives the same output alone or in a batch
+  PASS  [BB-09] BiLSTM: mean single-clip CPU latency < 100 ms  (7.73 ms)
+  PASS  [BB-01] 1D CNN: output is a probability distribution over 261 classes
+  PASS  [BB-02] 1D CNN: top-1 accuracy on 642 held-out clips >= 90%  (0.9517)
+  PASS  [BB-03] 1D CNN: top-5 accuracy >= 95%  (0.9844)
+  PASS  [BB-04] 1D CNN: all-zero clip (nobody in frame) gives a valid, finite output  (top confidence 0.169)
+  PASS  [BB-04b] 1D CNN: empty-scene confidence is below the 0.5 floor the live app uses, so nothing is captioned  (0.169)
+  PASS  [BB-05] 1D CNN: clips with the left hand missing still give valid outputs
+  PASS  [BB-06] 1D CNN: accepts 30- and 90-frame sequences (variable length)
+  PASS  [BB-07] 1D CNN: input with 224 features instead of 225 is rejected
+  PASS  [BB-08] 1D CNN: same clip gives the same output alone or in a batch
+  PASS  [BB-09] 1D CNN: mean single-clip CPU latency < 100 ms  (0.63 ms)
+  PASS  [BB-01] Transformer: output is a probability distribution over 261 classes
+  PASS  [BB-02] Transformer: top-1 accuracy on 642 held-out clips >= 90%  (0.9548)
+  PASS  [BB-03] Transformer: top-5 accuracy >= 95%  (0.9782)
+  PASS  [BB-04] Transformer: all-zero clip (nobody in frame) gives a valid, finite output  (top confidence 0.162)
+  PASS  [BB-04b] Transformer: empty-scene confidence is below the 0.5 floor the live app uses, so nothing is captioned  (0.162)
+  PASS  [BB-05] Transformer: clips with the left hand missing still give valid outputs
+  PASS  [BB-06] Transformer: accepts 30- and 90-frame sequences (variable length)
+  PASS  [BB-07] Transformer: input with 224 features instead of 225 is rejected
+  PASS  [BB-08] Transformer: same clip gives the same output alone or in a batch
+  PASS  [BB-09] Transformer: mean single-clip CPU latency < 100 ms  (1.79 ms)
+
+30 passed, 0 failed

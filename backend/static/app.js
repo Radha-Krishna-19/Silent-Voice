@@ -302,7 +302,35 @@ function setMode(m){
   $('#modeNote').textContent = m==='capture'
     ? 'Capture matches training: one complete sign per window.'
     : 'Continuous slides a window over the stream. Most windows hold half a sign, so accuracy drops — that is expected.';
-  fetch('/api/reset', {method:'POST'}).catch(()=>{});
+  closeSocket();   // a fresh /ws/frame connection starts from a clean buffer
+}
+
+// Frames stream over the /ws/frame WebSocket (the old POST /api/frame and
+// /api/reset endpoints no longer exist). One frame is in flight at a time:
+// sendFrame resolves with the server's reply to that frame.
+function openSocket(){
+  if (live.ws && live.ws.readyState <= 1) return live.wsReady;
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/frame');
+  live.ws = ws;
+  live.wsReady = new Promise((resolve, reject) => {
+    ws.onopen = () => resolve(ws);
+    ws.onerror = () => reject(new Error('websocket error'));
+  });
+  ws.onmessage = e => { const r = live && live.pending; if (r){ live.pending = null; r.resolve(JSON.parse(e.data)); } };
+  ws.onclose = () => { if (live){ const r = live.pending; live.pending = null; if (r) r.reject(new Error('closed')); live.ws = null; } };
+  return live.wsReady;
+}
+
+function closeSocket(){
+  if (live && live.ws){ try { live.ws.close(); } catch {} live.ws = null; }
+}
+
+async function sendFrame(payload){
+  const ws = await openSocket();
+  return new Promise((resolve, reject) => {
+    live.pending = { resolve, reject };
+    ws.send(JSON.stringify(payload));
+  });
 }
 
 function setRec(on){
@@ -346,12 +374,9 @@ async function loopLive(){
       sx.save(); sx.scale(-1,1); sx.drawImage(v, -shot.width, 0, shot.width, shot.height); sx.restore();
 
       const t0 = performance.now();
-      const r = await fetch('/api/frame', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ image: shot.toDataURL('image/jpeg', .6),
-                               record: live.recording, mode: live.mode, model: live.model })
-      });
-      const d = await r.json();
+      const d = await sendFrame({ image: shot.toDataURL('image/jpeg', .6),
+                                  record: live.recording, mode: live.mode, model: live.model });
+      if (d.error) throw new Error(d.error);
       live.frames++;
       live.rtt = live.rtt ? live.rtt*.8 + (performance.now()-t0)*.2 : performance.now()-t0;
 
@@ -444,6 +469,7 @@ function addTranscript(w, c, corrected){
 function teardownLive(){
   if (!live) return;
   live.running = false;
+  closeSocket();
   live.stream?.getTracks().forEach(t => t.stop());
   removeEventListener('keydown', live.onKeyDown); removeEventListener('keyup', live.onKeyUp);
   removeEventListener('mouseup', live.onUp); removeEventListener('touchend', live.onUp);

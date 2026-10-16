@@ -92,7 +92,7 @@ def main():
     ax.set_ylabel("Test accuracy (%)")
     ax.set_ylim(min(v) - 8, 100)
     f.tight_layout()
-    f.savefig("logs/tne/gan_augmentation.png", dpi=300)
+    f.savefig(OUT / "gan_augmentation.png", dpi=300)
     save("gan", res)
     return res
 

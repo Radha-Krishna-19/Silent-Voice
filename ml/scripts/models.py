@@ -166,8 +166,9 @@ class CNN1DClassifier(nn.Module):
 
 # Per-architecture optimiser defaults. Everything else in _train.run() — split,
 # normalisation stats, augmentation, epochs, batch size, loss, early stopping —
-# is identical for every model. BiLSTM and CNN keep exactly the settings their
-# published results were produced with (lr 1e-3, no warm-up); only the
+# is identical for every model. BiLSTM and CNN keep the trainer's original
+# default (lr 1e-3, no warm-up; the committed full-corpus checkpoints were
+# trained with --lr 3e-3, visible in their history's lr column). Only the
 # Transformer differs, because attention layers need a lower peak LR and a
 # warm-up to train stably. Each run records the values it actually used in
 # logs/<arch>_history.json, so the comparison states its own conditions.

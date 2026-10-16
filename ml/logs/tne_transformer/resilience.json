@@ -1,0 +1,68 @@
+{
+ "meta": {
+  "script": "scripts/tne/resilience.py",
+  "run_at": "2026-10-15T09:30:30+05:30",
+  "git_commit": "d707d40",
+  "python": "3.12.7",
+  "torch": "2.14.1",
+  "platform": "macOS-15.7.2-arm64-arm-64bit",
+  "n_test": 642,
+  "seed": 42
+ },
+ "results": {
+  "bilstm": {
+   "blackout_15": {
+    "median_recovery_frames": 0.0,
+    "p90_recovery_frames": 44.0,
+    "median_recovery_seconds_at_12fps": 0.0,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.9786666666666668,
+    "n_streams": 200
+   },
+   "blackout_30": {
+    "median_recovery_frames": 25.0,
+    "p90_recovery_frames": 41.099999999999994,
+    "median_recovery_seconds_at_12fps": 2.0833333333333335,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.8966666666666667,
+    "n_streams": 200
+   }
+  },
+  "cnn": {
+   "blackout_15": {
+    "median_recovery_frames": 54.0,
+    "p90_recovery_frames": 56.0,
+    "median_recovery_seconds_at_12fps": 4.5,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.37866666666666676,
+    "n_streams": 200
+   },
+   "blackout_30": {
+    "median_recovery_frames": 54.0,
+    "p90_recovery_frames": 56.0,
+    "median_recovery_seconds_at_12fps": 4.5,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.22433333333333333,
+    "n_streams": 200
+   }
+  },
+  "transformer": {
+   "blackout_15": {
+    "median_recovery_frames": 0.0,
+    "p90_recovery_frames": 51.0,
+    "median_recovery_seconds_at_12fps": 0.0,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.9243333333333333,
+    "n_streams": 200
+   },
+   "blackout_30": {
+    "median_recovery_frames": 20.5,
+    "p90_recovery_frames": 51.0,
+    "median_recovery_seconds_at_12fps": 1.7083333333333333,
+    "recovered_within_stream": 1.0,
+    "correct_during_blackout": 0.8183333333333335,
+    "n_streams": 200
+   }
+  }
+ }
+}

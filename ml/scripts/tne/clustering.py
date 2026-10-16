@@ -11,7 +11,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 
-from common import ARCHS, NAMES, data, load_model, norm, plt, predict, save
+from common import OUT, ARCHS, NAMES, data, load_model, norm, plt, predict, save
 
 
 def embed(m, Xn):
@@ -55,7 +55,7 @@ def main():
     ax.set_ylabel("K-means vote accuracy (%)")
     ax.set_ylim(0, 105)
     f.tight_layout()
-    f.savefig("logs/tne/kmeans.png", dpi=300)
+    f.savefig(OUT / "kmeans.png", dpi=300)
     save("clustering", res)
     return res
 

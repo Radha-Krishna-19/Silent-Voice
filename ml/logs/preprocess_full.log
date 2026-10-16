@@ -1,0 +1,276 @@
+-> found 4284 videos under /Users/vasudevkishor/Documents/isl/archive (3)
+-> dropping 2 class(es) with < 6 clips: nice, thin
+-> 1730 videos to process across 261 classes (8 skipped)
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792010015.092446 4963366 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+I0000 00:00:1792010015.092414 4963368 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+I0000 00:00:1792010015.092441 4963362 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792010015.092415 4963358 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+I0000 00:00:1792010015.092440 4963356 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+I0000 00:00:1792010015.092416 4963364 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792010015.092417 4963354 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+I0000 00:00:1792010015.092441 4963360 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1792010015.092446 4963350 gl_context.cc:357] GL version: 2.1 (2.1 Metal - 89.4), renderer: Apple M4
+INFO: INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+Created TensorFlow Lite XNNPACK delegate for CPU.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1792010015.502334 4963630 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.502506 4963661 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.518858 4963661 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.520680 4963665 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.522150 4963662 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.522533 4963630 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.523427 4963661 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.527473 4963660 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.528561 4963632 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.529308 4963610 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.529442 4963680 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.530678 4963638 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.531219 4963640 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.534005 4963634 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.542430 4963644 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.544412 4963696 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.565973 4963662 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.579906 4963638 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.583011 4963670 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.587249 4963634 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.596904 4963625 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.608401 4963665 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.608767 4963640 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.613800 4963656 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.616178 4963677 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.616283 4963640 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.617790 4963673 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.619194 4963665 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.622744 4963648 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.643523 4963697 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.646069 4963680 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.647028 4963661 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.650559 4963686 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.651300 4963687 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.655448 4963697 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.656247 4963698 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.656975 4963693 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.659779 4963648 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.663381 4963632 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.664010 4963688 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.667530 4963610 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.673378 4963647 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.674621 4963612 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.680810 4963610 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.683814 4963649 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.687162 4963644 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.696081 4963611 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.699014 4963647 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.700431 4963677 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.718745 4963695 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.723963 4963688 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.752455 4963653 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.755659 4963611 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.794387 4963624 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.798547 4963667 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.804701 4963620 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.805278 4963628 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.806183 4963656 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.808415 4963626 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.816455 4963697 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.817352 4963684 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.834932 4963655 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.837905 4963610 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.844898 4963626 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.846056 4963659 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.880286 4963640 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.890704 4963698 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.897142 4963686 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.905358 4963612 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.905697 4963623 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.909444 4963657 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1792010015.929548 4963627 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+   [10/1730] ok=10 fail=0
+   [20/1730] ok=20 fail=0
+   [30/1730] ok=30 fail=0
+   [40/1730] ok=40 fail=0
+   [50/1730] ok=50 fail=0
+   [60/1730] ok=60 fail=0
+   [70/1730] ok=70 fail=0
+   [80/1730] ok=80 fail=0
+   [90/1730] ok=90 fail=0
+   [100/1730] ok=100 fail=0
+   [110/1730] ok=110 fail=0
+   [120/1730] ok=120 fail=0
+   [130/1730] ok=130 fail=0
+   [140/1730] ok=140 fail=0
+   [150/1730] ok=150 fail=0
+   [160/1730] ok=160 fail=0
+   [170/1730] ok=170 fail=0
+   [180/1730] ok=180 fail=0
+   [190/1730] ok=190 fail=0
+   [200/1730] ok=200 fail=0
+   [210/1730] ok=210 fail=0
+   [220/1730] ok=220 fail=0
+   [230/1730] ok=230 fail=0
+   [240/1730] ok=240 fail=0
+   [250/1730] ok=250 fail=0
+   [260/1730] ok=260 fail=0
+   [270/1730] ok=270 fail=0
+   [280/1730] ok=280 fail=0
+   [290/1730] ok=290 fail=0
+   [300/1730] ok=300 fail=0
+   [310/1730] ok=310 fail=0
+   [320/1730] ok=320 fail=0
+   [330/1730] ok=330 fail=0
+   [340/1730] ok=340 fail=0
+   [350/1730] ok=350 fail=0
+   [360/1730] ok=360 fail=0
+   [370/1730] ok=370 fail=0
+   [380/1730] ok=380 fail=0
+   [390/1730] ok=390 fail=0
+   [400/1730] ok=400 fail=0
+   [410/1730] ok=410 fail=0
+   [420/1730] ok=420 fail=0
+   [430/1730] ok=430 fail=0
+   [440/1730] ok=440 fail=0
+   [450/1730] ok=450 fail=0
+   [460/1730] ok=460 fail=0
+   [470/1730] ok=470 fail=0
+   [480/1730] ok=480 fail=0
+   [490/1730] ok=490 fail=0
+   [500/1730] ok=500 fail=0
+   [510/1730] ok=510 fail=0
+   [520/1730] ok=520 fail=0
+   [530/1730] ok=530 fail=0
+   [540/1730] ok=540 fail=0
+   [550/1730] ok=550 fail=0
+   [560/1730] ok=560 fail=0
+   [570/1730] ok=570 fail=0
+   [580/1730] ok=580 fail=0
+   [590/1730] ok=590 fail=0
+   [600/1730] ok=600 fail=0
+   [610/1730] ok=610 fail=0
+   [620/1730] ok=620 fail=0
+   [630/1730] ok=630 fail=0
+   [640/1730] ok=640 fail=0
+   [650/1730] ok=650 fail=0
+   [660/1730] ok=660 fail=0
+   [670/1730] ok=670 fail=0
+   [680/1730] ok=680 fail=0
+   [690/1730] ok=690 fail=0
+   [700/1730] ok=700 fail=0
+   [710/1730] ok=710 fail=0
+   [720/1730] ok=720 fail=0
+   [730/1730] ok=730 fail=0
+   [740/1730] ok=740 fail=0
+   [750/1730] ok=750 fail=0
+   [760/1730] ok=760 fail=0
+   [770/1730] ok=770 fail=0
+   [780/1730] ok=780 fail=0
+   [790/1730] ok=790 fail=0
+   [800/1730] ok=800 fail=0
+   [810/1730] ok=810 fail=0
+   [820/1730] ok=820 fail=0
+   [830/1730] ok=830 fail=0
+   [840/1730] ok=840 fail=0
+   [850/1730] ok=850 fail=0
+   [860/1730] ok=860 fail=0
+   [870/1730] ok=870 fail=0
+   [880/1730] ok=880 fail=0
+   [890/1730] ok=890 fail=0
+   [900/1730] ok=900 fail=0
+   [910/1730] ok=910 fail=0
+   [920/1730] ok=920 fail=0
+   [930/1730] ok=930 fail=0
+   [940/1730] ok=940 fail=0
+   [950/1730] ok=950 fail=0
+   [960/1730] ok=960 fail=0
+   [970/1730] ok=970 fail=0
+   [980/1730] ok=980 fail=0
+   [990/1730] ok=990 fail=0
+   [1000/1730] ok=1000 fail=0
+   [1010/1730] ok=1010 fail=0
+   [1020/1730] ok=1020 fail=0
+   [1030/1730] ok=1030 fail=0
+   [1040/1730] ok=1040 fail=0
+   [1050/1730] ok=1050 fail=0
+   [1060/1730] ok=1060 fail=0
+   [1070/1730] ok=1070 fail=0
+   [1080/1730] ok=1080 fail=0
+   [1090/1730] ok=1090 fail=0
+   [1100/1730] ok=1100 fail=0
+   [1110/1730] ok=1110 fail=0
+   [1120/1730] ok=1120 fail=0
+   [1130/1730] ok=1130 fail=0
+   [1140/1730] ok=1140 fail=0
+   [1150/1730] ok=1150 fail=0
+   [1160/1730] ok=1160 fail=0
+   [1170/1730] ok=1170 fail=0
+   [1180/1730] ok=1180 fail=0
+   [1190/1730] ok=1190 fail=0
+   [1200/1730] ok=1200 fail=0
+   [1210/1730] ok=1210 fail=0
+   [1220/1730] ok=1220 fail=0
+   [1230/1730] ok=1230 fail=0
+   [1240/1730] ok=1240 fail=0
+   [1250/1730] ok=1250 fail=0
+   [1260/1730] ok=1260 fail=0
+   [1270/1730] ok=1270 fail=0
+   [1280/1730] ok=1280 fail=0
+   [1290/1730] ok=1290 fail=0
+   [1300/1730] ok=1300 fail=0
+   [1310/1730] ok=1310 fail=0
+   [1320/1730] ok=1320 fail=0
+   [1330/1730] ok=1330 fail=0
+   [1340/1730] ok=1340 fail=0
+   [1350/1730] ok=1350 fail=0
+   [1360/1730] ok=1360 fail=0
+   [1370/1730] ok=1370 fail=0
+   [1380/1730] ok=1380 fail=0
+   [1390/1730] ok=1390 fail=0
+   [1400/1730] ok=1400 fail=0
+   [1410/1730] ok=1410 fail=0
+   [1420/1730] ok=1420 fail=0
+   [1430/1730] ok=1430 fail=0
+   [1440/1730] ok=1440 fail=0
+   [1450/1730] ok=1450 fail=0
+   [1460/1730] ok=1460 fail=0
+   [1470/1730] ok=1470 fail=0
+   [1480/1730] ok=1480 fail=0
+   [1490/1730] ok=1490 fail=0
+   [1500/1730] ok=1500 fail=0
+   [1510/1730] ok=1510 fail=0
+   [1520/1730] ok=1520 fail=0
+   [1530/1730] ok=1530 fail=0
+   [1540/1730] ok=1540 fail=0
+   [1550/1730] ok=1550 fail=0
+   [1560/1730] ok=1560 fail=0
+   [1570/1730] ok=1570 fail=0
+   [1580/1730] ok=1580 fail=0
+   [1590/1730] ok=1590 fail=0
+   [1600/1730] ok=1600 fail=0
+   [1610/1730] ok=1610 fail=0
+   [1620/1730] ok=1620 fail=0
+   [1630/1730] ok=1630 fail=0
+   [1640/1730] ok=1640 fail=0
+   [1650/1730] ok=1650 fail=0
+   [1660/1730] ok=1660 fail=0
+   [1670/1730] ok=1670 fail=0
+   [1680/1730] ok=1680 fail=0
+   [1690/1730] ok=1690 fail=0
+   [1700/1730] ok=1700 fail=0
+   [1710/1730] ok=1710 fail=0
+   [1720/1730] ok=1720 fail=0
+   [1730/1730] ok=1730 fail=0
+OK 4276 tensors across 261 labels (this run: 1730 written, 0 failed)

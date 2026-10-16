@@ -96,7 +96,7 @@ export const FEATURE_CARDS = [
   {
     kicker: "Three models, measured",
     title: "Recurrence came last.",
-    body: "BiLSTM, 1D CNN and Transformer trained on identical splits. CNN 94.2% and Transformer 94.0% tie within one test clip; the BiLSTM reached 88.0% with 3.6x the CNN's parameters and 7x its latency.",
+    body: "BiLSTM, 1D CNN and Transformer trained on identical splits. Transformer 95.3% and CNN 95.2% tie within one test clip; the BiLSTM reached 91.3% with 3.6x the CNN's parameters and 10x its latency.",
     icon: "Sparkles",
   },
 ];

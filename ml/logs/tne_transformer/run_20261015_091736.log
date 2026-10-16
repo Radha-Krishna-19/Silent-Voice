@@ -1,0 +1,149 @@
+T&E run started 2026-10-15T09:17:36+05:30
+python 3.12.7 | torch 2.14.1 | macOS-15.7.2-arm64-arm-64bit
+
+=== robustness ===
+bilstm noise 0: 0.9112
+bilstm noise 0.05: 0.9112
+bilstm noise 0.1: 0.9112
+bilstm noise 0.2: 0.9112
+bilstm noise 0.5: 0.9117
+bilstm noise 1.0: 0.9128
+bilstm noise 2.0: 0.8660
+bilstm drop 0: 0.9112
+bilstm drop 0.1: 0.8972
+bilstm drop 0.2: 0.8593
+bilstm drop 0.3: 0.7783
+bilstm drop 0.5: 0.4444
+cnn noise 0: 0.9517
+cnn noise 0.05: 0.9517
+cnn noise 0.1: 0.9517
+cnn noise 0.2: 0.9512
+cnn noise 0.5: 0.9444
+cnn noise 1.0: 0.9299
+cnn noise 2.0: 0.7960
+cnn drop 0: 0.9517
+cnn drop 0.1: 0.5524
+cnn drop 0.2: 0.1750
+cnn drop 0.3: 0.0597
+cnn drop 0.5: 0.0239
+transformer noise 0: 0.9548
+transformer noise 0.05: 0.9543
+transformer noise 0.1: 0.9543
+transformer noise 0.2: 0.9538
+transformer noise 0.5: 0.9460
+transformer noise 1.0: 0.8816
+transformer noise 2.0: 0.4844
+transformer drop 0: 0.9548
+transformer drop 0.1: 0.9434
+transformer drop 0.2: 0.9117
+transformer drop 0.3: 0.8650
+transformer drop 0.5: 0.7118
+-> wrote logs/tne_transformer/robustness.json
+
+=== explainability ===
+bilstm {'none': {'acc': 0.9112149532710281, 'p_true': 0.8397608399391174}, 'left_hand': {'acc': 0.735202492211838, 'p_true': 0.5876263380050659}, 'right_hand': {'acc': 0.3847352024922118, 'p_true': 0.2753644287586212}, 'pose': {'acc': 0.2336448598130841, 'p_true': 0.1301623433828354}} {'left_hand': 0.22677392690359188, 'right_hand': 0.3376649436740773, 'pose': 0.43556112942233083}
+cnn {'none': {'acc': 0.9517133956386293, 'p_true': 0.872948169708252}, 'left_hand': {'acc': 0.780373831775701, 'p_true': 0.6145783066749573}, 'right_hand': {'acc': 0.37383177570093457, 'p_true': 0.24393382668495178}, 'pose': {'acc': 0.1542056074766355, 'p_true': 0.08062388747930527}} {'left_hand': 0.20420059338049107, 'right_hand': 0.3698462989384476, 'pose': 0.4259531076810613}
+transformer {'none': {'acc': 0.9548286604361371, 'p_true': 0.8990155458450317}, 'left_hand': {'acc': 0.8411214953271028, 'p_true': 0.6697095632553101}, 'right_hand': {'acc': 0.4423676012461059, 'p_true': 0.2969909906387329}, 'pose': {'acc': 0.4501557632398754, 'p_true': 0.2542717456817627}} {'left_hand': 0.23523550949620575, 'right_hand': 0.351531249269291, 'pose': 0.4132332412345032}
+-> wrote logs/tne_transformer/explainability.json
+
+=== clustering ===
+
+=== calibration ===
+bilstm: ECE 0.0322 -> 0.0288 (T=0.859); conf correct 0.913 wrong 0.596
+cnn: ECE 0.0486 -> 0.0375 (T=0.825); conf correct 0.914 wrong 0.739
+transformer: ECE 0.0334 -> 0.0224 (T=0.847); conf correct 0.938 wrong 0.706
+-> wrote logs/tne_transformer/calibration.json
+
+=== adversarial ===
+bilstm eps 0.0: FGSM 0.9112  PGD 0.9112
+bilstm eps 0.01: FGSM 0.9034  PGD 0.9034
+bilstm eps 0.02: FGSM 0.8832  PGD 0.8738
+bilstm eps 0.05: FGSM 0.8100  PGD 0.7305
+bilstm eps 0.1: FGSM 0.7072  PGD 0.4159
+bilstm eps 0.2: FGSM 0.5062  PGD 0.0701
+cnn eps 0.0: FGSM 0.9517  PGD 0.9517
+cnn eps 0.01: FGSM 0.9299  PGD 0.9299
+cnn eps 0.02: FGSM 0.8972  PGD 0.8941
+cnn eps 0.05: FGSM 0.7430  PGD 0.7040
+cnn eps 0.1: FGSM 0.4097  PGD 0.2243
+cnn eps 0.2: FGSM 0.0763  PGD 0.0062
+transformer eps 0.0: FGSM 0.9548  PGD 0.9548
+transformer eps 0.01: FGSM 0.9393  PGD 0.9393
+transformer eps 0.02: FGSM 0.8832  PGD 0.8769
+transformer eps 0.05: FGSM 0.6355  PGD 0.5000
+transformer eps 0.1: FGSM 0.2632  PGD 0.0436
+transformer eps 0.2: FGSM 0.0218  PGD 0.0000
+-> wrote logs/tne_transformer/adversarial.json
+
+=== metamorphic ===
+bilstm MR1_noise_0.1std: violations 0.002, acc 0.9097
+bilstm MR2_time_shift_pm2: violations 0.004, acc 0.9136
+bilstm MR3_speed_pm10pct: violations 0.021, acc 0.9159
+bilstm MR4_camera_shift_5pct: violations 0.526, acc 0.4626
+bilstm MR5_mirror_left_handed: violations 0.790, acc 0.2072
+cnn MR1_noise_0.1std: violations 0.000, acc 0.9517
+cnn MR2_time_shift_pm2: violations 0.007, acc 0.9478
+cnn MR3_speed_pm10pct: violations 0.016, acc 0.9455
+cnn MR4_camera_shift_5pct: violations 0.209, acc 0.7726
+cnn MR5_mirror_left_handed: violations 0.780, acc 0.2134
+transformer MR1_noise_0.1std: violations 0.003, acc 0.9548
+transformer MR2_time_shift_pm2: violations 0.008, acc 0.9517
+transformer MR3_speed_pm10pct: violations 0.005, acc 0.9533
+transformer MR4_camera_shift_5pct: violations 0.022, acc 0.9408
+transformer MR5_mirror_left_handed: violations 0.760, acc 0.2383
+-> wrote logs/tne_transformer/metamorphic.json
+
+=== bias ===
+bilstm {'few_clips': {'n_test': 223, 'acc': 0.905829596412556}, 'medium_clips': {'n_test': 249, 'acc': 0.9116465863453815}, 'many_clips': {'n_test': 170, 'acc': 0.9176470588235294}, 'two_handed': {'n_test': 576, 'acc': 0.9114583333333334}, 'one_handed': {'n_test': 66, 'acc': 0.9090909090909091}}
+cnn {'few_clips': {'n_test': 223, 'acc': 0.9506726457399103}, 'medium_clips': {'n_test': 249, 'acc': 0.9558232931726908}, 'many_clips': {'n_test': 170, 'acc': 0.9470588235294117}, 'two_handed': {'n_test': 576, 'acc': 0.953125}, 'one_handed': {'n_test': 66, 'acc': 0.9393939393939394}}
+transformer {'few_clips': {'n_test': 223, 'acc': 0.9461883408071748}, 'medium_clips': {'n_test': 249, 'acc': 0.9598393574297188}, 'many_clips': {'n_test': 170, 'acc': 0.9588235294117647}, 'two_handed': {'n_test': 576, 'acc': 0.953125}, 'one_handed': {'n_test': 66, 'acc': 0.9696969696969697}}
+-> wrote logs/tne_transformer/bias.json
+
+=== drift ===
+bilstm no_drift_heldout {'feature_drift_score': 0.0, 'mean_confidence': 0.8794734477996826, 'confidence_drop': 0.0026022791862487793, 'alarm': False, 'accuracy': 0.9166666666666666}
+bilstm sensor_noise_0.5std {'feature_drift_score': 0.0, 'mean_confidence': 0.8725482225418091, 'confidence_drop': 0.009527504444122314, 'alarm': False, 'accuracy': 0.9166666666666666}
+bilstm dropped_frames_20pct {'feature_drift_score': 0.7214611872146118, 'mean_confidence': 0.742594301700592, 'confidence_drop': 0.13948142528533936, 'alarm': True, 'accuracy': 0.8566666666666667}
+bilstm camera_shift_10pct {'feature_drift_score': 0.1506849315068493, 'mean_confidence': 0.3356567621231079, 'confidence_drop': 0.5464189648628235, 'alarm': True, 'accuracy': 0.13333333333333333}
+bilstm left_handed_signers {'feature_drift_score': 0.5525114155251142, 'mean_confidence': 0.38544559478759766, 'confidence_drop': 0.49663013219833374, 'alarm': True, 'accuracy': 0.2}
+cnn no_drift_heldout {'feature_drift_score': 0.0, 'mean_confidence': 0.8927971124649048, 'confidence_drop': 0.0068086981773376465, 'alarm': False, 'accuracy': 0.9566666666666667}
+cnn sensor_noise_0.5std {'feature_drift_score': 0.0, 'mean_confidence': 0.8798002004623413, 'confidence_drop': 0.019805610179901123, 'alarm': False, 'accuracy': 0.9533333333333334}
+cnn dropped_frames_20pct {'feature_drift_score': 0.7214611872146118, 'mean_confidence': 0.20408764481544495, 'confidence_drop': 0.6955181658267975, 'alarm': True, 'accuracy': 0.19}
+cnn camera_shift_10pct {'feature_drift_score': 0.1506849315068493, 'mean_confidence': 0.41070792078971863, 'confidence_drop': 0.4888978898525238, 'alarm': True, 'accuracy': 0.2966666666666667}
+cnn left_handed_signers {'feature_drift_score': 0.5525114155251142, 'mean_confidence': 0.354836106300354, 'confidence_drop': 0.5447697043418884, 'alarm': True, 'accuracy': 0.22}
+transformer no_drift_heldout {'feature_drift_score': 0.0, 'mean_confidence': 0.9257635474205017, 'confidence_drop': -0.0038469433784484863, 'alarm': False, 'accuracy': 0.9733333333333334}
+transformer sensor_noise_0.5std {'feature_drift_score': 0.0, 'mean_confidence': 0.8868852853775024, 'confidence_drop': 0.03503131866455078, 'alarm': False, 'accuracy': 0.97}
+transformer dropped_frames_20pct {'feature_drift_score': 0.7214611872146118, 'mean_confidence': 0.8072262406349182, 'confidence_drop': 0.11469036340713501, 'alarm': True, 'accuracy': 0.9333333333333333}
+transformer camera_shift_10pct {'feature_drift_score': 0.1506849315068493, 'mean_confidence': 0.6893680095672607, 'confidence_drop': 0.23254859447479248, 'alarm': True, 'accuracy': 0.84}
+transformer left_handed_signers {'feature_drift_score': 0.5525114155251142, 'mean_confidence': 0.38056594133377075, 'confidence_drop': 0.5413506627082825, 'alarm': True, 'accuracy': 0.23333333333333334}
+-> wrote logs/tne_transformer/drift.json
+
+=== resilience ===
+bilstm 15 {'median_recovery_frames': 0.0, 'p90_recovery_frames': 44.0, 'median_recovery_seconds_at_12fps': 0.0, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.9786666666666668, 'n_streams': 200}
+bilstm 30 {'median_recovery_frames': 25.0, 'p90_recovery_frames': 41.099999999999994, 'median_recovery_seconds_at_12fps': 2.0833333333333335, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.8966666666666667, 'n_streams': 200}
+cnn 15 {'median_recovery_frames': 54.0, 'p90_recovery_frames': 56.0, 'median_recovery_seconds_at_12fps': 4.5, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.37866666666666676, 'n_streams': 200}
+cnn 30 {'median_recovery_frames': 54.0, 'p90_recovery_frames': 56.0, 'median_recovery_seconds_at_12fps': 4.5, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.22433333333333333, 'n_streams': 200}
+transformer 15 {'median_recovery_frames': 0.0, 'p90_recovery_frames': 51.0, 'median_recovery_seconds_at_12fps': 0.0, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.9243333333333333, 'n_streams': 200}
+transformer 30 {'median_recovery_frames': 20.5, 'p90_recovery_frames': 51.0, 'median_recovery_seconds_at_12fps': 1.7083333333333333, 'recovered_within_stream': 1.0, 'correct_during_blackout': 0.8183333333333335, 'n_streams': 200}
+-> wrote logs/tne_transformer/resilience.json
+
+=== qualitative ===
+bilstm 57 errors; 45 near misses; [(('thursday', 'yesterday'), 2), (('he', 'she'), 2), (('son', 'daughter'), 2), (('husband', 'wife'), 2)]
+cnn 31 errors; 21 near misses; [(('bathroom', 'pencil'), 1), (('blue', 'orange'), 1), (('wife', 'husband'), 1), (('soap', 'book'), 1)]
+transformer 29 errors; 15 near misses; [(('thursday', 'yellow'), 2), (('he', 'she'), 2), (('court', 'extra'), 2), (('card', 'gift'), 1)]
+agreement {'both_wrong': 26, 'only_bilstm_wrong': 31, 'only_cnn_wrong': 5, 'both_right': 580, 'oracle_either_right_acc': 0.9595015576323987}
+pairwise agreement {'bilstm_vs_cnn': {'both_wrong': 26, 'only_bilstm_wrong': 31, 'only_cnn_wrong': 5, 'oracle_either_right_acc': 0.9595015576323987}, 'bilstm_vs_transformer': {'both_wrong': 25, 'only_bilstm_wrong': 32, 'only_transformer_wrong': 4, 'oracle_either_right_acc': 0.9610591900311527}, 'cnn_vs_transformer': {'both_wrong': 19, 'only_cnn_wrong': 12, 'only_transformer_wrong': 10, 'oracle_either_right_acc': 0.9704049844236761}}
+all models wrong on 19 clips
+-> wrote logs/tne_transformer/qualitative.json
+
+Summary:
+  robustness      OK (93s)
+  explainability  OK (26s)
+  clustering      FAILED
+  calibration     OK (6s)
+  adversarial     OK (477s)
+  metamorphic     OK (18s)
+  bias            OK (3s)
+  drift           OK (15s)
+  resilience      OK (118s)
+  qualitative     OK (3s)
+T&E run finished 2026-10-15T09:30:33+05:30

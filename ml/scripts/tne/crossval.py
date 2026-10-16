@@ -1,6 +1,6 @@
 """T&E: test design — stratified k-fold cross-validation.
 
-Retrains both architectures on k folds of the whole INCLUDE set (stratified,
+Retrains each architecture in ARCHS on k folds of the whole INCLUDE set (stratified,
 seed 42) with the project's training recipe (AdamW lr 3e-3, wd 1e-4, cosine
 schedule, label smoothing 0.05, grad-clip 1.0, batch 32, no augmentation) and
 reports the spread of accuracy across folds. The epoch budget is reduced
@@ -20,7 +20,8 @@ import torch.nn.functional as F
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
 
-from common import ARCHS, NAMES, build, data, plt, save, COLORS
+from common import OUT, ARCHS, NAMES, build, data, plt, save, COLORS
+from models import TRAIN_DEFAULTS
 
 
 def train_eval(arch, Xtr, ytr, Xte, yte, epochs, log):
@@ -31,8 +32,18 @@ def train_eval(arch, Xtr, ytr, Xte, yte, epochs, log):
     Ytr = torch.from_numpy(ytr)
     torch.manual_seed(42)
     m = build(arch, 261)
-    opt = torch.optim.AdamW(m.parameters(), lr=3e-3, weight_decay=1e-4)
-    sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
+    # BiLSTM/CNN: the project recipe (lr 3e-3, cosine). The Transformer uses its
+    # own recipe from models.TRAIN_DEFAULTS (lr 5e-4, linear warm-up, then cosine),
+    # scaled to this shorter epoch budget.
+    warm = min(TRAIN_DEFAULTS[arch]["warmup_epochs"], epochs // 4) if arch == "transformer" else 0
+    lr = TRAIN_DEFAULTS[arch]["lr"] if arch == "transformer" else 3e-3
+    opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=1e-4)
+    if warm:
+        sch = torch.optim.lr_scheduler.SequentialLR(opt, [
+            torch.optim.lr_scheduler.LinearLR(opt, start_factor=0.1, total_iters=warm),
+            torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=max(1, epochs - warm))], milestones=[warm])
+    else:
+        sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     t0 = time.time()
     for ep in range(epochs):
         m.train()
@@ -75,7 +86,7 @@ def main(folds=3, epochs=20, archs=ARCHS):
     ax.set_xlim(-.5, len(archs) - .5)
     ax.set_ylabel("Fold accuracy (%)")
     f.tight_layout()
-    f.savefig("logs/tne/crossval.png", dpi=300)
+    f.savefig(OUT / "crossval.png", dpi=300)
     save("crossval", {"folds": folds, "epochs": epochs, "per_fold": res, "summary": summary})
     return summary
 

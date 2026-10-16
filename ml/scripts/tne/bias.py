@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from common import ARCHS, NAMES, data, load_model, norm, plt, predict, save
+from common import bar_offsets, COLORS, OUT, ARCHS, NAMES, data, load_model, norm, plt, predict, save
 
 
 def main():
@@ -51,18 +51,19 @@ def main():
     f, ax = p.subplots(figsize=(3.4, 1.95))
     keys = ["few_clips", "medium_clips", "many_clips", "one_handed", "two_handed"]
     x = np.arange(len(keys))
+    bw, offs = bar_offsets(len(ARCHS))
     for i, a in enumerate(ARCHS):
         v = [res[a][k]["acc"] * 100 for k in keys]
-        b = ax.bar(x + (i - .5) * .36, v, .36, color={"bilstm": "#1f6fb2", "cnn": "#d97a1c"}[a], label=NAMES[a])
+        b = ax.bar(x + offs[i], v, bw, color=COLORS[a], label=NAMES[a])
         for rr, vv in zip(b, v):
             ax.text(rr.get_x() + rr.get_width() / 2, vv, f"{vv:.1f}", ha="center", va="bottom", fontsize=5.5)
     ax.set_xticks(x)
     ax.set_xticklabels(["Few\nclips", "Medium", "Many\nclips", "One-\nhanded", "Two-\nhanded"])
     ax.set_ylabel("Test accuracy (%)")
     ax.set_ylim(0, 112)
-    ax.legend(frameon=False, fontsize=7, ncol=2, loc="upper center", bbox_to_anchor=(.5, 1.15))
+    ax.legend(frameon=False, fontsize=7, ncol=len(ARCHS), loc="upper center", bbox_to_anchor=(.5, 1.15))
     f.tight_layout()
-    f.savefig("logs/tne/bias_groups.png", dpi=300)
+    f.savefig(OUT / "bias_groups.png", dpi=300)
     save("bias", res)
     return res
 

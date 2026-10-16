@@ -30,9 +30,12 @@ from _train import collect_paths, make_splits  # noqa: E402
 from dataset import load_stats, _mirror  # noqa: E402
 from models import build  # noqa: E402
 
-OUT = ML / "logs" / "tne"
-ARCHS = ("bilstm", "cnn")
-NAMES = {"bilstm": "BiLSTM", "cnn": "1D CNN"}
+# Defaults reproduce the committed two-model evidence in logs/tne/. To evaluate
+# other models without touching it, e.g. the Transformer alongside the others:
+#   SV_ARCHS=bilstm,cnn,transformer SV_TNE_OUT=logs/tne_transformer python scripts/tne/run_all.py
+OUT = ML / os.environ.get("SV_TNE_OUT", "logs/tne")
+ARCHS = tuple(a.strip() for a in os.environ.get("SV_ARCHS", "bilstm,cnn").split(",") if a.strip())
+NAMES = {"bilstm": "BiLSTM", "cnn": "1D CNN", "transformer": "Transformer"}
 SEED = 42
 
 
@@ -42,7 +45,7 @@ def model_dir() -> Path:
     # The served checkpoints (backend/models) first, so results describe what the app runs.
     cands += [ML.parent / "backend" / "models", ML / "models"]
     for c in cands:
-        if all((c / f).exists() for f in ("cnn.pt", "bilstm.pt", "label_map.json", "preproc_stats.json")):
+        if all((c / f).exists() for f in [f"{a}.pt" for a in ARCHS] + ["label_map.json", "preproc_stats.json"]):
             return c
     raise SystemExit(f"No checkpoints found in {[str(c) for c in cands]}")
 
@@ -137,4 +140,10 @@ def plt():
     return p
 
 
-COLORS = {"bilstm": "#1f6fb2", "cnn": "#d97a1c"}
+COLORS = {"bilstm": "#1f6fb2", "cnn": "#d97a1c", "transformer": "#2a9d5c"}
+
+
+def bar_offsets(n: int, total: float = .72) -> tuple[float, list[float]]:
+    """Width and x-offsets for n side-by-side bars per group."""
+    w = total / n
+    return w, [(i - (n - 1) / 2) * w for i in range(n)]
