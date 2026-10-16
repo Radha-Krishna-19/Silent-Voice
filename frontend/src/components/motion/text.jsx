@@ -82,8 +82,8 @@ export function WordReveal({ text, className = "", delay = 0, stagger = 0.018 })
           key={`${w}-${i}`}
           aria-hidden="true"
           className="inline-block will-change-transform"
-          initial={{ opacity: 0, y: 10, filter: "blur(5px)" }}
-          animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined}
+          initial={{ opacity: 0, y: 10 }}
+          animate={inView ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.42, delay: delay + i * stagger, ease: EASE_OUT }}
         >
           {w}

@@ -113,7 +113,7 @@ export default function Auth() {
           </form>
 
           <div className="mt-8 text-xs text-cream/40 text-center">
-            By continuing you agree to landmark-only processing. No video is ever stored.
+            Live translation does not save camera frames. Videos are stored only if you record one on the Contribute page.
           </div>
         </div>
       </div>

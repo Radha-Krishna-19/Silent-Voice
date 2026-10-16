@@ -74,12 +74,12 @@ export default function Settings() {
             <Section title="Recognition">
               <Choice
                 label="Model"
-                hint="Both are trained on the identical split. The CNN measured higher on every metric."
+                hint="The CNN was retrained on position-normalised data and is the one to use live. The BiLSTM is the original research model; through the live position normalisation it scores only 61.7% on test clips until it is retrained."
                 value={s.model}
                 onChange={(v) => update({ model: v })}
                 options={[
-                  { value: "cnn", label: "1D CNN", meta: "94.55% · 0.74 ms" },
-                  { value: "bilstm", label: "BiLSTM", meta: "91.74% · 4.12 ms" },
+                  { value: "cnn", label: "1D CNN", meta: "95.95% · 0.74 ms" },
+                  { value: "bilstm", label: "BiLSTM", meta: "61.7% live path · 4.12 ms" },
                 ]}
               />
               <Slider
@@ -116,6 +116,15 @@ export default function Settings() {
                   </select>
                 </Row>
               )}
+            </Section>
+
+            <Section title="Live translation">
+              <Toggle
+                label="I sign left-handed"
+                hint="The recogniser was trained on right-handed signers. This mirrors your camera input before it is read; without it a left-handed signer is misread (about 18% instead of about 87% on test clips)."
+                value={s.leftHanded}
+                onChange={(v) => update({ leftHanded: v })}
+              />
             </Section>
 
             <Section title="Practice">

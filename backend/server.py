@@ -27,6 +27,7 @@ import base64
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from collections import deque
@@ -34,7 +35,8 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -46,7 +48,7 @@ sys.path.insert(0, str(ROOT.parent / "ml" / "scripts"))
 import cv2  # noqa: E402
 import mediapipe as mp  # noqa: E402
 
-from preprocess import T, _lm_arr, _normalize  # noqa: E402
+from preprocess import T, _lm_arr, _normalize, mirror_sequence as _mirror  # noqa: E402
 
 import inference  # noqa: E402
 import gloss  # noqa: E402
@@ -54,6 +56,7 @@ import nlg  # noqa: E402
 import practice  # noqa: E402
 import auth  # noqa: E402
 import contrib  # noqa: E402
+from segmenter import SignSegmenter  # noqa: E402
 from monitor import monitor  # noqa: E402
 
 app = FastAPI(title="Silent Voice", version="1.2")
@@ -119,6 +122,9 @@ class Frame(BaseModel):
     mode: str = "capture"           # "capture" | "continuous" | "contribute"
     model: Optional[str] = None
     contribute_label: Optional[str] = None   # word being contributed, "contribute" mode only
+    practice_label: Optional[str] = None     # capture mode: also score the attempt against this word
+    mirror: bool = False                      # practice scoring: learner mirrors the reference
+    left_handed: bool = False                 # flip the incoming sign so a left-handed signer is read as the right-handed signers the model was trained on
 
 
 def _decode(data_url: str) -> Optional[np.ndarray]:
@@ -147,13 +153,20 @@ def _overlay_points(res) -> dict:
     }
 
 
-def _window(frames: list[np.ndarray]) -> np.ndarray:
+def _window(frames: list[np.ndarray], left_handed: bool = False) -> np.ndarray:
+    """Resample to the model's 60 frames and normalise exactly as the training
+    tensors were (hands wrist-relative, pose moved to the canonical INCLUDE
+    position — see preprocess.canonicalize_pose)."""
     arr = np.stack(frames)
     if len(arr) >= T:
         arr = arr[np.linspace(0, len(arr) - 1, T).astype(int)]
     else:
-        arr = np.tile(arr, (int(np.ceil(T / len(arr))), 1))[:T]
-    return _normalize(arr)
+        # stretch a short sign evenly rather than tiling it (tiling repeated it)
+        arr = arr[np.linspace(0, len(arr) - 1, T).astype(int)]
+    win = _normalize(arr)
+    if left_handed:
+        win = _mirror(win)
+    return win
 
 
 # --------------------------------------------------------------------------- #
@@ -215,6 +228,8 @@ async def ws_frame(websocket: WebSocket) -> None:
     buffer: deque = deque(maxlen=T)
     recording: list[np.ndarray] = []
     is_recording = False
+    segmenter = SignSegmenter()
+    last_mode = None
 
     try:
         while True:
@@ -259,18 +274,28 @@ async def ws_frame(websocket: WebSocket) -> None:
             prediction = None
             finished = False
             contribution = None
+            practice_result = None
 
             if f.mode == "capture":
                 if is_recording and not f.record:          # user released -> classify
                     is_recording = False
                     if len(recording) >= 4:
-                        win = _window(recording)
-                        prediction = inference.predict(win.tolist(), f.model or "bilstm")
+                        win = _window(recording, f.left_handed)
+                        prediction = inference.predict(win.tolist(), f.model or inference.DEFAULT_ARCH)
                         # Keep the window (module-level, matches practice.py's
                         # existing single-session contract) so Practice mode
                         # can score this exact attempt without the client
                         # re-sending every frame.
                         globals()["_last_window"] = win
+                        if f.practice_label:
+                            # Score in the same round trip, against exactly this
+                            # window — no second request, no race with the next
+                            # frame, no state shared between connections.
+                            practice_result = practice.score(win.tolist(), f.practice_label, mirror=f.mirror)
+                        finished = True
+                    elif f.practice_label:
+                        practice_result = {"available": False,
+                                           "error": "too few frames captured — keep your hands in view and try again"}
                         finished = True
                     recording = []
             elif f.mode == "contribute":
@@ -285,10 +310,21 @@ async def ws_frame(websocket: WebSocket) -> None:
                     finished = True
                     recording = []
             else:                                            # continuous
-                if len(buffer) >= T // 2:
-                    prediction = inference.predict(_window(list(buffer)).tolist(), f.model or "bilstm")
+                # Segment by hand visibility and classify each sign once, cropped
+                # the way the training clips are (see segmenter.py). The old
+                # behaviour — classify a rolling 5 s buffer on every frame — fed the
+                # model windows that were mostly empty, and flickered.
+                hv = bool(res.left_hand_landmarks or res.right_hand_landmarks)
+                if last_mode != "continuous":
+                    segmenter.reset()
+                seg = segmenter.push(feats, hv)
+                if seg is not None:
+                    win = _window(list(seg), f.left_handed)
+                    prediction = inference.predict(win.tolist(), f.model or inference.DEFAULT_ARCH)
                     if prediction and prediction.get("confidence", 0) < CONTINUOUS_CONFIDENCE_FLOOR:
                         prediction = None
+                    finished = True
+            last_mode = f.mode
 
             hands_visible = bool(res.left_hand_landmarks or res.right_hand_landmarks)
             monitor.record_frame(hands_visible)
@@ -298,8 +334,10 @@ async def ws_frame(websocket: WebSocket) -> None:
                 "landmarks": _overlay_points(res),
                 "prediction": prediction,
                 "contribution": contribution,
+                "practice": practice_result,
                 "recording": is_recording,
-                "recorded_frames": len(recording),
+                "recorded_frames": len(recording) if f.mode != "continuous" else segmenter.length,
+                "segmenting": segmenter.active if f.mode == "continuous" else False,
                 "hands_visible": hands_visible,
                 "finished": finished,
                 "server_ms": round((time.perf_counter() - t0) * 1000, 1),
@@ -317,7 +355,7 @@ def monitor_report():
 @app.get("/api/status")
 def status():
     st = inference.status()
-    st["vocabulary"] = inference._state.get("labels") or []
+    st["vocabulary"] = inference.labels_for(inference.DEFAULT_ARCH)
     return st
 
 
@@ -390,10 +428,30 @@ class TextIn(BaseModel):
     text: str
 
 
+def _hands3d(ref) -> list:
+    """(T, 126) wrist-relative xyz for both hands, trimmed to the frames where a
+    hand is actually tracked (INCLUDE clips start and end at rest)."""
+    hands = np.asarray(ref, dtype=np.float32)[:, 0:126]
+    seen = np.flatnonzero(np.abs(hands).sum(axis=1) > 0)
+    if len(seen):
+        hands = hands[seen[0]:seen[-1] + 1]
+    return np.round(hands, 3).tolist()
+
+
 @app.post("/api/text-to-sign")
 def text_to_sign(body: TextIn):
-    """Full payload: gloss ordering plus the frames needed to render it."""
-    return gloss.build_sequence(body.text)
+    """Full payload: gloss ordering plus the frames needed to render it.
+    Each available word also carries `hands3d` — the same reference clip the
+    Practice page uses — for the 3-D hand view."""
+    out = gloss.build_sequence(body.text)
+    for it in out.get("items", []):
+        if it.get("available"):
+            ref = practice.reference(it["label"])
+            if ref is not None:
+                it["hands3d"] = _hands3d(ref)
+    out["hands3d_aspect"] = 16 / 9
+    out["hands3d_fps"] = 24
+    return out
 
 
 @app.post("/api/text-to-gloss")
@@ -423,6 +481,25 @@ def practice_score(body: PracticeIn):
     return practice.score(win, body.label, mirror=body.mirror)
 
 
+@app.get("/api/practice/reference/{label}")
+def practice_reference(label: str):
+    """The reference clip's hand landmarks in 3-D (wrist-relative xyz), for the
+    Practice page's 3-D hand view. Same tensor the attempt is scored against."""
+    ref = practice.reference(label)
+    if ref is None:
+        return JSONResponse({"available": False, "error": f"no reference for '{label}'"}, status_code=404)
+    hands = np.asarray(ref, dtype=np.float32)[:, 0:126]
+    return {
+        "available": True,
+        "label": label,
+        "frames": np.round(hands, 4).tolist(),        # (T, 126): left 21x3, right 21x3
+        # INCLUDE was filmed 1920x1080; x and z are in units of image WIDTH,
+        # y in units of HEIGHT, so x/z must be stretched by 16/9 for true shape.
+        "aspect": 16 / 9,
+        "fps": 24,
+    }
+
+
 @app.get("/api/practice/words")
 def practice_words():
     """Words that can be practised — those with a reference recording."""
@@ -439,16 +516,86 @@ def vocabulary():
 
 @app.get("/api/contributions")
 def contributions():
-    """Counts of user-contributed clips awaiting offline review/retraining."""
-    if not CONTRIB_DIR.exists():
-        return {"total": 0, "words": {}}
-    words = {}
-    for word_dir in sorted(CONTRIB_DIR.iterdir()):
-        if word_dir.is_dir():
-            n = len(list(word_dir.glob("*.npy")))
-            if n:
-                words[word_dir.name] = n
-    return {"total": sum(words.values()), "words": words}
+    """Stored contribution videos and the training tensors extracted from them."""
+    return contrib.summary(inference.labels_for(inference.DEFAULT_ARCH))
+
+
+@app.post("/api/contribute/video")
+async def contribute_video(request: Request, label: str = ""):
+    """Store a recorded clip, extract its skeleton, add it to the training set.
+
+    Body: the raw video bytes (what MediaRecorder produced), Content-Type
+    video/webm or video/mp4. Raw body rather than multipart so no extra
+    dependency (python-multipart) is needed.
+    """
+    if not label.strip():
+        return JSONResponse({"video_saved": False, "error": "no word label given"}, status_code=400)
+    data = await request.body()
+    try:
+        saved = contrib.save_video(label, data, request.headers.get("content-type", "video/webm"))
+    except ValueError as exc:
+        return JSONResponse({"video_saved": False, "error": str(exc)}, status_code=400)
+
+    result = await run_in_threadpool(contrib.extract_to_training, saved)
+    win = result.pop("window", None)
+    if win is not None:
+        # What the CURRENT model thinks the clip is — useful feedback, and a
+        # sanity check that the contribution looks like the word it claims.
+        result["current_model_prediction"] = inference.predict(win.tolist())
+    return result
+
+
+# --- retraining on INCLUDE + contributions (runs as a separate process) ------ #
+_retrain: dict = {"proc": None, "log": ML_LOGS / "retrain.log", "started": None,
+                  "returncode": None, "reloaded": False}
+
+
+def _retrain_status() -> dict:
+    p = _retrain["proc"]
+    running = p is not None and p.poll() is None
+    if p is not None and not running and _retrain["returncode"] is None:
+        _retrain["returncode"] = p.returncode
+        if p.returncode == 0 and not _retrain["reloaded"]:
+            inference.load_models()             # serve the new weights immediately
+            _retrain["reloaded"] = True
+    tail = ""
+    if _retrain["log"].exists():
+        tail = "\n".join(_retrain["log"].read_text(encoding="utf-8", errors="replace").splitlines()[-14:])
+    report = None
+    rp = ML_LOGS / "retrain_report.json"
+    if rp.exists():
+        try:
+            report = json.loads(rp.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"running": running, "started": _retrain["started"], "returncode": _retrain["returncode"],
+            "reloaded": _retrain["reloaded"], "log_tail": tail, "last_report": report}
+
+
+@app.get("/api/contribute/retrain")
+def retrain_status():
+    return _retrain_status()
+
+
+class RetrainIn(BaseModel):
+    models: list[str] = ["cnn"]
+    epochs: int = 40
+
+
+@app.post("/api/contribute/retrain")
+def retrain_start(body: RetrainIn):
+    st = _retrain_status()
+    if st["running"]:
+        return JSONResponse({"started": False, "error": "a retrain is already running", **st}, status_code=409)
+    models = [m for m in body.models if m in ("cnn", "bilstm")] or ["cnn"]
+    script = ROOT.parent / "ml" / "scripts" / "retrain_with_contributions.py"
+    ML_LOGS.mkdir(parents=True, exist_ok=True)
+    log = open(_retrain["log"], "w", encoding="utf-8")
+    proc = subprocess.Popen(
+        [sys.executable, "-u", str(script), "--models", *models, "--epochs", str(max(5, min(body.epochs, 120)))],
+        cwd=str(ROOT.parent / "ml"), stdout=log, stderr=subprocess.STDOUT)
+    _retrain.update(proc=proc, started=time.strftime("%Y-%m-%d %H:%M:%S"), returncode=None, reloaded=False)
+    return {"started": True, **_retrain_status()}
 
 
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")

@@ -10,6 +10,7 @@ import Waveform from "../components/Waveform";
 import useLiveCapture from "../hooks/useLiveCapture";
 import { LIVE_CAPTION_QUEUE, RECENT_TRANSCRIPT } from "../lib/mockData";
 import { loadSettings } from "../lib/storage";
+import { VOCAB_SIZE } from "../lib/vocabulary";
 import { saveSession } from "../lib/sessions";
 import { formSentence } from "../lib/api";
 import { CountUp, Magnetic, useRipple, PageTransition } from "../components/motion";
@@ -22,7 +23,7 @@ const mmss = (s) =>
 export default function Live() {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [model, setModel] = useState("bilstm");
+  const [model, setModel] = useState(() => loadSettings().model ?? "cnn");
   const [transcript, setTranscript] = useState([]);
   const [demoIdx, setDemoIdx] = useState(0);
   const [sentence, setSentence] = useState(null);       // { sentence, source }
@@ -34,7 +35,7 @@ export default function Live() {
   const sentencedCount = useRef(0);   // how many transcript rows the last sentence covered
   const pauseTimer = useRef(null);
 
-  const cap = useLiveCapture({ model, mode: "continuous" });
+  const cap = useLiveCapture({ model, mode: "continuous", leftHanded: Boolean(settings.current.leftHanded) });
   const live = cap.isLive;
 
   // Persist the session when the camera stops. Real entries only — an empty
@@ -191,6 +192,12 @@ export default function Live() {
             </div>
           </div>
         )}
+
+        <p data-testid="live-limits" className="mb-4 text-xs text-cream/50 leading-relaxed max-w-3xl">
+          How to get a reading: sign one word, then lower your hands for a moment — each raise-and-lower is read as one word.
+          Keep your head and shoulders in view. It knows {VOCAB_SIZE} words only, ignores facial expression, and was tested on
+          recorded clips, not yet on live webcam users, so expect mistakes. Left-handed? Turn that on in Settings.
+        </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* WEBCAM */}

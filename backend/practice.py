@@ -30,6 +30,8 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+import sys
+
 import numpy as np
 
 REFS_PATH = Path(__file__).parent / "models" / "practice_refs.npz"
@@ -45,7 +47,17 @@ def _load() -> tuple[list[str], np.ndarray]:
     if not REFS_PATH.exists():
         return [], np.zeros((0, 60, 225), dtype=np.float32)
     d = np.load(REFS_PATH, allow_pickle=False)
-    return [str(x) for x in d["labels"]], d["refs"].astype(np.float32)
+    refs = d["refs"].astype(np.float32)
+    # The attempt arrives with its pose moved to the canonical INCLUDE position
+    # (server._window -> preprocess._normalize). Put the references in the same
+    # space, otherwise "placement" would compare two different coordinate systems.
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "ml" / "scripts"))
+        from preprocess import canonicalize_pose
+        refs = np.stack([canonicalize_pose(r) for r in refs])
+    except Exception:  # noqa: BLE001  (scoring still works on raw refs, just less exactly)
+        pass
+    return [str(x) for x in d["labels"]], refs
 
 
 def available() -> bool:
@@ -54,6 +66,14 @@ def available() -> bool:
 
 def vocabulary() -> list[str]:
     return _load()[0]
+
+
+def reference(label: str):
+    """(T, 225) reference tensor for a word, or None."""
+    labels, refs = _load()
+    if label not in labels:
+        return None
+    return refs[labels.index(label)]
 
 
 def _mirror(x: np.ndarray) -> np.ndarray:

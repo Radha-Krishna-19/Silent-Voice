@@ -1,9 +1,7 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import { ScrollProgress } from "./components/motion";
 import { Toaster } from "./components/ui/sonner";
-import GrainOverlay from "./components/GrainOverlay";
 import CommandPalette from "./components/CommandPalette";
 import MotionNotice from "./components/MotionNotice";
 import Gate from "./pages/Gate";
@@ -36,8 +34,12 @@ function AnimatedRoutes() {
   const location = useLocation();
   const g = (el) => <Gated>{el}</Gated>;
 
+  // No AnimatePresence here. With mode="wait" the next page only mounted once
+  // the previous page's exit animation reported completion, and after Live /
+  // Practice / Reverse (camera, canvas, nested presence) it sometimes never did:
+  // the URL changed but the screen stayed blank. Pages still animate IN via
+  // PageTransition; keying on the path remounts them so that runs every time.
   return (
-    <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Gate />} />
         <Route path="/home" element={g(<Landing />)} />
@@ -54,7 +56,6 @@ function AnimatedRoutes() {
         <Route path="/auth" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
-    </AnimatePresence>
   );
 }
 
@@ -69,7 +70,6 @@ function App() {
 
   return (
     <div className="App">
-      <GrainOverlay />
       <ScrollProgress />
       <MotionNotice />
       <BrowserRouter basename={process.env.PUBLIC_URL}>

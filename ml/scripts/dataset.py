@@ -9,32 +9,9 @@ import torch
 from torch.utils.data import Dataset
 
 
-# MediaPipe Pose: (left, right) landmark index pairs that must swap when mirrored.
-_POSE_SWAP = [(1, 4), (2, 5), (3, 6), (7, 8), (9, 10), (11, 12), (13, 14), (15, 16),
-              (17, 18), (19, 20), (21, 22), (23, 24), (25, 26), (27, 28), (29, 30), (31, 32)]
-
-
-def _mirror(x: np.ndarray) -> np.ndarray:
-    """Mirror a (T, 225) landmark sequence about the vertical axis.
-
-    Hands (cols 0:126) are wrist-origin normalised and centred on 0, so mirroring
-    is a plain sign flip of x plus a left<->right swap. Pose (cols 126:225) is in
-    raw normalised image space [0, 1], so it mirrors about 0.5 and its left/right
-    joint indices must be swapped too — negating it would push it out of range.
-    """
-    out = x.copy()
-
-    left, right = out[:, 0:63].copy(), out[:, 63:126].copy()
-    out[:, 0:63], out[:, 63:126] = right, left
-    out[:, 0:126:3] *= -1.0  # flip x on both hands
-
-    pose = out[:, 126:225].reshape(-1, 33, 3)
-    pose[:, :, 0] = 1.0 - pose[:, :, 0]
-    for a, b in _POSE_SWAP:
-        pose[:, [a, b]] = pose[:, [b, a]]
-    out[:, 126:225] = pose.reshape(len(out), 99)
-
-    return out
+# The mirror transform lives in preprocess.py (no torch dependency, so the web
+# server can use it for left-handed signers). Re-exported under the old name.
+from preprocess import mirror_sequence as _mirror  # noqa: E402,F401
 
 
 class LandmarkDataset(Dataset):

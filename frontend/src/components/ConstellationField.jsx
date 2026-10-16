@@ -36,7 +36,7 @@ export default function ConstellationField({
 
     const resize = () => {
       const r = canvas.getBoundingClientRect();
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       w = Math.max(1, r.width);
       h = Math.max(1, r.height);
       canvas.width = Math.round(w * dpr);
@@ -133,7 +133,18 @@ export default function ConstellationField({
         }
       }
 
-      raf = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(loop);
+    };
+
+    // ~30fps, and idle while the tab is hidden.
+    let last = 0;
+    const loop = (now) => {
+      if (document.hidden || now - last < 33) {
+        raf = requestAnimationFrame(loop);
+        return;
+      }
+      last = now;
+      draw();
     };
 
     if (reduced) {

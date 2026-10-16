@@ -24,7 +24,12 @@ from torch.utils.data import DataLoader
 from dataset import LandmarkDataset, compute_stats, save_stats
 from models import build, param_count
 
-DATA_ROOTS = [Path("data/processed/include"), Path("data/processed/custom")]
+# include_canon/ (made by canonicalize_dataset.py) replaces include/ when present:
+# same clips and file names, pose moved to the canonical INCLUDE position, so the
+# train/val/test split is identical. See preprocess.canonicalize_pose.
+_INCLUDE = Path("data/processed/include_canon") if Path("data/processed/include_canon").exists() \
+    else Path("data/processed/include")
+DATA_ROOTS = [_INCLUDE, Path("data/processed/custom")]
 MODEL_DIR = Path("models")
 LOG_DIR = Path("logs")
 SEED = 42
@@ -51,7 +56,20 @@ def collect_paths() -> list[Path]:
 
 
 def make_splits(paths: list[Path], label_list: list[str]):
-    """Stratified 70/15/15 train/val/test. Deterministic across every model."""
+    """Stratified 70/15/15 train/val/test over the INCLUDE clips. Deterministic
+    across every model.
+
+    Anything outside data/processed/include (your own recordings in
+    data/processed/custom, including clips contributed from the web app) goes
+    into TRAIN ONLY. That keeps val/test identical to the published 642-clip
+    INCLUDE test set no matter how many contributions are added, so accuracy
+    numbers stay comparable, and lets a brand-new word with only one or two
+    clips be learned without breaking the stratified split.
+    """
+    extra = [p for p in paths if p.parent.name not in ("include", "include_canon")]
+    paths = [p for p in paths if p.parent.name in ("include", "include_canon")]
+    if not paths:                      # custom-only data: fall back to splitting it
+        paths, extra = extra, []
     y = [label_list.index(p.stem.split("__")[0]) for p in paths]
     train_p, tmp_p, _, tmp_y = train_test_split(
         paths, y, test_size=0.30, stratify=y, random_state=SEED
@@ -59,11 +77,11 @@ def make_splits(paths: list[Path], label_list: list[str]):
     val_p, test_p, _, _ = train_test_split(
         tmp_p, tmp_y, test_size=0.50, stratify=tmp_y, random_state=SEED
     )
-    return train_p, val_p, test_p
+    return list(train_p) + extra, val_p, test_p
 
 
 def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str,
-        patience: int = 20, augment: bool = True):
+        patience: int = 20, augment: bool = True, stats_file: str = "preproc_stats.json"):
     set_seed()
     MODEL_DIR.mkdir(exist_ok=True)
     LOG_DIR.mkdir(exist_ok=True)
@@ -78,7 +96,7 @@ def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str,
 
     # Normalisation stats come from TRAIN ONLY — no leakage into val/test.
     mean, std = compute_stats(train_p)
-    save_stats(mean, std, MODEL_DIR / "preproc_stats.json")
+    save_stats(mean, std, MODEL_DIR / stats_file)
 
     def _ds(paths: list[Path], aug: bool) -> LandmarkDataset:
         return LandmarkDataset(
@@ -153,6 +171,9 @@ def run(model_name: str, epochs: int, batch: int, lr: float, out_name: str,
                 "val_acc": best_val,
                 "epoch": epoch,
                 "params": param_count(model),
+                # stats travel with the weights, so a checkpoint is self-contained
+                "mean": mean.tolist(),
+                "std": std.tolist(),
             }, MODEL_DIR / f"{out_name}.pt")
         elif epoch - best_epoch >= patience:
             print(f"-> early stop: no val improvement for {patience} epochs")

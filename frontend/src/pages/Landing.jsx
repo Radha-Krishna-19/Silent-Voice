@@ -125,7 +125,7 @@ export default function Landing() {
               <p className="text-lg md:text-xl text-cream/70 max-w-xl leading-relaxed mb-8">
                 <WordReveal
                   delay={0.5}
-                  text={`A real-time Indian Sign Language translator over a ${VOCAB_SIZE}-word vocabulary. Signers get captions and a voice. Non-signers type English and watch it signed back — replayed from real recordings, not an avatar.`}
+                  text={`An Indian Sign Language word recogniser over a ${VOCAB_SIZE}-word vocabulary. Sign one word at a time and get a caption and a voice. Type English and watch the words replayed as a 3D hand skeleton from recorded landmarks.`}
                 />
               </p>
 

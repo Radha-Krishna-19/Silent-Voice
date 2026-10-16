@@ -27,26 +27,48 @@ MOCK_VOCAB = [
 
 # Architectures the server can serve. Must match ml/scripts/models.py build().
 ARCHS = ("bilstm", "cnn", "transformer")
-DEFAULT_ARCH = "bilstm"
+DEFAULT_ARCH = "cnn"          # best model: 94.55% test vs BiLSTM 91.74%
 
 _state: dict = {a: None for a in ARCHS}
 _state["labels"] = None
 _state["mean"] = None
 _state["std"] = None
+_state["backend"] = None      # "torch" | "numpy" | None (mock)
+_state["meta"] = {}           # per model: labels + normalisation stats it was trained with
+
+
+def labels_for(name: str) -> list:
+    m = _state["meta"].get(name)
+    return list(m["labels"]) if m else list(_state["labels"] or [])
+
+
+def _stats_for(name: str, ckpt: dict):
+    """Normalisation stats a model was trained with. Retraining with
+    contributions recomputes them, so each checkpoint may have its own."""
+    import numpy as np
+    if isinstance(ckpt, dict) and ckpt.get("mean") is not None:
+        return np.asarray(ckpt["mean"], "float32"), np.asarray(ckpt["std"], "float32")
+    for f in (MODELS_DIR / f"preproc_stats_{name}.json", MODELS_DIR / "preproc_stats.json"):
+        if f.exists():
+            st = json.loads(f.read_text())
+            return np.array(st["mean"], "float32"), np.array(st["std"], "float32")
+    return None, None
+
+
+def _reset() -> None:
+    for a in ARCHS:
+        _state[a] = None
+    _state.update(labels=None, mean=None, std=None, backend=None, meta={})
 
 
 def load_models() -> None:
-    try:
-        import torch  # noqa: F401
-    except ImportError:
-        logger.info("torch not installed in web-app pod → mock predictor active")
-        return
-
+    """(Re)load every checkpoint in backend/models/. Safe to call again after a
+    retrain — the Contribute page does exactly that."""
+    _reset()
     label_map = MODELS_DIR / "label_map.json"
     if not label_map.exists():
-        logger.warning("⚠ %s missing → mock predictor active", label_map)
+        logger.warning("%s missing -> mock predictor active", label_map)
         return
-
     try:
         with open(label_map) as f:
             _state["labels"] = json.load(f)
@@ -57,35 +79,62 @@ def load_models() -> None:
     # Per-feature mean/std the models were trained with (ml/scripts/_train.py).
     # Inputs must be standardised the same way at inference: without it the
     # models get 1-2 of 261 reference recordings right instead of 256-261.
+    import numpy as np
     stats = MODELS_DIR / "preproc_stats.json"
     if stats.exists():
-        import numpy as np
         with open(stats) as f:
             st = json.load(f)
         _state["mean"] = np.array(st["mean"], dtype="float32")
         _state["std"] = np.array(st["std"], dtype="float32")
     else:
-        logger.warning("⚠ %s missing → predictions will be unreliable", stats)
+        logger.warning("%s missing -> predictions will be unreliable", stats)
 
     try:
-        import sys
-        sys.path.insert(0, str(Path(__file__).parent.parent / "ml" / "scripts"))
-        from models import build  # type: ignore
-        import torch
+        import torch  # noqa: F401
+        use_torch = True
+    except ImportError:
+        use_torch = False
 
-        for name in ARCHS:
-            ckpt = MODELS_DIR / f"{name}.pt"
-            if not ckpt.exists():
-                logger.info("· %s.pt not found — skipping", name)
-                continue
-            state = torch.load(ckpt, map_location="cpu")
-            m = build(name, num_classes=len(_state["labels"]))
-            m.load_state_dict(state["model"])
-            m.eval()
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "ml" / "scripts"))
+    for name in ARCHS:
+        ckpt = MODELS_DIR / f"{name}.pt"
+        if not ckpt.exists():
+            continue
+        try:
+            if use_torch:
+                import torch
+                from models import build  # type: ignore
+                state = torch.load(ckpt, map_location="cpu")
+                n_cls = len(state.get("labels") or _state["labels"])
+                m = build(name, num_classes=n_cls)
+                m.load_state_dict(state["model"])
+                m.eval()
+                _state["backend"] = "torch"
+            else:
+                import npmodels
+                m, state = npmodels.build(name, ckpt)
+                _state["backend"] = "numpy"
+            # The checkpoint carries the label order it was trained with; trust
+            # it over label_map.json if the two ever disagree.
+            mean, std = _stats_for(name, state)
+            _state["meta"][name] = {"labels": list(state.get("labels") or _state["labels"]),
+                                    "mean": mean if mean is not None else _state["mean"],
+                                    "std": std if std is not None else _state["std"]}
             _state[name] = m
-            logger.info("✓ loaded %s (val_acc=%.3f)", name, state.get("val_acc", 0.0))
-    except Exception as exc:
-        logger.warning("model load failed → mock predictor active: %s", exc)
+            logger.info("loaded %s via %s (val_acc=%.3f)", name, _state["backend"], state.get("val_acc", 0.0))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("could not load %s: %s", name, exc)
+
+
+def _forward(model, x):
+    import numpy as np
+    if _state["backend"] == "torch":
+        import torch
+        with torch.no_grad():
+            return torch.softmax(model(torch.from_numpy(x)), dim=-1)[0].numpy()
+    import npmodels
+    return npmodels.softmax(model(x))[0]
 
 
 def predict(landmarks, model_name: str = DEFAULT_ARCH) -> dict:
@@ -93,25 +142,23 @@ def predict(landmarks, model_name: str = DEFAULT_ARCH) -> dict:
     # Fall back to any loaded model rather than silently going mock just
     # because the caller asked for an architecture that was not trained.
     if _state.get(model_name) is None:
-        model_name = next((a for a in ARCHS if _state.get(a) is not None), model_name)
+        model_name = next((a for a in ("cnn",) + ARCHS if _state.get(a) is not None), model_name)
     model = _state.get(model_name)
 
-    if model is not None and landmarks:
+    if model is not None and landmarks is not None and len(landmarks):
         try:
             import numpy as np
-            import torch
-
             x = np.array(landmarks, dtype="float32")
             if x.ndim == 2:
                 x = x[None, ...]
-            if _state["mean"] is not None:
-                x = (x - _state["mean"]) / (_state["std"] + 1e-6)
-            with torch.no_grad():
-                logits = model(torch.from_numpy(x))
-                probs = torch.softmax(logits, dim=-1)[0]
-                top = torch.topk(probs, k=min(3, probs.numel()))
-            labels = _state["labels"]
-            alts = [{"label": labels[i.item()], "confidence": float(p)} for p, i in zip(top.values, top.indices)]
+            meta = _state["meta"].get(model_name, {})
+            mean, std = meta.get("mean", _state["mean"]), meta.get("std", _state["std"])
+            if mean is not None:
+                x = (x - mean) / (std + 1e-6)
+            probs = _forward(model, x.astype("float32"))
+            order = np.argsort(-probs)[:3]
+            labels = meta.get("labels") or _state["labels"]
+            alts = [{"label": labels[i], "confidence": float(probs[i])} for i in order]
             return {
                 "label": alts[0]["label"],
                 "confidence": alts[0]["confidence"],
@@ -149,7 +196,9 @@ def status() -> dict:
         # "_loaded" also picked up labels_loaded and reported it as a model.
         "models": [a for a in ARCHS if _state[a] is not None],
         "labels_loaded": _state["labels"] is not None,
-        "num_labels": len(_state["labels"]) if _state["labels"] else 0,
+        "num_labels": len(labels_for(DEFAULT_ARCH if _state.get(DEFAULT_ARCH) else next(
+            (a for a in ARCHS if _state.get(a) is not None), DEFAULT_ARCH))) if _state["labels"] else 0,
         "models_dir": str(MODELS_DIR),
+        "backend": _state["backend"],
     })
     return st

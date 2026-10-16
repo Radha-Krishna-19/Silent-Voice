@@ -47,7 +47,7 @@ export default function SignPlayer({
   const stateRef = useRef({ word: 0, frame: 0, last: 0 });
   const [tick, setTick] = useState(0);
 
-  const playable = items.filter((it) => it.available && it.frames?.length);
+  const playable = useMemo(() => items.filter((it) => it.available && it.frames?.length), [items]);
 
   /**
    * Auto-fit the camera to the signer.
@@ -103,6 +103,9 @@ export default function SignPlayer({
     return { x0: x0 - padX, x1: x1 + padX, y0: y0 - padY, y1: y1 + padY };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, focus]);
+
+  const onWordChangeRef = useRef(onWordChange);
+  onWordChangeRef.current = onWordChange;
 
   const draw = useCallback(
     (ctx, w, h, frame) => {
@@ -221,7 +224,7 @@ export default function SignPlayer({
           } else {
             st.word = next;
           }
-          onWordChange?.(playable[st.word]?.label ?? null, st.word);
+          onWordChangeRef.current?.(playable[st.word]?.label ?? null, st.word);
         }
       }
       rafRef.current = requestAnimationFrame(loopFn);
@@ -229,7 +232,7 @@ export default function SignPlayer({
 
     rafRef.current = requestAnimationFrame(loopFn);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [playable, fps, playing, loop, draw, onWordChange, tick]);
+  }, [playable, fps, playing, loop, draw, tick]);
 
   return (
     <canvas

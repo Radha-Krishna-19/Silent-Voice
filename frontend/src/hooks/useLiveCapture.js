@@ -25,7 +25,9 @@ const FPS = 12;
 const JPEG_QUALITY = 0.7;
 const CAPTURE_W = 640;
 
-export default function useLiveCapture({ model = null, mode = "continuous", contributeLabel = null } = {}) {
+export default function useLiveCapture({
+  model = null, mode = "continuous", contributeLabel = null, practiceLabel = null, mirror = false, leftHanded = false,
+} = {}) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -35,12 +37,17 @@ export default function useLiveCapture({ model = null, mode = "continuous", cont
   const recordRef = useRef(false);
   const contributeLabelRef = useRef(contributeLabel);
   contributeLabelRef.current = contributeLabel;
+  const practiceRef = useRef({ label: practiceLabel, mirror });
+  practiceRef.current = { label: practiceLabel, mirror };
+  const leftRef = useRef(leftHanded);
+  leftRef.current = leftHanded;
 
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState(null);
   const [landmarks, setLandmarks] = useState(null);
   const [prediction, setPrediction] = useState(null);
   const [contribution, setContribution] = useState(null);   // {saved, slug, file, frame_count} | {saved:false, error}
+  const [practice, setPractice] = useState(null);           // score for the last capture, when practiceLabel is set
   const [handsVisible, setHandsVisible] = useState(false);
   const [serverMs, setServerMs] = useState(null);
   const [backend, setBackend] = useState(null);   // /api/status payload
@@ -81,6 +88,9 @@ export default function useLiveCapture({ model = null, mode = "continuous", cont
     ws.send(JSON.stringify({
       image, record: recordRef.current, mode, model,
       contribute_label: contributeLabelRef.current,
+      practice_label: practiceRef.current.label,
+      mirror: Boolean(practiceRef.current.mirror),
+      left_handed: Boolean(leftRef.current),
     }));
   }, [grabFrame, mode, model]);
 
@@ -137,6 +147,8 @@ export default function useLiveCapture({ model = null, mode = "continuous", cont
         setServerMs(r.server_ms ?? null);
         if (r.prediction) setPrediction(r.prediction);
         if (r.contribution) setContribution(r.contribution);
+        // wrap so two identical results still trigger an update
+        if (r.practice) setPractice({ ...r.practice, receivedAt: Date.now() });
         setStatus((s) => (s === "offline" ? "streaming" : s));
       };
 
@@ -178,8 +190,8 @@ export default function useLiveCapture({ model = null, mode = "continuous", cont
   useEffect(() => stop, [stop]);   // tear the camera down on unmount
 
   return {
-    videoRef, canvasRef,
-    status, error, landmarks, prediction, contribution, handsVisible, serverMs, backend, elapsed,
+    videoRef, canvasRef, streamRef,
+    status, error, landmarks, prediction, contribution, practice, handsVisible, serverMs, backend, elapsed,
     start, stop, setRecording,
     isLive: status === "streaming",
   };

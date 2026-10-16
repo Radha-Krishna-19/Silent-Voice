@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Camera, ShieldCheck, LayoutGrid, X } from "lucide-react";
 import { DOMAIN_PACKS } from "../lib/mockData";
 
 export const OnboardingModal = ({ open, onClose }) => {
   const [step, setStep] = useState(0);
   const [pack, setPack] = useState("everyday");
+
+  // Escape closes it, so it can never trap the page.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -13,14 +21,14 @@ export const OnboardingModal = ({ open, onClose }) => {
       icon: Camera,
       kicker: "Step 01",
       title: "Allow camera",
-      body: "Silent Voice needs your webcam only to extract landmark skeletons. The video itself is never sent to a server, never stored.",
+      body: "Silent Voice reads your hands and upper body from the webcam. Camera frames are sent to the Silent Voice server running on your own computer, turned into landmark points, and discarded. Live translation never saves them.",
       cta: "Allow camera",
     },
     {
       icon: ShieldCheck,
       kicker: "Step 02",
       title: "How this stays private",
-      body: "Only anonymized landmark points travel to our model. You can pause capture, wipe your transcript, or work fully offline for practice.",
+      body: "The server runs locally; nothing is sent to the internet. Only on the Contribute page, and only when you press record or upload, is a video saved to that computer so it can be added to the training data. You can stop the camera at any time and delete saved transcripts.",
       cta: "Continue",
     },
     {
@@ -41,8 +49,8 @@ export const OnboardingModal = ({ open, onClose }) => {
       className="fixed inset-0 z-[70] flex items-center justify-center px-6"
       data-testid="onboarding-modal"
     >
-      <div className="absolute inset-0 backdrop-blur-md bg-ink/85" onClick={onClose} />
-      <div className="relative w-full max-w-lg glass-panel rounded-sm p-10">
+      <div className="absolute inset-0 bg-ink/90" onClick={onClose} />
+      <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col glass-panel rounded-sm p-6 sm:p-8">
         <button
           data-testid="onboarding-close"
           onClick={onClose}
@@ -51,7 +59,7 @@ export const OnboardingModal = ({ open, onClose }) => {
         >
           <X className="w-4 h-4" strokeWidth={1.5} />
         </button>
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-5 shrink-0">
           <div className="w-11 h-11 rounded-sm bg-copper/10 border border-copper/30 flex items-center justify-center">
             <Icon className="w-5 h-5 text-copper" strokeWidth={1.5} />
           </div>
@@ -61,16 +69,16 @@ export const OnboardingModal = ({ open, onClose }) => {
           </div>
         </div>
 
-        <p className="text-cream/70 leading-relaxed mb-8">{current.body}</p>
+        <p className="text-cream/70 leading-relaxed mb-5 shrink-0">{current.body}</p>
 
         {isLast && (
-          <div className="grid grid-cols-1 gap-2 mb-8" data-testid="onboarding-pack-grid">
+          <div className="grid grid-cols-1 gap-2 mb-5 flex-1 min-h-0 overflow-y-auto pr-1" data-testid="onboarding-pack-grid">
             {DOMAIN_PACKS.map((p) => (
               <button
                 key={p.id}
                 data-testid={`onboarding-pack-${p.id}`}
                 onClick={() => setPack(p.id)}
-                className={`focus-ring text-left px-4 py-3 rounded-sm border transition-colors ${
+                className={`focus-ring text-left px-4 py-2.5 rounded-sm border transition-colors ${
                   pack === p.id
                     ? "border-copper bg-copper/5"
                     : "border-cream/10 hover:border-cream/30"
@@ -86,7 +94,7 @@ export const OnboardingModal = ({ open, onClose }) => {
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between shrink-0 pt-2">
           <div className="flex items-center gap-1.5" aria-hidden="true">
             {steps.map((_, i) => (
               <div

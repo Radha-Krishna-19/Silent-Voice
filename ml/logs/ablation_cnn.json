@@ -1,0 +1,67 @@
+{
+  "model": "cnn",
+  "epochs": 8,
+  "seeds": 1,
+  "rows": [
+    {
+      "variant": "baseline (full model)",
+      "group": "baseline",
+      "params": 736773,
+      "val": 0.7441497659906396,
+      "test": 0.7538940809968847,
+      "test_std": 0.0,
+      "seconds": 71.71215486526489,
+      "delta_pp": 0.0
+    },
+    {
+      "variant": "- left hand",
+      "group": "features",
+      "params": 736773,
+      "val": 0.733229329173167,
+      "test": 0.7616822429906542,
+      "test_std": 0.0,
+      "seconds": 64.70865154266357,
+      "delta_pp": 0.7788161993769527
+    },
+    {
+      "variant": "- right hand",
+      "group": "features",
+      "params": 736773,
+      "val": 0.49297971918876754,
+      "test": 0.5233644859813084,
+      "test_std": 0.0,
+      "seconds": 64.23774933815002,
+      "delta_pp": -23.052959501557634
+    },
+    {
+      "variant": "- both hands (pose only)",
+      "group": "features",
+      "params": 736773,
+      "val": 0.46333853354134164,
+      "test": 0.48598130841121495,
+      "test_std": 0.0,
+      "seconds": 63.548245906829834,
+      "delta_pp": -26.791277258566975
+    },
+    {
+      "variant": "- pose (hands only)",
+      "group": "features",
+      "params": 736773,
+      "val": 0.6287051482059283,
+      "test": 0.6542056074766355,
+      "test_std": 0.0,
+      "seconds": 67.02210021018982,
+      "delta_pp": -9.968847352024923
+    },
+    {
+      "variant": "- z coordinate (x,y only)",
+      "group": "features",
+      "params": 736773,
+      "val": 0.7004680187207488,
+      "test": 0.7383177570093458,
+      "test_std": 0.0,
+      "seconds": 63.312416315078735,
+      "delta_pp": -1.5576323987538943
+    }
+  ]
+}

@@ -7,7 +7,7 @@ export const PrivacyBadge = ({ className = "" }) => (
   >
     <ShieldCheck className="w-3.5 h-3.5 text-cyan" strokeWidth={1.5} />
     <span className="text-[10px] uppercase tracking-[0.2em] text-cream/80">
-      Landmarks only · no video stored
+      Live frames are not saved
     </span>
   </div>
 );

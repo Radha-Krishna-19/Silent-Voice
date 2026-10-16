@@ -99,6 +99,7 @@ export const DEFAULT_SETTINGS = {
   reducedMotion: false,
   saveSessions: true,
   mirrorPractice: false,
+  leftHanded: false,
   captureFps: 12,
 };
 

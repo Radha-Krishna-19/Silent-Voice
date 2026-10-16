@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Circle, RotateCcw, ChevronRight, AlertTriangle, Video } from "lucide-react";
 import Nav from "../components/Nav";
 import SignPlayer from "../components/SignPlayer";
-import SignTrail from "../components/SignTrail";
+import Hand3D from "../components/Hand3D";
 import LandmarkOverlay from "../components/LandmarkOverlay";
 import useLiveCapture from "../hooks/useLiveCapture";
-import { textToSign, scorePractice, fetchPracticeWords, SERVER_HINT } from "../lib/api";
+import { textToSign, scorePractice, fetchPracticeWords, fetchPracticeReference, SERVER_HINT } from "../lib/api";
 import { loadSettings } from "../lib/storage";
 import { savePracticeAttempt } from "../lib/sessions";
 import { DOMAIN_PACKS, pretty } from "../lib/vocabulary";
@@ -22,9 +22,11 @@ export default function Practice() {
   const [result, setResult] = useState(null);
   const [phase, setPhase] = useState("idle");   // idle | recording | scoring | done
   const [error, setError] = useState(null);
-  // Hands is the default: fitting the whole signer renders the hands at ~8% of
-  // the frame, which is why the handshape was unreadable.
-  const [refView, setRefView] = useState("hands");
+  // 3-D hands is the default: the handshape is what learners get wrong, and a
+  // whole-signer view renders the hands at ~8% of the frame.
+  const [refView, setRefView] = useState("3d");
+  const [ref3d, setRef3d] = useState(null);
+  const attemptStart = useRef(0);
 
   const [backendWords, setBackendWords] = useState(null);
   const settings = useRef(loadSettings());
@@ -33,7 +35,11 @@ export default function Practice() {
   const pack = DOMAIN_PACKS.find((p) => p.id === packId) ?? DOMAIN_PACKS[0];
   const word = pack?.words?.[wordIdx] ?? null;
 
-  const cap = useLiveCapture({ mode: "capture" });
+  // Capture mode with a practice label: the server scores the attempt in the
+  // same message that ends the capture (see server.py ws_frame).
+  const cap = useLiveCapture({
+    mode: "capture", practiceLabel: word, mirror: Boolean(settings.current.mirrorPractice),
+  });
   const live = cap.isLive;
 
   useEffect(() => {
@@ -45,9 +51,13 @@ export default function Practice() {
     if (!word) return;
     setResult(null);
     setPhase("idle");
+    setRef3d(null);
     textToSign(word.replace(/_/g, " "))
       .then((d) => setReference(d))
       .catch(() => setReference(null));
+    fetchPracticeReference(word)
+      .then((d) => setRef3d(d?.available ? d : null))
+      .catch(() => setRef3d(null));
   }, [word]);
 
   const startAttempt = () => {
@@ -55,30 +65,44 @@ export default function Practice() {
     setResult(null);
     setError(null);
     setPhase("recording");
+    attemptStart.current = Date.now();
     cap.setRecording(true);
     // A sign takes ~2s; capture a fixed window so the learner isn't fighting a button.
     holdTimer.current = setTimeout(finishAttempt, 2600);
   };
 
-  const finishAttempt = async () => {
+  const accept = (r) => {
+    if (r.available === false) { setError(r.error); setPhase("idle"); return; }
+    setResult(r);
+    setPhase("done");
+    // Signed in -> a row in the database. Guest -> memory only. The store
+    // makes that decision, not this page.
+    savePracticeAttempt(word, r.score ?? 0, r.breakdown ?? {});
+  };
+
+  const finishAttempt = () => {
     clearTimeout(holdTimer.current);
     cap.setRecording(false);
     setPhase("scoring");
-    // Let the final frames reach the server before asking it to score.
-    await new Promise((r) => setTimeout(r, 450));
-    try {
-      const r = await scorePractice(word, { mirror: settings.current.mirrorPractice });
-      if (r.available === false) { setError(r.error); setPhase("idle"); return; }
-      setResult(r);
-      setPhase("done");
-      // Signed in -> a row in the database. Guest -> memory only. The store
-      // makes that decision, not this page.
-      savePracticeAttempt(word, r.score ?? 0, r.breakdown ?? {});
-    } catch (err) {
-      setError(err?.message ?? "scoring failed");
-      setPhase("idle");
-    }
+    // Normal path: the score arrives on the socket (effect below). Fallback for
+    // an older server that does not score in-band: ask over HTTP after a beat.
+    holdTimer.current = setTimeout(async () => {
+      try {
+        accept(await scorePractice(word, { mirror: settings.current.mirrorPractice }));
+      } catch (err) {
+        setError(err?.message ?? "scoring failed");
+        setPhase("idle");
+      }
+    }, 3000);
   };
+
+  useEffect(() => {
+    if (phase !== "scoring" || !cap.practice) return;
+    if (cap.practice.receivedAt < attemptStart.current) return;
+    clearTimeout(holdTimer.current);
+    accept(cap.practice);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cap.practice, phase]);
 
   useEffect(() => () => clearTimeout(holdTimer.current), []);
 
@@ -87,7 +111,6 @@ export default function Practice() {
   };
 
   const scoreable = backendWords?.available !== false;
-  const refItem = reference?.items?.find((i) => i.available && i.frames?.length);
 
   return (
     <div className="min-h-screen bg-ink text-cream" data-testid="practice-page">
@@ -149,7 +172,7 @@ export default function Practice() {
               <div className="flex items-center justify-between mb-2">
                 <span className="micro-caps">Reference</span>
                 <div className="flex items-center gap-1 p-0.5 border border-cream/10 rounded-sm">
-                  {[["hands", "Hands"], ["body", "Whole signer"], ["trail", "Path"]].map(([v, label]) => (
+                  {[["3d", "3D hands"], ["body", "Whole signer"]].map(([v, label]) => (
                     <button
                       key={v}
                       onClick={() => setRefView(v)}
@@ -171,22 +194,22 @@ export default function Practice() {
                 </div>
               </div>
               <div className="relative rounded-sm overflow-hidden bg-black aspect-[3/4] border border-cream/10">
-                {reference?.items?.some((i) => i.available) ? (
-                  refView === "trail" ? (
-                    <SignTrail
-                      key={word}
-                      className="absolute inset-0 w-full h-full"
-                      frames={refItem?.frames}
-                      activeHands={refItem?.activeHands}
-                      lineScale={0.8}
-                    />
-                  ) : (
+                {refView === "3d" && ref3d ? (
+                  <Hand3D
+                    key={word}
+                    className="absolute inset-0"
+                    frames={ref3d.frames}
+                    aspect={ref3d.aspect}
+                    fps={ref3d.fps}
+                  />
+                ) : reference?.items?.some((i) => i.available) ? (
+                  (
                     <SignPlayer
                       items={reference.items}
                       fps={reference.fps}
                       quant={reference.quant}
                       playing
-                      focus={refView}
+                      focus={refView === "body" ? "body" : "hands"}
                     />
                   )
                 ) : (
@@ -194,7 +217,7 @@ export default function Practice() {
                     Loading reference…
                   </div>
                 )}
-                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-ink to-transparent">
+                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-ink to-transparent pointer-events-none">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={word}

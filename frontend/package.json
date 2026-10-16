@@ -7,9 +7,11 @@
     "build": "craco build",
     "test": "craco test",
     "test:routes": "node scripts/routecheck.mjs",
-    "verify": "npm run test:classes && npm run build && npm run test:routes && npm run test:trail",
+    "verify": "npm run test:classes && npm run build && npm run test:routes && npm run test:trail && npm run test:hand3d && npm run test:nav",
     "test:trail": "node scripts/trailcheck.mjs",
-    "test:classes": "node scripts/classcheck.mjs"
+    "test:classes": "node scripts/classcheck.mjs",
+    "test:hand3d": "node scripts/hand3dcheck.mjs",
+    "test:nav": "node scripts/navcheck.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",

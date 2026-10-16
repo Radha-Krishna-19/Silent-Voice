@@ -19,7 +19,6 @@ import {
   ArrowRight, Loader2, ShieldCheck, User, KeyRound, AlertCircle, Sparkles,
 } from "lucide-react";
 import VocabularyWall from "../components/VocabularyWall";
-import ConstellationField from "../components/ConstellationField";
 import { Reveal, Stagger, StaggerItem, Magnetic, useRipple, EASE } from "../components/motion";
 import { FallingInput, Scramble, Typewriter } from "../components/motion/advanced";
 import { MaskReveal } from "../components/motion/text";
@@ -83,7 +82,6 @@ export default function Gate() {
 
       {/* ------------------------------------------------ left: the hand */}
       <div className="relative lg:w-[54%] h-[48vh] lg:h-screen overflow-hidden shrink-0">
-        <ConstellationField className="absolute inset-0 w-full h-full" count={84} />
 
         {/* concentric rings, slowly counter-rotating */}
         <RingHalo />
@@ -165,7 +163,7 @@ export default function Gate() {
             </Reveal>
 
             <Reveal delay={0.05}>
-              <div className="flex items-center gap-1 p-1 border border-cream/10 rounded-sm w-fit mb-8 backdrop-blur-sm">
+              <div className="flex items-center gap-1 p-1 border border-cream/10 rounded-sm w-fit mb-8">
                 {[["signin", "Sign in"], ["signup", "Create account"]].map(([v, label]) => (
                   <button
                     key={v}
@@ -378,14 +376,9 @@ function AuroraBackdrop() {
           style={{
             width: b.s, height: b.s, left: b.x, top: b.y,
             background: `radial-gradient(circle, ${b.c} 0%, transparent 68%)`,
-            filter: "blur(38px)",
+            willChange: "transform",
           }}
-          animate={{
-            x: [0, 55, -35, 0],
-            y: [0, -42, 30, 0],
-            scale: [1, 1.12, 0.94, 1],
-          }}
-          transition={{ duration: b.d, repeat: Infinity, ease: "easeInOut" }}
+
         />
       ))}
       <div
@@ -409,8 +402,7 @@ function RingHalo() {
           key={i}
           className="absolute rounded-full border border-cream"
           style={{ width: r.s, height: r.s, opacity: r.o, borderStyle: i === 1 ? "dashed" : "solid" }}
-          animate={{ rotate: 360 * r.dir }}
-          transition={{ duration: r.d, repeat: Infinity, ease: "linear" }}
+
         />
       ))}
     </div>

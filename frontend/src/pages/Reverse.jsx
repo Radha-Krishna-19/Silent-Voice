@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Send, Pause, Play, AlertTriangle, Loader2, Box, User } from "lucide-react";
 import Nav from "../components/Nav";
 import SignPlayer from "../components/SignPlayer";
-import SignTrail from "../components/SignTrail";
+import Hand3D from "../components/Hand3D";
 import { textToSign, fetchVocabulary, IS_LOCAL_BACKEND, SERVER_HINT } from "../lib/api";
-import { Reveal, FallingText, PageTransition, EASE } from "../components/motion";
-import { FallingInput, Scramble } from "../components/motion/advanced";
+import { PageTransition } from "../components/motion";
 
 const EXAMPLES = [
   "Hello, how are you today?",
@@ -25,7 +23,8 @@ export default function Reverse() {
   const [current, setCurrent] = useState(0);
   const [vocab, setVocab] = useState(null);
   const [listening, setListening] = useState(false);
-  const [view, setView] = useState("signer");        // signer | trail
+  const [view, setView] = useState("3d");            // 3d | signer
+  const [cycle, setCycle] = useState(0);             // remounts the 3-D player for each word
   const recogRef = useRef(null);
   const [params] = useSearchParams();
 
@@ -54,6 +53,7 @@ export default function Reverse() {
       const data = await textToSign(t);
       setSeq(data);
       setCurrent(0);
+      setCycle((c) => c + 1);
       setPlaying(true);
       setStatus("ready");
     } catch (err) {
@@ -98,7 +98,7 @@ export default function Reverse() {
       <Nav />
       <PageTransition>
       <main className="pt-24 pb-12 px-6 md:px-12 lg:px-20 max-w-[1500px] mx-auto">
-        <div className="micro-caps mb-2"><Scramble text="Reverse mode" /></div>
+        <div className="micro-caps mb-2">Reverse mode</div>
         <h1 className="font-display text-3xl md:text-5xl tracking-tight leading-[1.08] mb-2">
           Type or speak. <span className="italic text-copper">Watch it signed back.</span>
         </h1>
@@ -122,15 +122,13 @@ export default function Reverse() {
           >
             <Mic className="w-4 h-4" strokeWidth={1.5} />
           </button>
-          <FallingInput
+          <input
             value={text}
-            onChange={setText}
+            onChange={(e) => setText(e.target.value)}
             onKeyDown={onKeyDown}
             data-testid="reverse-input"
             placeholder="Type an English sentence…"
-            className="flex-1"
-            inputClassName="text-lg font-display px-2 py-2"
-            charClassName="text-lg font-display"
+            className="flex-1 bg-transparent outline-none text-lg font-display px-2 py-2 text-cream placeholder:text-cream/30"
             name="sentence"
           />
           <button
@@ -174,21 +172,28 @@ export default function Reverse() {
             <div className="relative rounded-sm overflow-hidden bg-black aspect-[4/3] border border-cream/10">
               <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 40%, rgba(110,231,242,0.06), transparent 60%), #050506" }} />
               {playable.length > 0 ? (
-                view === "signer" ? (
+                view === "3d" && playable[current]?.hands3d ? (
+                  <Hand3D
+                    key={`${cycle}-${current}`}
+                    className="absolute inset-0"
+                    frames={playable[current].hands3d}
+                    aspect={seq.hands3d_aspect ?? 16 / 9}
+                    fps={seq.hands3d_fps ?? 24}
+                    loop={false}
+                    playing={playing}
+                    showControls={false}
+                    onEnd={() => {
+                      setCurrent((c) => (c + 1) % playable.length);
+                      setCycle((c) => c + 1);
+                    }}
+                  />
+                ) : (
                   <SignPlayer
                     items={seq.items}
                     fps={seq.fps}
                     quant={seq.quant}
                     playing={playing}
                     onWordChange={(_, idx) => setCurrent(idx)}
-                  />
-                ) : (
-                  <SignTrail
-                    key={playable[current]?.label}
-                    className="absolute inset-0 w-full h-full"
-                    frames={playable[current]?.frames}
-                    activeHands={playable[current]?.activeHands}
-                    lineScale={0.9}
                   />
                 )
               ) : (
@@ -198,46 +203,30 @@ export default function Reverse() {
               )}
 
               {/* view switch */}
-              <div className="absolute top-4 left-4 flex items-center gap-1 p-1 glass-panel rounded-sm">
+              <div className="absolute top-4 left-4 flex items-center gap-1 p-1 glass-panel rounded-sm z-10">
                 {[
-                  ["signer", "Signer", User],
-                  ["trail", "Trail", Box],
+                  ["3d", "3D hands", Box],
+                  ["signer", "Whole signer", User],
                 ].map(([v, label, Icon]) => (
                   <button
                     key={v}
-                    onClick={() => setView(v)}
+                    onClick={() => { setView(v); setCurrent(0); setCycle((c) => c + 1); }}
                     data-testid={`reverse-view-${v}`}
-                    className={`focus-ring relative px-2.5 py-1.5 rounded-sm text-[10px] uppercase tracking-widest flex items-center gap-1.5 transition-colors ${
-                      view === v ? "text-ink" : "text-cream/55 hover:text-cream"
+                    className={`focus-ring px-2.5 py-1.5 rounded-sm text-[10px] uppercase tracking-widest flex items-center gap-1.5 ${
+                      view === v ? "bg-copper text-ink" : "text-cream/55 hover:text-cream"
                     }`}
                   >
-                    {view === v && (
-                      <motion.span
-                        layoutId="reverse-view-pill"
-                        className="absolute inset-0 bg-copper rounded-sm"
-                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                      />
-                    )}
-                    <Icon className="relative z-10 w-3 h-3" strokeWidth={1.5} />
-                    <span className="relative z-10">{label}</span>
+                    <Icon className="w-3 h-3" strokeWidth={1.5} />
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
 
-              {view === "trail" && (
-                <div className="absolute top-16 left-4 max-w-[16rem] text-[10px] text-cream/35 leading-relaxed">
-                  The path the signer's fingertips travelled, drawn over time.
-                  Copper marks the start of the movement, cyan the end.
-                </div>
-              )}
-
               {playable[current] && (
-                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-ink to-transparent">
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-ink to-transparent pointer-events-none">
                   <div className="micro-caps mb-1">Now signing</div>
                   <div className="font-display text-3xl">
-                    <AnimatePresence mode="popLayout">
-                      <FallingText key={playable[current].gloss} text={playable[current].gloss} />
-                    </AnimatePresence>
+                    {playable[current].gloss}
                   </div>
                   <div className="text-[10px] text-cream/40 mt-1 uppercase tracking-widest">
                     real recording · {playable[current].takes} takes available · {playable[current].hands} hands
@@ -247,7 +236,7 @@ export default function Reverse() {
 
               <button
                 onClick={() => setPlaying((p) => !p)}
-                className="absolute top-4 right-4 focus-ring w-10 h-10 flex items-center justify-center rounded-full glass-panel"
+                className="absolute top-4 right-4 z-10 focus-ring w-10 h-10 flex items-center justify-center rounded-full glass-panel"
                 aria-label={playing ? "Pause" : "Play"}
               >
                 {playing ? <Pause className="w-4 h-4" strokeWidth={1.5} /> : <Play className="w-4 h-4" strokeWidth={1.5} />}
@@ -259,32 +248,25 @@ export default function Reverse() {
               <div className="mt-4">
                 <div className="micro-caps mb-2">ISL gloss · re-ordered</div>
                 <div className="flex flex-wrap gap-2" data-testid="gloss-strip">
-                  <AnimatePresence mode="popLayout">
-                    {seq.items.map((it, i) => (
-                      <motion.span
-                        key={`${it.label}-${i}`}
-                        layout
-                        initial={{ opacity: 0, y: -18, scale: 0.85, filter: "blur(4px)" }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-                        exit={{
-                          opacity: 0, y: 34, scale: 0.8,
-                          rotate: (i % 2 ? 1 : -1) * (8 + i * 2),
-                          filter: "blur(3px)",
-                        }}
-                        transition={{ duration: 0.34, ease: EASE, delay: i * 0.035 }}
-                        whileHover={{ y: -3, scale: 1.05 }}
-                        className={`px-3 py-1.5 text-xs uppercase tracking-widest rounded-sm border cursor-default ${
-                          !it.available
-                            ? "border-copper/40 text-copper/70 line-through"
-                            : playable[current]?.label === it.label
-                              ? "border-copper bg-copper text-ink"
-                              : "border-cream/15 text-cream/60"
-                        }`}
-                      >
-                        {it.gloss}
-                      </motion.span>
-                    ))}
-                  </AnimatePresence>
+                  {seq.items.map((it, i) => (
+                    <button
+                      key={`${it.label}-${i}`}
+                      disabled={!it.available}
+                      onClick={() => {
+                        const idx = playable.findIndex((p) => p === it);
+                        if (idx >= 0) { setCurrent(idx); setCycle((c) => c + 1); }
+                      }}
+                      className={`px-3 py-1.5 text-xs uppercase tracking-widest rounded-sm border ${
+                        !it.available
+                          ? "border-copper/40 text-copper/70 line-through cursor-default"
+                          : playable[current]?.label === it.label
+                            ? "border-copper bg-copper text-ink"
+                            : "border-cream/15 text-cream/60 hover:border-cream/40"
+                      }`}
+                    >
+                      {it.gloss}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

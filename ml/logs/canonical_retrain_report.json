@@ -1,0 +1,13 @@
+{
+  "started": "2026-10-15 14:21:41",
+  "models": {
+    "cnn": {
+      "test_acc": 0.9595015576323987,
+      "test_clips": 642,
+      "classes": 261,
+      "served_before": 0.8738317757009346,
+      "deployed": true
+    }
+  },
+  "minutes": 16.0
+}

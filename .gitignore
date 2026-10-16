@@ -91,6 +91,9 @@ ml/data/include/*
 ml/data/custom/*
 ml/data/processed/*
 ml/data/contributed/*
+ml/data/contributed_videos/*
+backend/models/backup/
+ml/logs/retrain.log
 !ml/data/**/.gitkeep
 ml/models/*.pt
 ml/models/*.json

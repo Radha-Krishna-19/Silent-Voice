@@ -145,15 +145,86 @@ def extract_video(path: Path, sample_frames: int = 40, model_complexity: int = 1
     return _normalize(arr)
 
 
-def _normalize(seq: np.ndarray) -> np.ndarray:
+# Where the signer stands in INCLUDE (means over all 4,276 clips: shoulder midpoint
+# 0.501, 0.382 of the frame; shoulder width 0.137 of the frame width, std 0.010).
+# INCLUDE signers are small and far from the camera. A webcam user is 2-3x closer,
+# so raw pose coordinates are far outside anything the model was trained on: a 1.3x
+# zoom alone takes the CNN from 94.5% to 36.6%, and a realistic webcam framing to
+# ~1% (measured on the held-out clips, ml/logs/tne/camera_position.json).
+CANON_SHOULDER_MID = (0.501, 0.382)
+CANON_SHOULDER_W = 0.137
+
+
+# MediaPipe Pose: (left, right) landmark index pairs that must swap when mirrored.
+_POSE_SWAP = [(1, 4), (2, 5), (3, 6), (7, 8), (9, 10), (11, 12), (13, 14), (15, 16),
+              (17, 18), (19, 20), (21, 22), (23, 24), (25, 26), (27, 28), (29, 30), (31, 32)]
+
+
+def mirror_sequence(x: np.ndarray) -> np.ndarray:
+    """Mirror a (T, 225) landmark sequence about the vertical axis.
+
+    Hands (cols 0:126) are wrist-origin normalised and centred on 0, so mirroring
+    is a plain sign flip of x plus a left<->right swap. Pose (cols 126:225) is in
+    raw normalised image space [0, 1], so it mirrors about 0.5 and its left/right
+    joint indices must be swapped too — negating it would push it out of range.
+    """
+    out = x.copy()
+
+    left, right = out[:, 0:63].copy(), out[:, 63:126].copy()
+    out[:, 0:63], out[:, 63:126] = right, left
+    out[:, 0:126:3] *= -1.0  # flip x on both hands
+
+    pose = out[:, 126:225].reshape(-1, 33, 3)
+    pose[:, :, 0] = 1.0 - pose[:, :, 0]
+    for a, b in _POSE_SWAP:
+        pose[:, [a, b]] = pose[:, [b, a]]
+    out[:, 126:225] = pose.reshape(len(out), 99)
+
+    return out
+
+
+
+
+def canonicalize_pose(seq: np.ndarray) -> np.ndarray:
+    """Re-express the pose block as if the signer stood where the INCLUDE signers do.
+
+    One similarity transform per clip/window (translate the shoulder midpoint to
+    the canonical point, scale shoulder width to the canonical width; z scales
+    with it). Hands are already wrist-relative and shoulder-scaled, so they are
+    untouched. Frames with no pose stay zero. Idempotent.
+    """
+    out = seq.copy()
+    pose = out[:, 126:225].reshape(len(out), 33, 3)
+    present = np.abs(pose).sum(axis=(1, 2)) > 0
+    if not present.any():
+        return out
+    a, b = pose[present][:, 11, :2], pose[present][:, 12, :2]
+    mid = ((a + b) / 2).mean(axis=0)
+    width = float(np.linalg.norm(a - b, axis=1).mean())
+    if width < 1e-3:
+        return out
+    k = CANON_SHOULDER_W / width
+    cm = np.array(CANON_SHOULDER_MID, dtype=np.float32)
+    for f in np.flatnonzero(present):
+        pose[f, :, :2] = (pose[f, :, :2] - mid) * k + cm
+        pose[f, :, 2] = pose[f, :, 2] * k
+    out[:, 126:225] = pose.reshape(len(out), 99)
+    return out.astype(np.float32)
+
+
+def _normalize(seq: np.ndarray, canonical_pose: bool = True) -> np.ndarray:
     """Make the features invariant to where the signer stands and how tall they are.
 
     Each hand is re-expressed relative to its own wrist, then divided by the
     signer's shoulder width. After this a "thumbs up" looks identical whether the
-    signer is 1 m or 3 m from the camera. Pose is left in image space because its
-    absolute position carries meaning (signing space is anchored to the torso).
+    signer is 1 m or 3 m from the camera. Pose stays in image space (its position
+    relative to the torso carries meaning) but is first moved/scaled to the
+    canonical INCLUDE position (canonicalize_pose), so where the signer stands no
+    longer matters. Models trained before this change saw raw pose; serving them
+    through canonicalize_pose is still far better than raw (see README, "Live
+    accuracy").
     """
-    out = seq.copy()
+    out = canonicalize_pose(seq) if canonical_pose else seq.copy()
     for t in range(len(out)):
         left = out[t, 0:63].reshape(21, 3)
         right = out[t, 63:126].reshape(21, 3)

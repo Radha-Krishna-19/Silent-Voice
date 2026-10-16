@@ -362,9 +362,9 @@ export function PageTransition({ children, className = "", ...rest }) {
       // without it a page that replaces its wrapper div with PageTransition
       // silently loses its test id.
       {...rest}
-      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14, filter: "blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={reduced ? { opacity: 0 } : { opacity: 0, y: -10, filter: "blur(4px)" }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduced ? { opacity: 0 } : { opacity: 0, y: -10 }}
       transition={{ duration: 0.36, ease: EASE }}
     >
       {children}

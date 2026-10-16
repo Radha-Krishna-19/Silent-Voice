@@ -43,10 +43,11 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
+import os
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
-DB_PATH = Path(__file__).parent / "data" / "silentvoice.db"
+DB_PATH = Path(os.environ.get("SV_DB_PATH") or Path(__file__).parent / "data" / "silentvoice.db")
 
 # scrypt parameters. n=2**14 costs ~16 MB and a few tens of milliseconds per
 # hash: slow enough to make offline cracking painful, fast enough that logging

@@ -125,3 +125,36 @@ export async function fetchContributions() {
   const { data } = await api.get("/contributions");
   return data;
 }
+
+/**
+ * Upload one recorded clip (the Blob MediaRecorder produced). The server
+ * stores the video, extracts the skeleton with the same MediaPipe code used
+ * for INCLUDE, and adds it to the training set if hands were visible.
+ */
+export async function uploadContribution(label, blob) {
+  const { data } = await api.post("/contribute/video", blob, {
+    params: { label },
+    headers: { "Content-Type": blob.type || "video/webm" },
+    timeout: 120000,
+    validateStatus: (s) => s < 500,
+  });
+  return data;
+}
+
+export async function fetchRetrainStatus() {
+  const { data } = await api.get("/contribute/retrain");
+  return data;
+}
+
+export async function startRetrain({ models = ["cnn"], epochs = 40 } = {}) {
+  const { data } = await api.post("/contribute/retrain", { models, epochs }, { validateStatus: (s) => s < 500 });
+  return data;
+}
+
+/** 3-D hand landmarks of a word's reference clip (Practice page). */
+export async function fetchPracticeReference(label) {
+  const { data } = await api.get(`/practice/reference/${encodeURIComponent(label)}`, {
+    validateStatus: (s) => s < 500,
+  });
+  return data;
+}

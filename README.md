@@ -35,7 +35,7 @@ both have real limits, and this README states them plainly.
 | `/research` | **Real** | Measured BiLSTM vs CNN comparison, read live from `ml/logs/comparison.json`. |
 | `/reverse` | **Real** | English → ISL gloss → replays actual recorded landmarks. Switch between the signer and the motion trail. |
 | `/practice` | **Real** | Records your attempt, scores it against the reference recording — hand shape, placement and movement measured separately. |
-| `/contribute` | **Real** | Records a new clip for a word and saves it under `ml/data/contributed/`, queued for human review. Does **not** retrain anything automatically — see §7. |
+| `/contribute` | **Real** | Records a webcam **video** of a sign, stores it in `ml/data/contributed_videos/<word>/`, extracts the skeleton with the same MediaPipe code as INCLUDE and adds the tensor to `ml/data/processed/custom/` (only if hands were visible). A **Retrain** button trains the CNN on INCLUDE + contributions and hot-swaps it into the server if INCLUDE test accuracy does not drop — see §7. |
 | `/transcripts` | **Real** | Sessions from Live. Server-side when signed in; not stored at all as a guest. |
 | `/rubric` | **Real** | The Review 2 rubric, scored against evidence the project can actually point at. |
 | `/settings` | **Real** | Preferences persist in this browser, signed in or not. |
@@ -265,8 +265,14 @@ phrasebook.
 ### Recognition
 
 - **Isolated signs only.** The model classifies one sign per 60-frame window.
-  Continuous signing needs segmentation — knowing where one sign ends — which
-  is a substantially harder problem and is not implemented.
+  Live mode cuts the camera stream into signs using hand visibility
+  (`backend/segmenter.py`): a sign starts when hands appear and ends when they have been
+  gone for ~0.5 s, so **you must lower your hands between words**. Fluent continuous
+  signing (hands never leaving the frame) is not supported, and neither are
+  non-manual signals such as facial expression.
+- **Left-handed signers** are misread by default (19.6% on mirrored test clips with the deployed CNN). Turn on
+  *I sign left-handed* in Settings; the input is mirrored before it is read, which restores
+  the right-handed accuracy exactly (`test_live_conditions.py`).
 - **94.55% on a curated test set is not 94.55% in a clinic.** INCLUDE was filmed
   with plain backgrounds, even lighting and cooperative signers. Real webcams
   bring motion blur, backlight, partial occlusion and clipped framing.
@@ -276,6 +282,35 @@ phrasebook.
 - **Class imbalance:** 8 to 27 clips per class. Rare classes have ~1 test sample,
   so their individual F1 scores are very noisy — this is why macro F1 is
   reported alongside accuracy.
+
+### Why live detection was poor, and what was measured
+
+Three causes were found by measuring on the 642 held-out test clips (`backend/test_live_conditions.py`,
+numbers in `ml/logs/tne/camera_position.json`). The simulations move/zoom the recorded pose and wrap
+clips in a 5 s buffer; **they are simulations on INCLUDE clips, not tests on live webcam users.**
+
+1. **Camera position (train/serve skew).** INCLUDE signers stand far away (shoulder width ≈ 14% of the
+   frame). A webcam user sits 2–3x closer, and the pose block is in raw image coordinates, so the model
+   saw positions it had never been trained on: 94.5% as recorded, 27.9% if the signer is 10% off-centre, 36.6% at 1.3x
+   closer, 1.4% at 2.5x closer and lower. **Fix:** every window is moved and scaled to the INCLUDE signer position
+   (`preprocess.canonicalize_pose`) before classification. With the original raw-pose model that gave
+   87.4% in every simulated position. The CNN was then **retrained on canonical-position data**
+   (`ml/scripts/retrain_canonical.py`, section 7): **95.95% on the same 642 test clips**, identical in every
+   simulated camera position (`ml/logs/canonical_retrain_report.json`).
+2. **Window mismatch.** Training clips are cropped to the sign; the old live loop classified a rolling
+   5 s buffer every frame. A 2.5 s sign inside it scored 61.7%; cropped to the signing segment first, 86.3%
+   (original model). With the retrained CNN: 79.3% whole buffer vs 95.0% cropped.
+   **Fix:** the sign segmenter above.
+3. **Handedness.** See above (flipped input: 96.0%, same as right-handed).
+
+**BiLSTM caveat.** Only the CNN has been retrained. The BiLSTM research checkpoint (91.74% on raw clips)
+scores **61.7%** when served through canonicalisation, so in the live app it is worse than the CNN. Retrain it
+with `retrain_canonical.py --models bilstm` (about 30 minutes) before using it live. The BiLSTM-vs-CNN
+comparison in section 3 (94.55% vs 91.74%) is the original raw-pose research result and is unchanged.
+
+Still not solved, and not claimed: accuracy for real webcam users (lighting, blur, skin tone, clothing,
+signer variance — the split is by class, not signer), signs longer than 3 s, and any word outside the
+261-word vocabulary. A manual webcam test plan is in `docs/` and has not been run.
 
 ### Playback quality
 
@@ -465,23 +500,42 @@ python -u scripts/preprocess.py --videos data/custom_videos --out data/processed
 Aim for ≥6 clips per sign from more than one signer. Multi-sign phrases are the
 biggest gap in INCLUDE, so recording those adds the most value.
 
+#### Retraining on canonical-position data (recommended once)
+
+The server now normalises where the signer stands (`canonicalize_pose`). To make the model train on
+the same representation it will be served, run from `ml/` (CPU, about 5 minutes for the CNN):
+
+```powershell
+..\nndl\Scripts\python.exe scripts\retrain_canonical.py
+```
+
+It converts the stored tensors to `data/processed/include_canon/` (same file names, so the seed-42
+split is identical), trains the CNN, scores it on the same 642 test clips and deploys it to
+`backend/models/cnn.pt` only if it is at least as accurate as the model being served (old one backed
+up). Result: `ml/logs/canonical_retrain_report.json`. Run on 15-Oct-2026: CNN 95.95% (best val 96.26% at
+epoch 38, early stop at 53, 16 min on CPU) vs 87.38% for the raw-pose model served the same way; deployed.
+The raw-pose model is in `backend/models/backup/`. For the BiLSTM add `--models bilstm`.
+
 #### The in-app alternative: `/contribute`
 
-Filming and running `preprocess.py` is the path above. `/contribute` is a
-lighter way to add a *single* clip from the browser: click record, get both
-hands up during the short "get ready" countdown, and the page captures the same
-per-frame landmark features the models train on, writing one `.npy` file plus a
-`manifest.jsonl` line under `ml/data/contributed/<word>/`.
+1. **Record.** The page records a ~3 s webcam clip in the browser (MediaRecorder) and uploads the
+   video itself (`POST /api/contribute/video?label=<word>`).
+2. **Store.** The raw video is kept in `ml/data/contributed_videos/<word>/<timestamp>.webm`, with a
+   `manifest.jsonl` line per clip (accepted or rejected, and why).
+3. **Extract.** The same MediaPipe Holistic extraction used for INCLUDE turns it into a `(60, 225)`
+   tensor in `ml/data/processed/custom/<word>__contrib_<timestamp>.npy` — but only if hands were
+   seen in at least 25% of frames, so empty or off-camera clips never reach training. The page
+   also shows what the current model thinks the clip is.
+4. **Train.** "Retrain with contributions" (or `python scripts/retrain_with_contributions.py` from
+   `ml/`) ingests any unprocessed videos, trains the CNN, evaluates it on the fixed INCLUDE test
+   split and deploys it to `backend/models/cnn.pt` **only if accuracy did not drop by more than
+   3 points** (the old model is backed up to `backend/models/backup/`). The server reloads the
+   new weights without a restart. A new word becomes a new class.
 
-Deliberately **not** included: automatic retraining on submission. A single,
-unreviewed clip from one contributor has no held-out split, no quality check,
-and can quietly skew a whole class — the normal failure mode of
-"upload-and-retrain" features. Turning a batch of reviewed clips into a new
-training run stays a deliberate offline step: feed the reviewed `.npy` files
-into `preprocess.py` and rerun training as usual. `GET /api/contributions`
-reports how many clips are waiting, per word.
-
----
+Contributed clips are always **train-only** (`_train.make_splits`), so the 642-clip INCLUDE test
+set and every reported number stay comparable. The BiLSTM-vs-CNN research checkpoints and
+`logs/comparison.json` are never overwritten — retrained weights are `ml/models/<model>_contrib.pt`.
+Training needs PyTorch; inference does not (see `backend/npmodels.py`).
 
 ## 8. Repository layout
 
@@ -535,7 +589,10 @@ Base URL `http://localhost:8000`.
 | `GET` | `/api/vocabulary` | The 261 signable words |
 | `POST` | `/api/practice/score` | Score a recorded attempt against the reference |
 | `GET` | `/api/practice/words` | Words that have a reference recording |
-| `GET` | `/api/contributions` | Per-word counts of `/contribute` clips awaiting offline review |
+| `GET` | `/api/contributions` | Per-word counts of stored videos and accepted training tensors |
+| `POST` | `/api/contribute/video?label=` | Raw video body → stored, skeleton extracted, added to training |
+| `POST` / `GET` | `/api/contribute/retrain` | Start / poll a retrain on INCLUDE + contributions |
+| `GET` | `/api/practice/reference/{label}` | 3-D hand landmarks of a word's reference clip (Practice 3-D view) |
 | `GET` | `/api/monitor` | Live-recognition health: frames processed, hand visibility, mean confidence, drift alarm (`backend/monitor.py`) |
 | `POST` | `/api/auth/register` | Create an account. Body: `{username, password, displayName}` |
 | `POST` | `/api/auth/login` | Exchange credentials for a bearer token |
@@ -647,8 +704,18 @@ cd backend
 
 # English -> ISL gloss rules, and contribution storage
 ..\nndl\Scripts\python.exe test_gloss.py         # 17 assertions
-..\nndl\Scripts\python.exe test_contrib.py       # 12 assertions
+..\nndl\Scripts\python.exe test_contrib.py       # 26 assertions: video storage, hand gate, train-only split
 ..\nndl\Scripts\python.exe test_monitor.py       # 10 assertions (production drift monitor)
+
+# Torch-free inference reproduces the published numbers exactly (642 test clips)
+..\nndl\Scripts\python.exe test_npmodels.py      # CNN 94.55%, BiLSTM 91.74%
+..\nndl\Scripts\python.exe test_segmenter.py     # 10 assertions: live sign segmentation
+..\nndl\Scripts\python.exe test_live_conditions.py  # 8 assertions: camera position, live window, left-handed
+
+# Whole app end to end, in-process: every API the UI calls, the live
+# WebSocket record -> classify -> practice-score loop, video contribution,
+# accounts, results page. No browser or camera needed.
+..\nndl\Scripts\python.exe smoke_test.py         # 28 checks
 
 cd ..\frontend
 
@@ -659,6 +726,10 @@ node scripts/classcheck.mjs
 # Fails on any console error or a page that renders nothing.
 npm run build
 node scripts/routecheck.mjs                       # 11 routes
+
+# Practice 3-D hand view (hand3dDraw.js) on a real reference clip: stable size,
+# fits the canvas, mirrored like the webcam, all 21 bones drawn.
+node scripts/hand3dcheck.mjs
 
 # The sign-trail renderer (signTrailDraw.js), driven directly with real
 # bundled landmark data — geometry, glow, and the copper->cyan colour ramp.

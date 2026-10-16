@@ -233,19 +233,10 @@ export function Parallax({ children, distance = 60, className = "" }) {
  * straightens when you stop. Gives the page a sense of weight.
  * ------------------------------------------------------------------ */
 export function ScrollSkew({ children, className = "", intensity = 1 }) {
-  const reduced = useReducedMotionPref();
-  const { scrollY } = useScroll();
-  const velocity = useVelocity(scrollY);
-  const smooth = useSpring(velocity, { stiffness: 250, damping: 42, mass: 0.35 });
-  const skew = useTransform(smooth, [-2200, 0, 2200], [-3.2 * intensity, 0, 3.2 * intensity], {
-    clamp: true,
-  });
-
-  return (
-    <motion.div className={className} style={reduced ? undefined : { skewY: skew }}>
-      {children}
-    </motion.div>
-  );
+  // Disabled for performance: skewing whole page sections re-rasterised
+  // large layers on every scroll tick. Kept as a pass-through so call sites
+  // need no change.
+  return <div className={className}>{children}</div>;
 }
 
 /* ------------------------------------------------------------------ *

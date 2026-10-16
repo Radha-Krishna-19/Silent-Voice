@@ -27,6 +27,10 @@ or open the hosted link once the backend is deployed.
 | MT-14 | Contribute | Enter a word, record a clip | "Saved" message; review-queue count increases | | Not run | |
 | MT-15 | Offline backend | Stop the backend, reload Live | Page says the server is unreachable, no fake output | | Not run | |
 | MT-16 | Hosted link | Open the GitHub Pages link on a phone | Pages load; first request may take ~1 min while the server wakes | | Not run | |
+| MT-17 | Live accuracy | Sign 20 different words from the vocabulary one at a time, lowering hands between words, 2 signers if possible | Record correct/20 per signer. This is the live accuracy figure; nothing may be claimed before it is measured | | Not run | |
+| MT-18 | Distance | Repeat 5 words at arm's length, then sitting close (face fills frame) | Captions still appear for both distances; note any drop | | Not run | |
+| MT-19 | Left-handed | Sign 5 words left-handed with the Settings toggle off, then on | Toggle on reads noticeably better | | Not run | |
+| MT-20 | Segmentation | Sign two words back to back with a pause and hands lowered | Two separate captions, one per word; hands kept up produces one long guess, as documented | | Not run | |
 
 ## Qualitative usability observations
 After the session, note briefly (1-5 scale plus a sentence):

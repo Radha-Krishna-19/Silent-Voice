@@ -1,0 +1,52 @@
+{
+  "model": "cnn as deployed (see canonical_retrain_report.json), served through canonicalize_pose; raw = same model WITHOUT canonicalisation",
+  "test_clips": 642,
+  "body_position": {
+    "as recorded (INCLUDE position)": {
+      "raw": 0.3909657320872274,
+      "canonical": 0.9595015576323987
+    },
+    "signer 5% to the side": {
+      "raw": 0.09501557632398754,
+      "canonical": 0.9595015576323987
+    },
+    "signer 10% to the side": {
+      "raw": 0.012461059190031152,
+      "canonical": 0.9595015576323987
+    },
+    "signer 10% lower in frame": {
+      "raw": 0.08255451713395638,
+      "canonical": 0.9595015576323987
+    },
+    "signer 1.3x closer": {
+      "raw": 0.10903426791277258,
+      "canonical": 0.9595015576323987
+    },
+    "webcam-like: 2.5x closer, lower": {
+      "raw": 0.014018691588785047,
+      "canonical": 0.9595015576323987
+    },
+    "webcam-like: 3x closer, off-centre": {
+      "raw": 0.009345794392523364,
+      "canonical": 0.9595015576323987
+    }
+  },
+  "live_window": {
+    "2.5 s": {
+      "whole 5 s buffer (old)": 0.7928348909657321,
+      "cropped to the sign (now)": 0.9501557632398754
+    },
+    "3.0 s": {
+      "whole 5 s buffer (old)": 0.883177570093458,
+      "cropped to the sign (now)": 0.9517133956386293
+    },
+    "4.0 s": {
+      "whole 5 s buffer (old)": 0.9454828660436138,
+      "cropped to the sign (now)": 0.9595015576323987
+    }
+  },
+  "left_handed": {
+    "mirrored_read_as_is": 0.19626168224299065,
+    "flipped_back": 0.9595015576323987
+  }
+}

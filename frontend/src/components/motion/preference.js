@@ -28,10 +28,12 @@ import { useEffect, useState } from "react";
  * changes broadcast to every mounted component through a storage event plus a
  * custom event (localStorage's own event does not fire in the tab that wrote).
  */
-const KEY = "silentvoice.motion.v1";
+// v2: default changed to "off" (lite) — reliability over decoration. The old
+// key is ignored so a stored "on" from before does not bring the heavy effects back.
+const KEY = "silentvoice.motion.v2";
 export const NOTICE_KEY = "silentvoice.motion.notice.v1";
 export const EVENT = "silentvoice:motion-change";
-export const DEFAULT_MODE = "on";
+export const DEFAULT_MODE = "off";
 
 export function getMotionMode() {
   try {

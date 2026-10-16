@@ -64,5 +64,99 @@ check("manifest records every save",
 contrib.save_contribution(root, "water", frames[:10])
 check("different word goes to its own folder", (root / "water").is_dir() and len(list((root / "water").glob("*.npy"))) == 1)
 
+# --- video contributions: accept path ------------------------------------ #
+# A real recording needs a person on camera; here the extraction step is
+# replaced by a stub that returns hand-bearing frames, so storage, the hand
+# gate, tensor writing, manifest and summary are all exercised for real.
+vroot = Path(tempfile.mkdtemp())
+contrib.VIDEO_DIR = vroot / "videos"
+contrib.TENSOR_DIR = vroot / "custom"
+_real_extract = contrib.extract_landmarks
+
+
+def _fake(frac):
+    def f(video):
+        n = 40
+        raw = np.zeros((n, 225), np.float32)
+        k = int(n * frac)
+        raw[:k, 0:63] = np.random.rand(k, 63)          # left hand seen in k frames
+        raw[:, 126:225] = np.random.rand(n, 99)        # pose always seen
+        return raw, n, k
+    return f
+
+
+contrib.extract_landmarks = _fake(0.9)
+sv = contrib.save_video("Thank You", b"fake-webm-bytes", "video/webm")
+check("video stored under contributed_videos/<word>/", Path(sv["video"]).exists() and Path(sv["video"]).parent.name == "thank_you")
+res = contrib.extract_to_training(sv)
+tensors = list(contrib.TENSOR_DIR.glob("thank_you__contrib_*.npy"))
+check("clip with hands -> tensor written to processed/custom", res["tensor_saved"] and len(tensors) == 1, str(res))
+arr = np.load(tensors[0])
+check("tensor has the training shape (60, 225) float32", arr.shape == (60, 225) and arr.dtype == np.float32)
+check("tensor name follows <label>__<id> convention", tensors[0].stem.split("__")[0] == "thank_you")
+
+contrib.extract_landmarks = _fake(0.05)
+sv2 = contrib.save_video("thank you", b"another", "video/webm")
+res2 = contrib.extract_to_training(sv2)
+check("clip where hands are rarely visible is rejected", not res2["tensor_saved"] and "hands" in res2.get("reason", ""))
+check("rejected clip's video is still kept", Path(sv2["video"]).exists())
+
+man = [json.loads(l) for l in (contrib.VIDEO_DIR / "thank_you" / "manifest.jsonl").read_text().splitlines()]
+check("manifest logs accepted and rejected clips", [e["accepted"] for e in man] == [True, False], str(man))
+
+s = contrib.summary(["thank_you"])
+check("summary counts videos and tensors", s["videos"] == 2 and s["tensors"] == 1 and s["words"]["thank_you"]["in_model"])
+
+# ingest_pending: a video dropped in by hand gets extracted once, never twice
+contrib.extract_landmarks = _fake(0.9)
+(contrib.VIDEO_DIR / "water").mkdir(parents=True)
+(contrib.VIDEO_DIR / "water" / "manual1.mp4").write_bytes(b"x")
+first = contrib.ingest_pending()
+second = contrib.ingest_pending()
+check("ingest_pending extracts new videos only (and skips rejected ones)",
+      len(first) == 1 and first[0]["slug"] == "water" and second == [], f"{first} / {second}")
+
+try:
+    contrib.save_video("", b"x")
+    check("empty label refused", False)
+except ValueError:
+    check("empty label refused", True)
+try:
+    contrib.save_video("big", b"0" * (contrib.MAX_VIDEO_BYTES + 1))
+    check("oversized upload refused", False)
+except ValueError:
+    check("oversized upload refused", True)
+contrib.extract_landmarks = _real_extract
+
+# --- training split: contributions never leak into val/test --------------- #
+sys.path.insert(0, str(Path(__file__).parent.parent / "ml" / "scripts"))
+try:
+    import torch  # noqa: F401
+except ImportError:
+    # make_splits itself is pure Python; stub torch just enough to import _train
+    import types
+    _t = types.ModuleType("torch")
+    _t.nn = types.ModuleType("torch.nn")
+    _t.nn.Module = object
+    _t.Tensor = object
+    _t.utils = types.ModuleType("torch.utils")
+    _t.utils.data = types.ModuleType("torch.utils.data")
+    _t.utils.data.Dataset = object
+    _t.utils.data.DataLoader = object
+    sys.modules.update({"torch": _t, "torch.nn": _t.nn, "torch.utils": _t.utils, "torch.utils.data": _t.utils.data})
+try:
+    from _train import make_splits
+    inc = [Path(f"data/processed/include/w{c}__{i:04d}.npy") for c in range(5) for i in range(10)]
+    cus = [Path(f"data/processed/custom/w{c}__contrib_{i}.npy") for c in range(5) for i in range(3)]
+    cus.append(Path("data/processed/custom/brandnew__contrib_1.npy"))
+    labels = sorted({p.stem.split("__")[0] for p in inc + cus})
+    tr0, va0, te0 = make_splits(inc, labels)
+    tr1, va1, te1 = make_splits(inc + cus, labels)
+    check("adding contributions leaves val/test identical", list(va0) == list(va1) and list(te0) == list(te1))
+    check("every contribution lands in train", all(p in tr1 for p in cus))
+    check("a brand-new word with one clip does not break the split", Path("data/processed/custom/brandnew__contrib_1.npy") in tr1)
+except ImportError as exc:      # torch not installed: _train imports it
+    print(f"  SKIP  split tests ({exc})")
+
 print(f"\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)
